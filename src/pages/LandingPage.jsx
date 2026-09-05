@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import { 
   Search, 
@@ -64,38 +65,120 @@ const Navbar = ({ onNavigate }) => {
   );
 };
 
-const Hero = ({ onLogin }) => (
-  <div className="relative h-[400px] sm:h-[480px] flex flex-col justify-center items-center text-center">
-    {/* Background Image Placeholder */}
-    <div className="absolute inset-0 z-0">
-      <div className="absolute inset-0 bg-[#1D315F]/70 z-10"></div>
-      <img 
-        src="https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=2070&auto=format&fit=crop" 
-        alt="Audience" 
-        className="w-full h-full object-cover"
-      />
-    </div>
-    
-    <div className="relative z-20 w-full max-w-4xl px-4 flex flex-col items-center mt-[-40px]">
-      <p className="text-white text-xs sm:text-sm md:text-base mb-6 md:mb-8 px-4 leading-relaxed max-w-3xl">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-      </p>
+const Hero = ({ onLogin }) => {
+  const [showLogin, setShowLogin] = useState(false);
+  const [nip, setNip] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const response = await api.post('/login', { nip, password });
       
-      <div className="w-full max-w-2xl relative flex items-center mb-4 md:mb-6 shadow-lg rounded-md bg-white">
-        <Search className="absolute left-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-        <input 
-          type="text" 
-          placeholder="Cari pelatihan..." 
-          className="w-full py-3 sm:py-4 pl-10 sm:pl-12 pr-4 rounded-md bg-transparent border-none focus:ring-2 focus:ring-[#3FCDC1] outline-none text-sm sm:text-base text-gray-700 placeholder-gray-400"
+      const token = response.data.access_token;
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      onLogin(); // Navigate to dashboard
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login gagal, periksa kredensial Anda');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="relative h-[500px] sm:h-[580px] flex flex-col justify-center items-center text-center">
+      {/* Background Image Placeholder */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-[#1D315F]/70 z-10"></div>
+        <img 
+          src="https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=2070&auto=format&fit=crop" 
+          alt="Audience" 
+          className="w-full h-full object-cover"
         />
       </div>
       
-      <button onClick={onLogin} className="bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base rounded-md hover:bg-[#0d9668] transition-colors shadow-md">
-        Masuk / NIP Login
-      </button>
+      <div className="relative z-20 w-full max-w-4xl px-4 flex flex-col items-center mt-[-40px]">
+        <p className="text-white text-xs sm:text-sm md:text-base mb-6 md:mb-8 px-4 leading-relaxed max-w-3xl">
+          Tingkatkan kompetensi Anda melalui platform e-learning terintegrasi dari BKPSDM Kabupaten Buleleng.
+        </p>
+        
+        {!showLogin ? (
+          <>
+            <div className="w-full max-w-2xl relative flex items-center mb-4 md:mb-6 shadow-lg rounded-md bg-white">
+              <Search className="absolute left-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+              <input 
+                type="text" 
+                placeholder="Cari pelatihan..." 
+                className="w-full py-3 sm:py-4 pl-10 sm:pl-12 pr-4 rounded-md bg-transparent border-none focus:ring-2 focus:ring-[#3FCDC1] outline-none text-sm sm:text-base text-gray-700 placeholder-gray-400"
+              />
+            </div>
+            
+            <button onClick={() => setShowLogin(true)} className="bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base rounded-md hover:bg-[#0d9668] transition-colors shadow-md">
+              Masuk / NIP Login
+            </button>
+          </>
+        ) : (
+          <form onSubmit={handleLoginSubmit} className="w-full max-w-sm bg-white p-6 rounded-lg shadow-xl text-left">
+            <h3 className="text-[#1D315F] font-bold text-lg mb-4 text-center">Login Sistem</h3>
+            
+            {error && (
+              <div className="bg-red-100 text-red-600 p-2 rounded text-sm mb-4">
+                {error}
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">NIP / Username</label>
+              <input 
+                type="text" 
+                value={nip}
+                onChange={(e) => setNip(e.target.value)}
+                required
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#3FCDC1]"
+                placeholder="Masukkan NIP"
+              />
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Kata Sandi</label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#3FCDC1]"
+                placeholder="Masukkan Kata Sandi"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <button 
+                type="button" 
+                onClick={() => setShowLogin(false)} 
+                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="flex-1 bg-[#10B981] text-white font-semibold py-2 rounded-md hover:bg-[#0d9668] transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Proses...' : 'Masuk'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const FeaturesBanner = () => (
   <div className="bg-[#1D315F] text-white py-6 relative z-20 shadow-xl">

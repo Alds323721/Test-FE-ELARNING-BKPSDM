@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { User, LogOut, Camera, X, Lock, Eye, EyeOff } from 'lucide-react';
+import api from '../api/axios';
 
 const ProfileDropdown = ({ onLogout }) => {
    const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +12,14 @@ const ProfileDropdown = ({ onLogout }) => {
    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
    const [showNewPassword, setShowNewPassword] = useState(false);
    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+   
+   // Form state for passwords
+   const [currentPassword, setCurrentPassword] = useState('');
+   const [newPassword, setNewPassword] = useState('');
+   const [confirmPassword, setConfirmPassword] = useState('');
+   const [passwordError, setPasswordError] = useState('');
+   const [passwordSuccess, setPasswordSuccess] = useState('');
+
    const dropdownRef = useRef(null);
    const fileInputRef = useRef(null);
 
@@ -53,8 +62,12 @@ const ProfileDropdown = ({ onLogout }) => {
         {isOpen && (
           <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
             <div className="px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-bold text-[#1D315F]">Budi Santoso</p>
-              <p className="text-xs text-gray-500">budi.santoso@bkpsdm.go.id</p>
+              <p className="text-sm font-bold text-[#1D315F]">
+                {JSON.parse(localStorage.getItem('user') || '{}').nama || 'Budi Santoso'}
+              </p>
+              <p className="text-xs text-gray-500">
+                NIP: {JSON.parse(localStorage.getItem('user') || '{}').nip || '-'}
+              </p>
             </div>
             
             <button
@@ -82,6 +95,8 @@ const ProfileDropdown = ({ onLogout }) => {
             <div className="border-t border-gray-100 mt-1 pt-1">
               <button
                 onClick={() => {
+                  localStorage.removeItem('access_token');
+                  localStorage.removeItem('user');
                   setIsOpen(false);
                   onLogout();
                 }}
@@ -180,17 +195,52 @@ const ProfileDropdown = ({ onLogout }) => {
               </button>
             </div>
 
-             <form onSubmit={(e) => {
+             <form onSubmit={async (e) => {
                  e.preventDefault();
+                 setPasswordError('');
+                 setPasswordSuccess('');
+                 
+                 if (newPassword !== confirmPassword) {
+                   setPasswordError('Konfirmasi password tidak cocok');
+                   return;
+                 }
+                 
                  setIsPasswordSubmitting(true);
-                 setTimeout(() => {
+                 try {
+                   await api.post('/change-password', {
+                     password_sebelumnya: currentPassword,
+                     password_baru: newPassword,
+                     password_baru_confirmation: confirmPassword
+                   });
+                   setPasswordSuccess('Password berhasil diubah!');
+                   setTimeout(() => {
+                     setIsPasswordSubmitting(false);
+                     setShowPasswordModal(false);
+                     setShowCurrentPassword(false);
+                     setShowNewPassword(false);
+                     setShowConfirmPassword(false);
+                     setCurrentPassword('');
+                     setNewPassword('');
+                     setConfirmPassword('');
+                     setPasswordSuccess('');
+                   }, 1500);
+                 } catch (err) {
                    setIsPasswordSubmitting(false);
-                   setShowPasswordModal(false);
-                   setShowCurrentPassword(false);
-                   setShowNewPassword(false);
-                   setShowConfirmPassword(false);
-                 }, 1500);
+                   setPasswordError(err.response?.data?.message || 'Terjadi kesalahan');
+                 }
                }} className="space-y-4">
+               
+               {passwordError && (
+                 <div className="bg-red-100 text-red-600 p-2 rounded text-sm text-center">
+                   {passwordError}
+                 </div>
+               )}
+               {passwordSuccess && (
+                 <div className="bg-green-100 text-green-600 p-2 rounded text-sm text-center">
+                   {passwordSuccess}
+                 </div>
+               )}
+
                <div>
                  <label className="block text-sm font-semibold text-[#1D315F] mb-2">
                    Password Saat Ini
@@ -198,6 +248,9 @@ const ProfileDropdown = ({ onLogout }) => {
                  <div className="relative">
                    <input
                      type={showCurrentPassword ? "text" : "password"}
+                     value={currentPassword}
+                     onChange={(e) => setCurrentPassword(e.target.value)}
+                     required
                      placeholder="Masukkan password saat ini"
                      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
                    />
@@ -217,6 +270,9 @@ const ProfileDropdown = ({ onLogout }) => {
                  <div className="relative">
                    <input
                      type={showNewPassword ? "text" : "password"}
+                     value={newPassword}
+                     onChange={(e) => setNewPassword(e.target.value)}
+                     required
                      placeholder="Masukkan password baru"
                      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
                    />
@@ -236,6 +292,9 @@ const ProfileDropdown = ({ onLogout }) => {
                  <div className="relative">
                    <input
                      type={showConfirmPassword ? "text" : "password"}
+                     value={confirmPassword}
+                     onChange={(e) => setConfirmPassword(e.target.value)}
+                     required
                      placeholder="Konfirmasi password baru"
                      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
                    />

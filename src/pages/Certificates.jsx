@@ -2,7 +2,7 @@ import { useState } from 'react';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import sertifikatImg from '../assets/Sertifikat.png';
-import ProfileDropdown from './ProfileDropdown';
+import ProfileDropdown from '../components/ProfileDropdown';
 import {
   Search,
   Bell,

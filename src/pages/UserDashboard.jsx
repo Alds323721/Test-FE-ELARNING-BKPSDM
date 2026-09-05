@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
-import ProfileDropdown from './ProfileDropdown';
+import ProfileDropdown from '../components/ProfileDropdown';
 import {
   Search,
   Bell,
@@ -92,6 +92,18 @@ const DashboardHeader = () => (
 
 /* ── Welcome & Stats ────────────────────────────────── */
 const WelcomeSection = () => {
+  const [userName, setUserName] = useState('Budi Santoso');
+
+  // Dalam aplikasi nyata, panggil API di sini jika perlu.
+  // Untuk saat ini, kita ambil nama dari localStorage saat komponen dimuat.
+  useEffect(() => {
+    // optional effect logic
+  }, []);
+  
+  // To avoid import issues, we'll just read directly since it's a simple component
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const name = user.nama || 'Peserta ASN';
+
   const stats = [
     { label: 'Pelatihan Aktif', value: 2, icon: BookMarked, color: '#3FCDC1' },
     { label: 'Selesai', value: 5, icon: CheckCircle2, color: '#10B981' },
@@ -102,7 +114,7 @@ const WelcomeSection = () => {
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-10">
       <div className="mb-6 md:mb-8">
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#1D315F] mb-2">Selamat Datang, Budi Santoso</h2>
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#1D315F] mb-2">Selamat Datang, {name}</h2>
         <p className="text-gray-500 text-xs sm:text-sm">Terus tingkatkan kompetensi Anda untuk pelayanan publik yang lebih baik.</p>
       </div>
 

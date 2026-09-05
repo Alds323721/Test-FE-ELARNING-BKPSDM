@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3FCDC1;
+  --color-secondary: #1D315F;
+  --color-surface: #F4F8FB;
+  --color-text-primary: #1D315F;
+  --color-text-secondary: #6B7280;
+  --color-border: #E5E7EB;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+@layer base {
+  * {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif !important;
+  }
+  body {
+    @apply bg-white text-text-primary font-semibold;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-secondary font-semibold;
+  }
+}
+
+@layer utilities {
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

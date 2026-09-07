@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 1. Buat Instance Axios
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
+    baseURL: 'http://localhost:8000/api',
     headers: {
         'Accept': 'application/json', // Sangat penting agar Laravel tahu ini API
         'Content-Type': 'application/json'
@@ -13,11 +13,11 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
     // Ambil token yang tersimpan di localStorage (hasil dari login)
     const token = localStorage.getItem('access_token');
-    
+
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
 }, (error) => {
     return Promise.reject(error);

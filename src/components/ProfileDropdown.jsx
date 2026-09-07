@@ -15,6 +15,9 @@ const ProfileDropdown = ({ onLogout }) => {
    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
    
    // Form state for passwords
+   const [passwordStep, setPasswordStep] = useState(1);
+   const [email, setEmail] = useState('');
+   const [otp, setOtp] = useState('');
    const [currentPassword, setCurrentPassword] = useState('');
    const [newPassword, setNewPassword] = useState('');
    const [confirmPassword, setConfirmPassword] = useState('');
@@ -85,6 +88,8 @@ const ProfileDropdown = ({ onLogout }) => {
             <button
               onClick={() => {
                 setShowPasswordModal(true);
+                setPasswordStep(1);
+                setEmail(JSON.parse(localStorage.getItem('user') || '{}').email || '');
                 setIsOpen(false);
               }}
               className="w-full px-4 py-2.5 text-left text-sm font-semibold text-[#1D315F] hover:bg-gray-50 transition-colors flex items-center gap-3"
@@ -201,6 +206,23 @@ const ProfileDropdown = ({ onLogout }) => {
                  setPasswordError('');
                  setPasswordSuccess('');
                  
+                 if (passwordStep === 1) {
+                   setIsPasswordSubmitting(true);
+                   try {
+                     await api.post('/change-password/request-otp', { email });
+                     setPasswordSuccess('OTP telah dikirim ke email Anda!');
+                     setTimeout(() => {
+                       setPasswordSuccess('');
+                       setPasswordStep(2);
+                       setIsPasswordSubmitting(false);
+                     }, 1500);
+                   } catch (err) {
+                     setIsPasswordSubmitting(false);
+                     setPasswordError(err.response?.data?.message || 'Terjadi kesalahan saat meminta OTP');
+                   }
+                   return;
+                 }
+                 
                  if (newPassword !== confirmPassword) {
                    setPasswordError('Konfirmasi password tidak cocok');
                    return;
@@ -208,7 +230,8 @@ const ProfileDropdown = ({ onLogout }) => {
                  
                  setIsPasswordSubmitting(true);
                  try {
-                   await api.post('/change-password', {
+                   await api.post('/change-password/verify', {
+                     otp,
                      password_sebelumnya: currentPassword,
                      password_baru: newPassword,
                      password_baru_confirmation: confirmPassword
@@ -217,17 +240,19 @@ const ProfileDropdown = ({ onLogout }) => {
                    setTimeout(() => {
                      setIsPasswordSubmitting(false);
                      setShowPasswordModal(false);
+                     setPasswordStep(1);
                      setShowCurrentPassword(false);
                      setShowNewPassword(false);
                      setShowConfirmPassword(false);
                      setCurrentPassword('');
                      setNewPassword('');
                      setConfirmPassword('');
+                     setOtp('');
                      setPasswordSuccess('');
                    }, 1500);
                  } catch (err) {
                    setIsPasswordSubmitting(false);
-                   setPasswordError(err.response?.data?.message || 'Terjadi kesalahan');
+                   setPasswordError(err.response?.data?.message || 'Terjadi kesalahan saat memverifikasi');
                  }
                }} className="space-y-4">
                
@@ -242,72 +267,108 @@ const ProfileDropdown = ({ onLogout }) => {
                  </div>
                )}
 
-               <div>
-                 <label className="block text-sm font-semibold text-[#1D315F] mb-2">
-                   Password Saat Ini
-                 </label>
-                 <div className="relative">
-                   <input
-                     type={showCurrentPassword ? "text" : "password"}
-                     value={currentPassword}
-                     onChange={(e) => setCurrentPassword(e.target.value)}
-                     required
-                     placeholder="Masukkan password saat ini"
-                     className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
-                   />
-                   <button
-                     type="button"
-                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#1D315F] transition-colors"
-                   >
-                     {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                   </button>
-                 </div>
-               </div>
-               <div>
-                 <label className="block text-sm font-semibold text-[#1D315F] mb-2">
-                   Password Baru
-                 </label>
-                 <div className="relative">
-                   <input
-                     type={showNewPassword ? "text" : "password"}
-                     value={newPassword}
-                     onChange={(e) => setNewPassword(e.target.value)}
-                     required
-                     placeholder="Masukkan password baru"
-                     className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
-                   />
-                   <button
-                     type="button"
-                     onClick={() => setShowNewPassword(!showNewPassword)}
-                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#1D315F] transition-colors"
-                   >
-                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                   </button>
-                 </div>
-               </div>
-               <div>
-                 <label className="block text-sm font-semibold text-[#1D315F] mb-2">
-                   Konfirmasi Password Baru
-                 </label>
-                 <div className="relative">
-                   <input
-                     type={showConfirmPassword ? "text" : "password"}
-                     value={confirmPassword}
-                     onChange={(e) => setConfirmPassword(e.target.value)}
-                     required
-                     placeholder="Konfirmasi password baru"
-                     className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
-                   />
-                   <button
-                     type="button"
-                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#1D315F] transition-colors"
-                   >
-                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                   </button>
-                 </div>
-               </div>
+               {passwordStep === 1 ? (
+                 <>
+                   <div>
+                     <label className="block text-sm font-semibold text-[#1D315F] mb-2">
+                       Email Akun
+                     </label>
+                     <input
+                       type="email"
+                       value={email}
+                       onChange={(e) => setEmail(e.target.value)}
+                       required
+                       placeholder="Masukkan email Anda"
+                       className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
+                     />
+                     <p className="text-xs text-gray-500 mt-2">
+                       Kode OTP akan dikirimkan ke email ini untuk keperluan verifikasi keamanan.
+                     </p>
+                   </div>
+                 </>
+               ) : (
+                 <>
+                   <div>
+                     <label className="block text-sm font-semibold text-[#1D315F] mb-2">
+                       Kode OTP (6 digit)
+                     </label>
+                     <input
+                       type="text"
+                       value={otp}
+                       onChange={(e) => setOtp(e.target.value)}
+                       required
+                       placeholder="Masukkan kode OTP dari email"
+                       className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold tracking-widest"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-sm font-semibold text-[#1D315F] mb-2">
+                       Password Saat Ini
+                     </label>
+                     <div className="relative">
+                       <input
+                         type={showCurrentPassword ? "text" : "password"}
+                         value={currentPassword}
+                         onChange={(e) => setCurrentPassword(e.target.value)}
+                         required
+                         placeholder="Masukkan password saat ini"
+                         className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
+                       />
+                       <button
+                         type="button"
+                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#1D315F] transition-colors"
+                       >
+                         {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                       </button>
+                     </div>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-semibold text-[#1D315F] mb-2">
+                       Password Baru
+                     </label>
+                     <div className="relative">
+                       <input
+                         type={showNewPassword ? "text" : "password"}
+                         value={newPassword}
+                         onChange={(e) => setNewPassword(e.target.value)}
+                         required
+                         placeholder="Masukkan password baru"
+                         className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
+                       />
+                       <button
+                         type="button"
+                         onClick={() => setShowNewPassword(!showNewPassword)}
+                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#1D315F] transition-colors"
+                       >
+                         {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                       </button>
+                     </div>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-semibold text-[#1D315F] mb-2">
+                       Konfirmasi Password Baru
+                     </label>
+                     <div className="relative">
+                       <input
+                         type={showConfirmPassword ? "text" : "password"}
+                         value={confirmPassword}
+                         onChange={(e) => setConfirmPassword(e.target.value)}
+                         required
+                         placeholder="Konfirmasi password baru"
+                         className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
+                       />
+                       <button
+                         type="button"
+                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#1D315F] transition-colors"
+                       >
+                         {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                       </button>
+                     </div>
+                   </div>
+                 </>
+               )}
 
                <div className="flex gap-3 pt-2">
                  <button
@@ -325,10 +386,10 @@ const ProfileDropdown = ({ onLogout }) => {
                    {isPasswordSubmitting ? (
                      <>
                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                       Menyimpan...
+                       {passwordStep === 1 ? 'Mengirim...' : 'Menyimpan...'}
                      </>
                    ) : (
-                     'Simpan'
+                     passwordStep === 1 ? 'Kirim OTP' : 'Simpan'
                    )}
                  </button>
                </div>

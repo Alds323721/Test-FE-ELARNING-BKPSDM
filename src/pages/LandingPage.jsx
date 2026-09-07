@@ -2,18 +2,18 @@ import { useState } from 'react';
 import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import heroImg from '../assets/Untitled-1.jpg.jpeg';
-import { 
-  Search, 
-  Users, 
-  HandHeart, 
-  Monitor, 
-  Landmark, 
-  Scale, 
-  Banknote, 
-  UserPlus, 
-  ShieldCheck, 
-  Clock, 
-  BookOpen, 
+import {
+  Search,
+  Users,
+  HandHeart,
+  Monitor,
+  Landmark,
+  Scale,
+  Banknote,
+  UserPlus,
+  ShieldCheck,
+  Clock,
+  BookOpen,
   Star,
   TrendingUp,
   Award,
@@ -45,7 +45,7 @@ const Navbar = ({ onLoginClick }) => (
   </nav>
 );
 
-const Hero = ({ showLogin, setShowLogin, onLogin }) => {
+const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
   const [nip, setNip] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -81,9 +81,9 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
       <div className="relative h-[500px] sm:h-[580px] flex flex-col justify-center items-center text-center">
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-[#1D315F]/70 z-10"></div>
-          <img 
-            src={heroImg} 
-            alt="Hero Background" 
+          <img
+            src={heroImg}
+            alt="Hero Background"
             className="w-full h-full object-cover"
           />
         </div>
@@ -93,13 +93,13 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
           </p>
           <div className="w-full max-w-2xl relative flex items-center mb-4 md:mb-6 shadow-lg rounded-md bg-white">
             <Search className="absolute left-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-            <input 
-              type="text" 
-              placeholder="Cari pelatihan..." 
+            <input
+              type="text"
+              placeholder="Cari pelatihan..."
               className="w-full py-3 sm:py-4 pl-10 sm:pl-12 pr-4 rounded-md bg-transparent border-none focus:ring-2 focus:ring-[#3FCDC1] outline-none text-sm sm:text-base text-gray-700 placeholder-gray-400"
             />
           </div>
-          <button onClick={() => setShowLogin(true)} className="bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base rounded-md hover:bg-[#0d9668] transition-colors shadow-md">
+          <button onClick={onLoginClick || (() => setShowLogin(true))} className="bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base rounded-md hover:bg-[#0d9668] transition-colors shadow-md">
             Masuk / NIP Login
           </button>
         </div>
@@ -189,8 +189,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
               <div className="mb-6">
                 <h3 className="text-[#1D315F] font-bold text-lg mb-1">Lupa Kata Sandi?</h3>
                 <p className="text-gray-500 text-xs font-semibold">
-                  {resetStep === 'email' 
-                    ? 'Masukkan email yang terdaftar untuk menerima kode OTP.' 
+                  {resetStep === 'email'
+                    ? 'Masukkan email yang terdaftar untuk menerima kode OTP.'
                     : 'Masukkan kode OTP yang dikirimkan ke email Anda dan kata sandi baru.'}
                 </p>
               </div>
@@ -203,8 +203,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                         <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <input 
-                        type="email" 
+                      <input
+                        type="email"
                         value={resetEmail}
                         onChange={(e) => setResetEmail(e.target.value)}
                         required
@@ -213,13 +213,13 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                       />
                     </div>
                   </div>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="w-full bg-[#1D315F] text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-[#152747] transition-colors text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md mb-3"
                   >
                     Kirim Kode OTP <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowForgotPassword(false)}
                     className="w-full bg-white text-gray-600 border border-gray-300 font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-gray-50 transition-colors text-xs sm:text-sm"
@@ -235,8 +235,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                         <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={resetOtp}
                         onChange={(e) => setResetOtp(e.target.value)}
                         required
@@ -252,7 +252,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                         <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <input 
+                      <input
                         type={showNewPassword ? 'text' : 'password'}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
@@ -260,8 +260,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                         className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400"
                         placeholder="Masukkan kata sandi baru"
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
@@ -269,13 +269,13 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                       </button>
                     </div>
                   </div>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="w-full bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-[#0d9668] transition-colors text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md mb-3"
                   >
                     Reset Kata Sandi <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setResetStep('email')}
                     className="w-full bg-white text-gray-600 border border-gray-300 font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-gray-50 transition-colors text-xs sm:text-sm"
@@ -293,8 +293,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     <User className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={nip}
                     onChange={(e) => setNip(e.target.value)}
                     required
@@ -310,7 +310,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <input 
+                  <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -318,8 +318,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                     className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400"
                     placeholder="Masukkan kata sandi akun"
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
@@ -330,7 +330,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6 gap-2">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <div 
+                  <div
                     onClick={() => setRemember(!remember)}
                     className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center cursor-pointer transition-colors ${remember ? 'bg-[#1D315F] border-[#1D315F]' : 'border-gray-300 bg-white'}`}
                   >
@@ -349,8 +349,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
                 </div>
               )}
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 className="w-full bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-[#0d9668] transition-colors text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
               >
@@ -364,7 +364,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
             </form>
           )}
 
-          <button 
+          <button
             onClick={() => { setShowLogin(false); setError(''); setNip(''); setPassword(''); setShowForgotPassword(false); setResetStep('email'); }}
             className="mt-3 sm:mt-4 text-xs font-semibold text-gray-400 hover:text-gray-600 text-center transition-colors"
           >
@@ -379,12 +379,12 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
 const FeaturesBanner = () => (
   <div className="bg-[#1D315F] text-white py-6 relative z-20 shadow-xl">
     <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-0 px-6 divide-y divide-white/10 md:divide-y-0 md:divide-x">
-      
+
       <div className="flex items-center gap-5 justify-start md:justify-center py-5 md:py-2 px-4">
         <div className="bg-white/10 p-3.5 rounded-full flex-shrink-0">
           <TrendingUp className="w-5 h-5 text-[#3FCDC1]" />
         </div>
-        <p className="text-[14px] text-gray-200 font-medium">Belajar sesuai ritme Anda</p>
+        <p className="text-[14px] text-gray-200 font-medium">Pembelajaran Berbasis Progres</p>
       </div>
 
       <div className="flex items-center gap-5 justify-start md:justify-center py-5 md:py-2 px-4">
@@ -431,7 +431,7 @@ const Categories = () => {
     <section className="py-12 md:py-20 px-4 sm:px-6 max-w-6xl mx-auto bg-white">
       <div className="text-center mb-8 md:mb-12">
         <h2 className="text-xl md:text-2xl font-bold text-[#1D315F] mb-2 md:mb-3">Komunitas & Kategori Pelatihan</h2>
-        <p className="text-gray-500 text-xs sm:text-sm px-4">Temukan berbagai topik pelatihan yang relevan dengan bidang<br className="hidden sm:block"/>tugas dan fungsi Anda di pemerintahan.</p>
+        <p className="text-gray-500 text-xs sm:text-sm px-4">Temukan berbagai topik pelatihan yang relevan dengan bidang<br className="hidden sm:block" />tugas dan fungsi Anda di pemerintahan.</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
         {categories.map((cat, idx) => (
@@ -452,7 +452,7 @@ const CourseCard = ({ image, category, title, instructor, jpl, modules, rating }
     </div>
     <div className="p-6 flex-1 flex flex-col">
       <h3 className="font-bold text-[#1D315F] text-[15px] leading-snug line-clamp-2 mb-4 flex-1">{title}</h3>
-      
+
       <div className="flex items-center gap-3 mb-5">
         <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-100 flex-shrink-0">
           <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${instructor}`} alt={instructor} />
@@ -461,7 +461,7 @@ const CourseCard = ({ image, category, title, instructor, jpl, modules, rating }
           <p className="text-[12px] font-bold text-[#1D315F]">{instructor}</p>
         </div>
       </div>
-      
+
       <div className="flex items-center justify-between text-[11px] text-gray-500 mb-5 border-t border-gray-100 pt-4">
         <div className="flex items-center gap-1.5 font-medium">
           <Clock className="w-3.5 h-3.5 text-gray-400" /> {jpl} JPL
@@ -473,7 +473,7 @@ const CourseCard = ({ image, category, title, instructor, jpl, modules, rating }
           <Star className="w-3.5 h-3.5 fill-current" /> {rating}
         </div>
       </div>
-      
+
       <button className="w-full py-2.5 border border-[#006A63] text-[#006A63] bg-[#FFFFFF] rounded-md text-[13px] font-bold hover:bg-[#006A63] hover:text-white transition-colors">
         Mulai Belajar
       </button>
@@ -551,7 +551,7 @@ const HowItWorks = () => {
       <div className="relative">
         {/* Connecting Line */}
         <div className="hidden md:block absolute top-6 left-[10%] right-[10%] h-[1px] bg-gray-200 z-0"></div>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
           {steps.map((step, idx) => (
             <div key={idx} className="flex flex-col items-center text-center">
@@ -568,7 +568,7 @@ const HowItWorks = () => {
   );
 };
 
-const Footer = ({ onNavigate }) => (
+const Footer = ({ onFooterLinkClick }) => (
   <footer className="bg-[#EAEFF4] pt-16 pb-8 border-t border-gray-200">
     <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
       <div className="md:col-span-5 pr-8">
@@ -577,22 +577,22 @@ const Footer = ({ onNavigate }) => (
           <span className="font-semibold text-xl text-[#1D315F]">Buleleng ASN Corpu</span>
         </div>
         <p className="text-[13px] text-gray-600 leading-relaxed mb-6">
-          Platform Digital ASN untuk pengembangan kompetensi<br/>dan peningkatan kapasitas secara berkelanjutan.
+          Platform Digital ASN untuk pengembangan kompetensi<br />dan peningkatan kapasitas secara berkelanjutan.
         </p>
         <p className="text-[11px] text-gray-500">
           © 2026 BKPSDM. Hak Cipta Dilindungi Undang-Undang. Platform Digital ASN.
         </p>
       </div>
-      
+
       <div className="md:col-span-3">
         <h4 className="font-bold text-[#1D315F] text-[14px] mb-6">Tautan Cepat</h4>
         <ul className="text-[13px] text-gray-600 space-y-3 font-medium">
-          <li><a href="#" className="hover:text-[#006A63] transition-colors">Tentang</a></li>
-          <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors">Komunitas</a></li>
-          <li><a href="#" className="hover:text-[#006A63] transition-colors">Bantuan</a></li>
+          <li><a href="#" onClick={(e) => { e.preventDefault(); onFooterLinkClick('about'); }} className="hover:text-[#006A63] transition-colors">Tentang</a></li>
+          <li><a href="#" onClick={(e) => { e.preventDefault(); onFooterLinkClick('community'); }} className="hover:text-[#006A63] transition-colors">Komunitas</a></li>
+          <li><a href="#" onClick={(e) => { e.preventDefault(); onFooterLinkClick('help-center'); }} className="hover:text-[#006A63] transition-colors">Bantuan</a></li>
         </ul>
       </div>
-      
+
       <div className="md:col-span-4">
         <h4 className="font-bold text-[#1D315F] text-[14px] mb-6">Kontak Kami</h4>
         <ul className="text-[13px] text-gray-600 space-y-4">
@@ -606,7 +606,7 @@ const Footer = ({ onNavigate }) => (
           </li>
           <li className="flex items-start gap-3">
             <MapPin className="w-4 h-4 text-[#3FCDC1] mt-0.5 flex-shrink-0" />
-            <span className="font-medium leading-relaxed">Gedung Kepegawaian Lt. 3, Jl. Protokol<br/>No. 1, Jakarta</span>
+            <span className="font-medium leading-relaxed">Gedung Kepegawaian Lt. 3, Jl. Protokol<br />No. 1, Jakarta</span>
           </li>
         </ul>
       </div>
@@ -616,17 +616,24 @@ const Footer = ({ onNavigate }) => (
 
 export default function LandingPage({ onLogin, onNavigate }) {
   const [showLogin, setShowLogin] = useState(false);
+  const [intendedRoute, setIntendedRoute] = useState('dashboard');
+
+  const handleLoginClick = (route = 'dashboard') => {
+    setIntendedRoute(route);
+    setShowLogin(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col font-sans bg-white">
-            <Navbar onLoginClick={() => setShowLogin(true)} />
+      <Navbar onLoginClick={() => handleLoginClick('dashboard')} />
       <main className="flex-grow pt-12 sm:pt-14">
-        <Hero showLogin={showLogin} setShowLogin={setShowLogin} onLogin={onLogin} />
+        <Hero showLogin={showLogin} setShowLogin={setShowLogin} onLogin={() => onLogin(intendedRoute)} onLoginClick={() => handleLoginClick('dashboard')} />
         <FeaturesBanner />
         <Categories />
         <PopularCourses />
         <HowItWorks />
       </main>
-      <Footer onNavigate={onNavigate} />
+      <Footer onFooterLinkClick={handleLoginClick} />
     </div>
   );
 }

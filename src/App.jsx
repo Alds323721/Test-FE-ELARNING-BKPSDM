@@ -91,10 +91,10 @@ function App() {
       return <HelpCenter onNavigate={handleNavigate} />
     }
 
-    return <LandingPage onLogin={() => {
+    return <LandingPage onLogin={(route = 'dashboard') => {
       setShowLoginSuccess(true);
       setTimeout(() => setShowLoginSuccess(false), 3000);
-      handleNavigate('dashboard');
+      handleNavigate(route);
     }} onNavigate={handleNavigate} />
   }
 

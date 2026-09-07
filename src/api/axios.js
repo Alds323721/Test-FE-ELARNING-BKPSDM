@@ -28,10 +28,13 @@ api.interceptors.response.use((response) => {
     return response;
 }, (error) => {
     if (error.response && error.response.status === 401) {
-        // Token tidak valid atau kadaluarsa -> paksa user logout
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        window.location.href = '/'; // Ke Landing Page (Login)
+        // Jangan redirect jika error 401 berasal dari percobaan login
+        if (error.config.url !== '/login') {
+            // Token tidak valid atau kadaluarsa -> paksa user logout
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.href = '/'; // Ke Landing Page (Login)
+        }
     }
     return Promise.reject(error);
 });

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { User, LogOut, Camera, X, Lock, Eye, EyeOff } from 'lucide-react';
 import api from '../api/axios';
+import userImg from '../assets/user.png';
 
 const ProfileDropdown = ({ onLogout }) => {
    const [isOpen, setIsOpen] = useState(false);
-   const [profileImage, setProfileImage] = useState('https://api.dicebear.com/7.x/avataaars/svg?seed=Budi');
+   const [profileImage, setProfileImage] = useState(userImg);
    const [showImageModal, setShowImageModal] = useState(false);
    const [showPasswordModal, setShowPasswordModal] = useState(false);
    const [isLoading, setIsLoading] = useState(false);

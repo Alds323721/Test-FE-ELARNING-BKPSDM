@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
+import heroImg from '../assets/Untitled-1.jpg.jpeg';
 import { 
   Search, 
   Users, 
@@ -81,8 +82,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin }) => {
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-[#1D315F]/70 z-10"></div>
           <img 
-            src="https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=2070&auto=format&fit=crop" 
-            alt="Audience" 
+            src={heroImg} 
+            alt="Hero Background" 
             className="w-full h-full object-cover"
           />
         </div>

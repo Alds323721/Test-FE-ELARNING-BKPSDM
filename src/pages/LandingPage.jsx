@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
-import heroImg from '../assets/Untitled-1.jpg.jpeg';
+import heroImg from '../assets/BG_BKPSDM.jpeg';
 import {
   Search,
   Users,
@@ -83,30 +83,56 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
 
   if (!showLogin) {
     return (
-      <div className="relative h-[500px] sm:h-[580px] flex flex-col justify-center items-center text-center">
+      <div className="relative h-[650px] sm:h-[700px] flex flex-col justify-center text-left">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-[#1D315F]/70 z-10"></div>
+          <div className="absolute inset-0 bg-[#1D315F]/80 z-10"></div>
           <img
             src={heroImg}
             alt="Hero Background"
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="relative z-20 w-full max-w-4xl px-4 flex flex-col items-center mt-[-40px]">
-          <p className="text-white text-xs sm:text-sm md:text-base mb-6 md:mb-8 px-4 leading-relaxed max-w-3xl">
-            Tingkatkan kompetensi Anda melalui platform e-learning terintegrasi dari BKPSDM Kabupaten Buleleng.
-          </p>
-          <div className="w-full max-w-2xl relative flex items-center mb-4 md:mb-6 shadow-lg rounded-md bg-white">
-            <Search className="absolute left-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-            <input
-              type="text"
-              placeholder="Cari pelatihan..."
-              className="w-full py-3 sm:py-4 pl-10 sm:pl-12 pr-4 rounded-md bg-transparent border-none focus:ring-2 focus:ring-[#3FCDC1] outline-none text-sm sm:text-base text-gray-700 placeholder-gray-400"
-            />
+        <div className="relative z-20 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col md:flex-row justify-between items-center mt-10">
+          
+          {/* Left Content */}
+          <div className="w-full md:w-1/2 text-white mb-10 md:mb-0">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-['Inter'] font-semibold text-white mb-4 md:mb-6 tracking-tight">BKPSDM</h1>
+            <p className="text-sm md:text-base lg:text-lg text-white/90 leading-relaxed max-w-xl mb-6">
+              Badan Kepegawaian dan Pengembangan Sumber Daya Manusia Kabupaten Buleleng bertugas membantu Bupati melaksanakan fungsi penunjang urusan pemerintahan di bidang kepegawaian serta pendidikan dan pelatihan.
+            </p>
+            <div className="inline-block mt-4">
+              <button onClick={onLoginClick || (() => setShowLogin(true))} className="bg-[#10B981] text-white font-bold py-3 px-10 text-sm sm:text-base rounded-full hover:bg-[#0d9668] transition-all shadow-[0_4px_14px_0_rgba(16,185,129,0.39)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.23)] hover:-translate-y-1">
+                Masuk / NIP Login
+              </button>
+            </div>
           </div>
-          <button onClick={onLoginClick || (() => setShowLogin(true))} className="bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base rounded-md hover:bg-[#0d9668] transition-colors shadow-md">
-            Masuk / NIP Login
-          </button>
+
+          {/* Right Content */}
+          <div className="w-full md:w-5/12 bg-white/10 backdrop-blur-sm border border-white/20 p-6 md:p-8 rounded-2xl shadow-xl">
+            <h3 className="text-white font-bold text-lg md:text-xl mb-5 border-b border-white/20 pb-3">Bidang Layanan</h3>
+            <ul className="space-y-4">
+              {[
+                'Bidang Penilaian Kinerja Aparatur dan Promosi (PKAP)',
+                'Bidang Pengadaan, Pemberhentian dan Informasi (PPI)',
+                'Bidang Mutasi',
+                'Bidang Pengembangan Kompetensi Aparatur (PKA)'
+              ].map((bidang, idx) => (
+                <li key={idx} className="flex items-start gap-3 text-white/90 text-sm md:text-base">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#3FCDC1]/20 border border-[#3FCDC1]/50 text-[#3FCDC1] flex items-center justify-center mt-0.5">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                  <span>{bidang}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Jam Pelayanan (Bottom Right) */}
+        <div className="absolute bottom-6 right-6 z-20 hidden md:block text-right text-white/80 text-xs bg-black/30 backdrop-blur-sm p-3 rounded-lg border border-white/10">
+          <p className="font-semibold text-[#3FCDC1] mb-1"><Clock className="inline w-3.5 h-3.5 mr-1" /> Jam Pelayanan</p>
+          <p>Senin - Kamis: 07.30 - 16.00</p>
+          <p>Jumat: 07.00 - 13.00</p>
         </div>
       </div>
     );
@@ -647,6 +673,58 @@ const PopularCourses = () => {
   );
 };
 
+const NewsSection = () => {
+  const news = [
+    {
+      title: "APEL PAGI, SATUKAN LANGKAH",
+      date: "07 September 2026",
+      image: "https://bkpsdm.bulelengkab.go.id/uploads/konten/thumbnail/28_apel-pagi-satukan-langkah_2026-09-07-08-35-21.jpeg",
+      url: "https://bkpsdm.bulelengkab.go.id/informasi/detail/berita/28_apel-pagi-satukan-langkah"
+    },
+    {
+      title: "BKPSDM Buleleng Ikut Aksi Bersih Lingkungan",
+      date: "04 September 2026",
+      image: "https://bkpsdm.bulelengkab.go.id/uploads/konten/thumbnail/76_bkpsdm-buleleng-ikut-aksi-bersih-lingkungan_2026-09-04-08-31-45.jpeg",
+      url: "https://bkpsdm.bulelengkab.go.id/informasi/detail/berita/76_bkpsdm-buleleng-ikut-aksi-bersih-lingkungan"
+    },
+    {
+      title: "Rekonsiliasi Data Peserta Tapera 2026",
+      date: "03 September 2026",
+      image: "https://bkpsdm.bulelengkab.go.id/uploads/konten/thumbnail/82_rekonsiliasi-data-peserta-tapera-2026_08-44-08.jpeg",
+      url: "https://bkpsdm.bulelengkab.go.id/informasi/detail/berita/82_rekonsiliasi-data-peserta-tapera-2026"
+    }
+  ];
+
+  return (
+    <section className="py-12 md:py-16 bg-[#E8EDF4] px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-10 md:mb-12">
+          <h2 className="text-xl md:text-2xl font-bold text-[#1D315F] mb-2 md:mb-3">Berita Terbaru</h2>
+          <p className="text-gray-500 text-xs sm:text-sm px-4">Ikuti informasi dan kegiatan terbaru dari BKPSDM Kabupaten Buleleng.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {news.map((item, idx) => (
+            <div key={idx} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all border border-gray-100 flex flex-col">
+              <div className="relative h-48 overflow-hidden">
+                <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform hover:scale-105 duration-300" />
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <p className="text-xs text-gray-500 font-semibold mb-2">{item.date}</p>
+                <h3 className="text-sm md:text-base font-bold text-[#1D315F] leading-snug mb-4 line-clamp-2">{item.title}</h3>
+                <div className="mt-auto pt-4 border-t border-gray-100">
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="block text-center w-full py-2.5 border border-[#006A63] text-[#006A63] rounded-md font-bold text-[13px] hover:bg-[#006A63] hover:text-white transition-colors">
+                    Baca Berita
+                  </a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const HowItWorks = () => {
   const steps = [
     { num: 1, title: 'Login dengan NIP', desc: 'Gunakan NIP dan kata sandi sistem kepegawaian Anda untuk masuk secara aman.' },
@@ -737,13 +815,14 @@ export default function LandingPage({ onLogin, onNavigate }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-white">
+    <div className="min-h-screen flex flex-col font-['Inter'] bg-white">
       <Navbar onLoginClick={() => handleLoginClick('dashboard')} />
       <main className="flex-grow pt-12 sm:pt-14">
         <Hero showLogin={showLogin} setShowLogin={setShowLogin} onLogin={() => onLogin(intendedRoute)} onLoginClick={() => handleLoginClick('dashboard')} />
         <FeaturesBanner />
         <Categories />
         <PopularCourses />
+        <NewsSection />
         <HowItWorks />
       </main>
       <Footer onFooterLinkClick={handleLoginClick} />

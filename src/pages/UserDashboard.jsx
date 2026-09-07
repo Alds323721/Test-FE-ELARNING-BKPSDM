@@ -102,7 +102,7 @@ const WelcomeSection = () => {
   
   // To avoid import issues, we'll just read directly since it's a simple component
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const name = user.nama || 'Peserta ASN';
+  const name = user.nama_lengkap || 'Peserta ASN';
 
   const stats = [
     { label: 'Pelatihan Aktif', value: 2, icon: BookMarked, color: '#3FCDC1' },

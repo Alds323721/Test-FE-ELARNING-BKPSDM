@@ -67,7 +67,7 @@ const ProfileDropdown = ({ onLogout }) => {
           <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
             <div className="px-4 py-3 border-b border-gray-100">
               <p className="text-sm font-bold text-[#1D315F]">
-                {JSON.parse(localStorage.getItem('user') || '{}').nama || 'Budi Santoso'}
+                {JSON.parse(localStorage.getItem('user') || '{}').nama_lengkap || 'Budi Santoso'}
               </p>
               <p className="text-xs text-gray-500">
                 NIP: {JSON.parse(localStorage.getItem('user') || '{}').nip || '-'}

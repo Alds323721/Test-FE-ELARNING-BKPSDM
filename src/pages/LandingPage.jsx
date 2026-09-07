@@ -21,56 +21,30 @@ import {
   Phone,
   MapPin,
   ChevronRight,
-  Menu,
-  X
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  Check,
+  Loader2,
 } from 'lucide-react';
 
-const Navbar = ({ onNavigate }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const LoginButton = ({ onClick }) => (
+  <button
+    onClick={onClick}
+    className="fixed top-0 left-0 w-full z-50 bg-[#1D315F] text-white font-semibold py-3 px-6 flex justify-end hover:bg-[#152747] transition-colors cursor-pointer"
+  >
+    Masuk
+  </button>
+);
 
-  return (
-    <nav className="flex justify-between items-center py-4 px-6 md:px-12 bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <img src={logoImg} alt="Logo BKPSDM" className="w-6 sm:w-8 object-contain" />
-        <span className="font-semibold text-base sm:text-xl text-[#1D315F]">Buleleng ASN Corpu</span>
-      </div>
-      
-      {/* Desktop Menu */}
-      <div className="hidden md:flex gap-8 text-[#1D315F] font-semibold text-sm">
-        <a href="#" className="text-[#006A63] border-b-2 border-[#006A63] pb-1">Home</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors pb-1">Komunitas</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors pb-1">Katalog</a>
-        <a href="#" className="hover:text-[#006A63] transition-colors pb-1">Tentang</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors pb-1">Bantuan</a>
-      </div>
-
-      {/* Mobile Menu Button */}
-      <div className="md:hidden flex items-center">
-        <button onClick={() => setIsOpen(!isOpen)} className="text-[#1D315F] hover:text-[#006A63] focus:outline-none">
-          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </div>
-
-      {/* Mobile Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-md md:hidden flex flex-col py-4 px-6 gap-4 text-[#1D315F] font-semibold text-sm">
-          <a href="#" className="text-[#006A63]">Home</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors">Komunitas</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors">Katalog</a>
-          <a href="#" className="hover:text-[#006A63] transition-colors">Tentang</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors">Bantuan</a>
-        </div>
-      )}
-    </nav>
-  );
-};
-
-const Hero = ({ onLogin }) => {
-  const [showLogin, setShowLogin] = useState(false);
+const Hero = ({ showLogin, setShowLogin, onLogin }) => {
   const [nip, setNip] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -78,12 +52,10 @@ const Hero = ({ onLogin }) => {
     setLoading(true);
     try {
       const response = await api.post('/login', { nip, password });
-      
       const token = response.data.access_token;
       localStorage.setItem('access_token', token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      onLogin(); // Navigate to dashboard
+      onLogin();
     } catch (err) {
       setError(err.response?.data?.message || 'Login gagal, periksa kredensial Anda');
     } finally {
@@ -91,90 +63,200 @@ const Hero = ({ onLogin }) => {
     }
   };
 
-  return (
-    <div className="relative h-[500px] sm:h-[580px] flex flex-col justify-center items-center text-center">
-      {/* Background Image Placeholder */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[#1D315F]/70 z-10"></div>
-        <img 
-          src="https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=2070&auto=format&fit=crop" 
-          alt="Audience" 
-          className="w-full h-full object-cover"
-        />
+  if (!showLogin) {
+    return (
+      <div className="relative h-[500px] sm:h-[580px] flex flex-col justify-center items-center text-center">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-[#1D315F]/70 z-10"></div>
+          <img 
+            src="https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=2070&auto=format&fit=crop" 
+            alt="Audience" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="relative z-20 w-full max-w-4xl px-4 flex flex-col items-center mt-[-40px]">
+          <p className="text-white text-xs sm:text-sm md:text-base mb-6 md:mb-8 px-4 leading-relaxed max-w-3xl">
+            Tingkatkan kompetensi Anda melalui platform e-learning terintegrasi dari BKPSDM Kabupaten Buleleng.
+          </p>
+          <div className="w-full max-w-2xl relative flex items-center mb-4 md:mb-6 shadow-lg rounded-md bg-white">
+            <Search className="absolute left-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+            <input 
+              type="text" 
+              placeholder="Cari pelatihan..." 
+              className="w-full py-3 sm:py-4 pl-10 sm:pl-12 pr-4 rounded-md bg-transparent border-none focus:ring-2 focus:ring-[#3FCDC1] outline-none text-sm sm:text-base text-gray-700 placeholder-gray-400"
+            />
+          </div>
+          <button onClick={() => setShowLogin(true)} className="bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base rounded-md hover:bg-[#0d9668] transition-colors shadow-md">
+            Masuk / NIP Login
+          </button>
+        </div>
       </div>
-      
-      <div className="relative z-20 w-full max-w-4xl px-4 flex flex-col items-center mt-[-40px]">
-        <p className="text-white text-xs sm:text-sm md:text-base mb-6 md:mb-8 px-4 leading-relaxed max-w-3xl">
-          Tingkatkan kompetensi Anda melalui platform e-learning terintegrasi dari BKPSDM Kabupaten Buleleng.
-        </p>
-        
-        {!showLogin ? (
-          <>
-            <div className="w-full max-w-2xl relative flex items-center mb-4 md:mb-6 shadow-lg rounded-md bg-white">
-              <Search className="absolute left-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-              <input 
-                type="text" 
-                placeholder="Cari pelatihan..." 
-                className="w-full py-3 sm:py-4 pl-10 sm:pl-12 pr-4 rounded-md bg-transparent border-none focus:ring-2 focus:ring-[#3FCDC1] outline-none text-sm sm:text-base text-gray-700 placeholder-gray-400"
-              />
-            </div>
-            
-            <button onClick={() => setShowLogin(true)} className="bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base rounded-md hover:bg-[#0d9668] transition-colors shadow-md">
-              Masuk / NIP Login
-            </button>
-          </>
-        ) : (
-          <form onSubmit={handleLoginSubmit} className="w-full max-w-sm bg-white p-6 rounded-lg shadow-xl text-left">
-            <h3 className="text-[#1D315F] font-bold text-lg mb-4 text-center">Login Sistem</h3>
-            
-            {error && (
-              <div className="bg-red-100 text-red-600 p-2 rounded text-sm mb-4">
-                {error}
-              </div>
-            )}
+    );
+  }
 
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">NIP / Username</label>
-              <input 
-                type="text" 
-                value={nip}
-                onChange={(e) => setNip(e.target.value)}
-                required
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#3FCDC1]"
-                placeholder="Masukkan NIP"
-              />
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#E8EDF4] px-2 py-8 sm:px-4 sm:py-12 md:px-6 md:py-16 overflow-y-auto">
+      <div className="flex flex-col lg:flex-row w-full max-w-[900px] bg-white rounded-xl shadow-2xl overflow-hidden min-h-[auto] lg:min-h-[520px]">
+
+        {/* Left Panel */}
+        <div className="w-full lg:w-[42%] bg-[#1D315F] p-6 sm:p-8 md:p-10 lg:p-10 flex flex-col justify-between text-white order-2 lg:order-1">
+          <div>
+            <div className="flex items-center gap-3 mb-8">
+              <img src={logoImg} alt="Logo BKPSDM" className="w-7 sm:w-8 object-contain" />
+              <span className="font-semibold text-sm sm:text-base">Buleleng ASN Corpu</span>
             </div>
-            
+
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-bold mb-2">Kata Sandi</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#3FCDC1]"
-                placeholder="Masukkan Kata Sandi"
-              />
+              <h3 className="text-[10px] sm:text-xs font-semibold tracking-widest text-white/60 uppercase mb-2">Visi Platform</h3>
+              <p className="text-xs sm:text-sm leading-relaxed text-white/90 font-semibold">
+                "Mewujudkan ASN Buleleng yang kompetitif, inovatif, dan berdaya saing tinggi melalui pendidikan digital yang terintegrasi dengan sistem kepegawaian."
+              </p>
             </div>
-            
-            <div className="flex gap-2">
-              <button 
-                type="button" 
-                onClick={() => setShowLogin(false)} 
-                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                Batal
-              </button>
+
+            <hr className="border-white/10 my-4" />
+
+            <div>
+              <h3 className="text-[10px] sm:text-xs font-semibold tracking-widest text-white/60 uppercase mb-3">Misi Utama</h3>
+              <ul className="space-y-2.5 text-xs sm:text-sm font-semibold text-white/90">
+                <li className="flex items-start gap-2">
+                  <span className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#3FCDC1] text-[#1D315F] flex items-center justify-center text-[9px] sm:text-[10px] font-semibold mt-0.5">1</span>
+                  <span className="text-xs sm:text-sm">Menyediakan akses belajar fleksibel untuk seluruh ASN</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#3FCDC1] text-[#1D315F] flex items-center justify-center text-[9px] sm:text-[10px] font-semibold mt-0.5">2</span>
+                  <span className="text-xs sm:text-sm">Integrasi data kompetensi dengan sistem kepegawaian</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#3FCDC1] text-[#1D315F] flex items-center justify-center text-[9px] sm:text-[10px] font-semibold mt-0.5">3</span>
+                  <span className="text-xs sm:text-sm">Sertifikasi otomatis dan terverifikasi instansi</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <hr className="border-white/10 mt-6 mb-3" />
+          <p className="text-[10px] text-white/40">© 2026 BKPSDM. Hak Cipta Dilindungi.</p>
+        </div>
+
+        {/* Right Panel */}
+        <div className="w-full lg:w-[58%] p-6 sm:p-8 md:p-10 lg:p-12 flex flex-col justify-center order-1 lg:order-2">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-2 text-[#1D315F]">Masuk ke Akun Anda</h2>
+          <p className="text-xs sm:text-sm mb-6 leading-relaxed font-semibold text-gray-500">
+            Gunakan Nomor Induk Pegawai (NIP) dan kata sandi yang telah terdaftar di sistem.
+          </p>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm mb-5">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="space-y-4 sm:space-y-5">
+              <div>
+                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse mb-2"></div>
+                <div className="h-10 sm:h-11 w-full bg-gray-100 rounded-lg animate-pulse"></div>
+              </div>
+              <div>
+                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse mb-2"></div>
+                <div className="h-10 sm:h-11 w-full bg-gray-100 rounded-lg animate-pulse"></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-32 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="h-11 sm:h-12 w-full bg-[#3FCDC1]/30 rounded-lg animate-pulse flex items-center justify-center gap-2 mt-2">
+                <Loader2 className="w-4 h-4 text-[#006A63] animate-spin" />
+                <span className="text-sm font-semibold text-[#006A63]">Memproses...</span>
+              </div>
+              <div className="h-3 w-44 sm:w-56 bg-gray-100 rounded animate-pulse mt-2"></div>
+            </div>
+          ) : (
+            <form onSubmit={handleLoginSubmit}>
+              <div className="mb-4 sm:mb-5">
+                <label className="block text-[#1D315F] text-xs sm:text-sm font-semibold mb-1.5 sm:mb-2">NIP / USERNAME</label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                  <input 
+                    type="text" 
+                    value={nip}
+                    onChange={(e) => setNip(e.target.value)}
+                    required
+                    className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400"
+                    placeholder="Masukkan 18 digit NIP Anda"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4 sm:mb-5">
+                <label className="block text-[#1D315F] text-xs sm:text-sm font-semibold mb-1.5 sm:mb-2">KATA SANDI</label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                  <input 
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400"
+                    placeholder="Masukkan kata sandi akun"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6 gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <div 
+                    onClick={() => setRemember(!remember)}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center cursor-pointer transition-colors ${remember ? 'bg-[#1D315F] border-[#1D315F]' : 'border-gray-300 bg-white'}`}
+                  >
+                    {remember && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" strokeWidth={3} />}
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">Ingat sesi saya</span>
+                </label>
+                <a href="#" className="text-xs sm:text-sm text-[#1D315F] font-semibold hover:underline">
+                  Lupa Kata Sandi?
+                </a>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 text-red-600 p-2 rounded text-xs mb-4 text-center">
+                  {error}
+                </div>
+              )}
+
               <button 
                 type="submit" 
                 disabled={loading}
-                className="flex-1 bg-[#10B981] text-white font-semibold py-2 rounded-md hover:bg-[#0d9668] transition-colors disabled:opacity-50"
+                className="w-full bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-[#0d9668] transition-colors text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
               >
-                {loading ? 'Proses...' : 'Masuk'}
+                Masuk ke Platform <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
-            </div>
-          </form>
-        )}
+
+              <p className="text-[10px] sm:text-xs font-semibold text-gray-400 mt-4 sm:mt-5 text-center flex items-center justify-center gap-1.5">
+                <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                Khusus Pegawai ASN & Tim Pembelajaran Terdaftar
+              </p>
+            </form>
+          )}
+
+          <button 
+            onClick={() => { setShowLogin(false); setError(''); setNip(''); setPassword(''); }}
+            className="mt-3 sm:mt-4 text-xs font-semibold text-gray-400 hover:text-gray-600 text-center transition-colors"
+          >
+            ← Kembali ke beranda
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -419,11 +501,12 @@ const Footer = ({ onNavigate }) => (
 );
 
 export default function LandingPage({ onLogin, onNavigate }) {
+  const [showLogin, setShowLogin] = useState(false);
   return (
     <div className="min-h-screen flex flex-col font-sans bg-white">
-      <Navbar onNavigate={onNavigate} />
-      <main className="flex-grow">
-        <Hero onLogin={onLogin} />
+            <LoginButton onClick={() => setShowLogin(true)} />
+      <main className="flex-grow pt-12 sm:pt-14">
+        <Hero showLogin={showLogin} setShowLogin={setShowLogin} onLogin={onLogin} />
         <FeaturesBanner />
         <Categories />
         <PopularCourses />

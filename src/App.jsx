@@ -12,14 +12,36 @@ import TestResult from './pages/TestResult'
 import HelpCenter from './pages/HelpCenter'
 import Certificates from './pages/Certificates'
 import LoadingSkeleton from './components/LoadingSkeleton'
+import AdminLoadingSkeleton from './components/AdminLoadingSkeleton'
+import AdminDashboard from './Admin-BKPSDM/AdminDashboard'
+import UserManagement from './Admin-BKPSDM/UserManagement'
+import CommunityManagement from './Admin-BKPSDM/CommunityManagement'
+import CourseValidation from './Admin-BKPSDM/CourseValidation'
+import CourseReview from './Admin-BKPSDM/CourseReview'
+import MonitoringReports from './Admin-BKPSDM/MonitoringReports'
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState(() => {
+    const path = window.location.pathname;
+    
+    // Enforce admin routes only on /admin path
+    if (path.startsWith('/admin')) {
+      if (path === '/admin/user-management') return 'user-management';
+      if (path === '/admin/community-management') return 'community-management';
+      if (path === '/admin/course-validation/review') return 'course-review';
+      if (path === '/admin/course-validation') return 'course-validation';
+      if (path === '/admin/monitoring-reports') return 'monitoring-reports';
+      return 'admin';
+    }
+
     const savedRoute = localStorage.getItem('current_route');
     const hasToken = localStorage.getItem('access_token');
-    if (savedRoute && savedRoute !== 'landing') {
+    
+    // Only restore non-admin routes from localStorage
+    if (savedRoute && savedRoute !== 'landing' && savedRoute !== 'admin' && savedRoute !== 'user-management' && savedRoute !== 'community-management' && savedRoute !== 'course-validation' && savedRoute !== 'course-review' && savedRoute !== 'monitoring-reports') {
       return savedRoute;
     }
+    
     if (hasToken) {
       return 'dashboard';
     }
@@ -42,8 +64,22 @@ function App() {
       setCurrentRoute(route)
       if (route === 'landing') {
         localStorage.removeItem('current_route');
+        window.history.pushState({}, '', '/');
       } else {
         localStorage.setItem('current_route', route);
+        if (route === 'admin') {
+          window.history.pushState({}, '', '/admin');
+        } else if (route === 'user-management') {
+          window.history.pushState({}, '', '/admin/user-management');
+        } else if (route === 'community-management') {
+          window.history.pushState({}, '', '/admin/community-management');
+        } else if (route === 'course-validation') {
+          window.history.pushState({}, '', '/admin/course-validation');
+        } else if (route === 'course-review') {
+          window.history.pushState({}, '', '/admin/course-validation/review');
+        } else if (route === 'monitoring-reports') {
+          window.history.pushState({}, '', '/admin/monitoring-reports');
+        }
       }
       setIsTransitioning(false)
       window.scrollTo(0, 0)
@@ -51,10 +87,37 @@ function App() {
   }
 
   if (isLoading || isTransitioning) {
+    if (currentRoute === 'admin' || currentRoute === 'user-management' || currentRoute === 'community-management' || currentRoute === 'course-validation' || currentRoute === 'course-review' || currentRoute === 'monitoring-reports') {
+      return <AdminLoadingSkeleton />
+    }
     return <LoadingSkeleton />
   }
 
   const renderRoute = () => {
+    if (currentRoute === 'admin') {
+      return <AdminDashboard onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'user-management') {
+      return <UserManagement onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'community-management') {
+      return <CommunityManagement onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'course-validation') {
+      return <CourseValidation onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'course-review') {
+      return <CourseReview onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'monitoring-reports') {
+      return <MonitoringReports onNavigate={handleNavigate} />
+    }
+
     if (currentRoute === 'dashboard') {
       return <UserDashboard onLogout={() => handleNavigate('landing')} onNavigate={handleNavigate} />
     }

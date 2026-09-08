@@ -179,7 +179,11 @@ const UserManagement = ({ onNavigate }) => {
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/admin-bkpsdm/pengguna', formData);
+      const payload = { ...formData };
+      if (!payload.email || payload.email.trim() === '') {
+        payload.email = null;
+      }
+      await api.post('/admin-bkpsdm/pengguna', payload);
       setShowAddModal(false);
       setFormData({ nip: '', nama_lengkap: '', email: '', peran: 'peserta', jabatan: '', rumpun_jabatan: 'Pelaksana', unit_kerja: '' });
       fetchUsers();
@@ -464,7 +468,7 @@ const UserManagement = ({ onNavigate }) => {
                     <input required type="text" value={formData.nama_lengkap} onChange={e => setFormData({ ...formData, nama_lengkap: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Gelar, Nama Lengkap, Gelar" />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email <span className="text-gray-400 font-normal">(Opsional)</span></label>
                     <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="email@instansi.go.id" />
                   </div>
                   <div>

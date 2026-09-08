@@ -24,8 +24,19 @@ function App() {
   const [currentRoute, setCurrentRoute] = useState(() => {
     const path = window.location.pathname;
     
-    // Enforce admin routes only on /admin path
+    const hasToken = localStorage.getItem('access_token');
+    const userStr = localStorage.getItem('user');
+    let userRole = null;
+    try {
+      if (userStr) userRole = JSON.parse(userStr).peran;
+    } catch(e) {}
+
+    // Enforce admin routes only on /admin path and role admin_bkpsdm
     if (path.startsWith('/admin')) {
+      if (!hasToken || userRole !== 'admin_bkpsdm') {
+        window.history.replaceState({}, '', '/');
+        return hasToken ? 'dashboard' : 'landing';
+      }
       if (path === '/admin/user-management') return 'user-management';
       if (path === '/admin/community-management') return 'community-management';
       if (path === '/admin/course-validation/review') return 'course-review';
@@ -35,15 +46,14 @@ function App() {
     }
 
     const savedRoute = localStorage.getItem('current_route');
-    const hasToken = localStorage.getItem('access_token');
     
-    // Only restore non-admin routes from localStorage
-    if (savedRoute && savedRoute !== 'landing' && savedRoute !== 'admin' && savedRoute !== 'user-management' && savedRoute !== 'community-management' && savedRoute !== 'course-validation' && savedRoute !== 'course-review' && savedRoute !== 'monitoring-reports') {
+    // Only restore non-admin routes from localStorage if not an admin path
+    if (savedRoute && !savedRoute.startsWith('admin') && savedRoute !== 'landing' && savedRoute !== 'user-management' && savedRoute !== 'community-management' && savedRoute !== 'course-validation' && savedRoute !== 'course-review' && savedRoute !== 'monitoring-reports') {
       return savedRoute;
     }
     
     if (hasToken) {
-      return 'dashboard';
+      return userRole === 'admin_bkpsdm' ? 'admin' : 'dashboard';
     }
     return 'landing';
   })
@@ -157,7 +167,18 @@ function App() {
     return <LandingPage onLogin={(route = 'dashboard') => {
       setShowLoginSuccess(true);
       setTimeout(() => setShowLoginSuccess(false), 3000);
-      handleNavigate(route);
+      
+      const userStr = localStorage.getItem('user');
+      let userRole = null;
+      try {
+        if (userStr) userRole = JSON.parse(userStr).peran;
+      } catch(e) {}
+      
+      if (userRole === 'admin_bkpsdm') {
+        handleNavigate('admin');
+      } else {
+        handleNavigate(route);
+      }
     }} onNavigate={handleNavigate} />
   }
 

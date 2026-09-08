@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
+import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import { 
   Users, BookOpen, MessageSquare, Award, CheckCircle, 
   TrendingUp, TrendingDown, ArrowRight, LayoutDashboard,
@@ -68,7 +70,11 @@ const AdminSidebar = ({ activeMenu = 'admin', onNavigate, isOpen, setIsOpen }) =
             Bantuan Teknis
           </button>
           <button 
-            onClick={() => onNavigate && onNavigate('landing')}
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('user');
+              if (onNavigate) onNavigate('landing');
+            }}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
@@ -138,44 +144,90 @@ const StatCard = ({ title, value, subtitle, icon: Icon, trend, trendValue, color
   </div>
 );
 
-const ChartPlaceholder = () => (
-  <div className="relative w-full h-48 sm:h-64 mt-6">
-    <div className="absolute inset-0 flex flex-col justify-between pt-2 pb-6">
-      {[3500, 3000, 2500, 2000, 1500, 1000, 500, 0].map((val, i) => (
-        <div key={i} className="flex items-center w-full">
-          <span className="text-[10px] sm:text-xs text-gray-400 w-8 sm:w-10 text-right pr-2">{val === 0 ? '0' : val.toLocaleString()}</span>
-          <div className="flex-1 border-t border-gray-100 border-dashed"></div>
-        </div>
-      ))}
+const DynamicChart = ({ data }) => {
+  if (!data || data.length === 0) {
+    return <div className="h-48 sm:h-64 flex items-center justify-center text-gray-400">Belum ada data trend.</div>;
+  }
+
+  const maxVal = Math.max(...data.map(d => d.jumlah), 10); // set minimum max scale to 10
+  
+  return (
+    <div className="relative w-full h-48 sm:h-64 mt-6">
+      {/* Y-Axis lines */}
+      <div className="absolute inset-0 flex flex-col justify-between pt-2 pb-6">
+        {[maxVal, maxVal * 0.75, maxVal * 0.5, maxVal * 0.25, 0].map((val, i) => (
+          <div key={i} className="flex items-center w-full">
+            <span className="text-[10px] sm:text-xs text-gray-400 w-8 sm:w-10 text-right pr-2">
+              {Math.round(val).toLocaleString()}
+            </span>
+            <div className="flex-1 border-t border-gray-100 border-dashed"></div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Bars */}
+      <div className="absolute inset-0 left-8 sm:left-10 bottom-6 right-0 flex items-end justify-around px-2 sm:px-4">
+        {data.map((item, idx) => {
+          const heightPct = (item.jumlah / maxVal) * 100;
+          return (
+            <div key={idx} className="flex flex-col items-center group relative w-full px-1 sm:px-4">
+              {/* Tooltip */}
+              <div className="absolute -top-8 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                {item.jumlah} Sertifikat
+              </div>
+              <div 
+                className="w-full max-w-[2rem] sm:max-w-[3rem] bg-teal-500 rounded-t-sm hover:bg-teal-400 transition-all duration-300 relative"
+                style={{ height: `${heightPct}%`, minHeight: heightPct > 0 ? '4px' : '0' }}
+              >
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* X-Axis Labels */}
+      <div className="absolute bottom-0 left-8 sm:left-10 right-0 flex justify-around px-2 sm:px-4">
+        {data.map((item, idx) => (
+          <span key={idx} className="text-[10px] sm:text-xs text-gray-400 w-full text-center truncate">
+            {item.bulan}
+          </span>
+        ))}
+      </div>
     </div>
-    
-    <div className="absolute inset-0 left-8 sm:left-10 bottom-6 right-0">
-      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
-        <path d="M 0,80 Q 20,40 40,60 T 80,20 L 100,10" fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round" />
-        <path d="M 0,80 Q 20,40 40,60 T 80,20 L 100,10 L 100,100 L 0,100 Z" fill="rgba(20, 184, 166, 0.1)" />
-        
-        <circle cx="0" cy="80" r="1.5" fill="#1e293b" />
-        <circle cx="22" cy="45" r="1.5" fill="#1e293b" />
-        <circle cx="45" cy="58" r="1.5" fill="#1e293b" />
-        <circle cx="68" cy="35" r="1.5" fill="#1e293b" />
-        <circle cx="85" cy="22" r="1.5" fill="#1e293b" />
-        <circle cx="100" cy="10" r="1.5" fill="#1e293b" />
-      </svg>
-    </div>
-    
-    <div className="absolute bottom-0 left-8 sm:left-10 right-0 flex justify-between px-2">
-      <span className="text-[10px] sm:text-xs text-gray-400">May</span>
-      <span className="text-[10px] sm:text-xs text-gray-400">Jun</span>
-      <span className="text-[10px] sm:text-xs text-gray-400">Jul</span>
-      <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">Aug</span>
-      <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">Sep</span>
-      <span className="text-[10px] sm:text-xs text-gray-400">Oct</span>
-    </div>
-  </div>
-);
+  );
+};
 
 const AdminDashboard = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [trendData, setTrendData] = useState([]);
+  const [recentCourses, setRecentCourses] = useState([]);
+  const [communities, setCommunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const [dashboardRes, approvalRes, komunitasRes] = await Promise.all([
+          api.get('/admin-bkpsdm/dashboard'),
+          api.get('/admin-bkpsdm/approval'),
+          api.get('/admin-bkpsdm/komunitas')
+        ]);
+        
+        setStats(dashboardRes.data.data.statistik);
+        setTrendData(dashboardRes.data.data.trend_sertifikat || []);
+        setRecentCourses((approvalRes.data.data || []).slice(0, 3));
+        setCommunities((komunitasRes.data.data || []).slice(0, 3));
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  if (loading) return <AdminLoadingSkeleton />;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
@@ -190,30 +242,30 @@ const AdminDashboard = ({ onNavigate }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
             <StatCard 
               title="Total Participants" 
-              value="12,450" 
+              value={(stats?.total_peserta || 0).toLocaleString()} 
               trend="up"
-              trendValue="↑ +15% this month"
+              trendValue="↑ Active this month"
               icon={Users}
               colorClass="bg-teal-50 text-teal-600"
             />
             <StatCard 
-              title="Active Courses" 
-              value="342" 
-              subtitle="Across 12 categories"
+              title="Active Users" 
+              value={(stats?.user_aktif || 0).toLocaleString()} 
+              subtitle="Logged in recently"
               icon={BookOpen}
               colorClass="bg-teal-50 text-teal-600"
             />
             <StatCard 
               title="Total Communities" 
-              value="56" 
+              value={(stats?.total_komunitas || 0).toLocaleString()} 
               trend="up"
-              trendValue="↑ +3 new this week"
+              trendValue="↑ Updated"
               icon={MessageSquare}
               colorClass="bg-teal-50 text-teal-600"
             />
             <StatCard 
               title="Issued Certificates" 
-              value="8,920" 
+              value={(stats?.sertifikat_terverifikasi || 0).toLocaleString()} 
               subtitle="Verified completions"
               icon={Award}
               colorClass="bg-teal-50 text-teal-600"
@@ -223,56 +275,39 @@ const AdminDashboard = ({ onNavigate }) => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
             <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-2">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4">
-                <h2 className="text-base sm:text-lg font-bold text-gray-800">Course Completion Trends</h2>
-                <select className="text-sm border border-gray-200 rounded-md px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 w-full sm:w-auto">
-                  <option>Last 6 Months</option>
-                  <option>This Year</option>
-                </select>
+                <h2 className="text-base sm:text-lg font-bold text-gray-800">Tren Penerbitan Sertifikat</h2>
+                <span className="text-xs text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full">6 Bulan Terakhir</span>
               </div>
-              <ChartPlaceholder />
+              <DynamicChart data={trendData} />
             </div>
 
             <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm">
               <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">Community Activity</h2>
               <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-gray-100 bg-gray-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                {communities.length > 0 ? communities.map((comm, idx) => {
+                  const colors = ['emerald', 'amber', 'rose'];
+                  const color = colors[idx % colors.length];
+                  const Icon = idx === 0 ? TrendingUp : (idx === 1 ? ArrowRight : TrendingDown);
+                  const percentages = [98, 65, 24];
+                  const p = percentages[idx % percentages.length];
+                  
+                  return (
+                    <div key={comm.komunitas_id || idx} className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-gray-100 bg-gray-50/50">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-${color}-100 flex items-center justify-center shrink-0`}>
+                          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${color}-600`} />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-gray-800 text-xs sm:text-sm truncate">{comm.nama_komunitas}</h4>
+                          <p className="text-[10px] sm:text-xs text-gray-500 truncate">{idx === 0 ? 'High' : (idx === 1 ? 'Moderate' : 'Low')} Engagement</p>
+                        </div>
+                      </div>
+                      <span className={`font-bold text-${color}-600 text-sm sm:text-base ml-2`}>{p}%</span>
                     </div>
-                    <div className="min-w-0">
-                      <h4 className="font-semibold text-gray-800 text-xs sm:text-sm truncate">Kepemimpinan</h4>
-                      <p className="text-[10px] sm:text-xs text-gray-500 truncate">High Engagement</p>
-                    </div>
-                  </div>
-                  <span className="font-bold text-emerald-600 text-sm sm:text-base ml-2">98%</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-gray-100 bg-gray-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-semibold text-gray-800 text-xs sm:text-sm truncate">Manajemen ASN</h4>
-                      <p className="text-[10px] sm:text-xs text-gray-500 truncate">Moderate Engagement</p>
-                    </div>
-                  </div>
-                  <span className="font-bold text-amber-500 text-sm sm:text-base ml-2">65%</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-gray-100 bg-gray-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
-                      <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-semibold text-gray-800 text-xs sm:text-sm truncate">Literasi Digital</h4>
-                      <p className="text-[10px] sm:text-xs text-gray-500 truncate">Low Engagement</p>
-                    </div>
-                  </div>
-                  <span className="font-bold text-rose-600 text-sm sm:text-base ml-2">24%</span>
-                </div>
+                  );
+                }) : (
+                  <p className="text-xs text-gray-500">Tidak ada data komunitas.</p>
+                )}
               </div>
             </div>
           </div>
@@ -298,86 +333,41 @@ const AdminDashboard = ({ onNavigate }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="font-semibold text-gray-800 text-xs sm:text-sm">Etika Birokrasi Modern</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="text-xs sm:text-sm text-gray-600">Pengembangan Kompetensi</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="text-xs sm:text-sm text-gray-600">24 Oct 2023</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
-                          <Clock className="w-3 h-3" /> 12 JPL
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
-                          <Book className="w-3 h-3" /> 4 Modul
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <button className="bg-teal-700 hover:bg-teal-800 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition-colors">
-                        Validate
-                      </button>
-                    </td>
-                  </tr>
-                  
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="font-semibold text-gray-800 text-xs sm:text-sm">Dasar Pengadaan Barang & Jasa</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="text-xs sm:text-sm text-gray-600">Fungsional Umum</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="text-xs sm:text-sm text-gray-600">23 Oct 2023</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
-                          <Clock className="w-3 h-3" /> 24 JPL
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
-                          <Book className="w-3 h-3" /> 8 Modul
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <button className="bg-teal-700 hover:bg-teal-800 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition-colors">
-                        Validate
-                      </button>
-                    </td>
-                  </tr>
-                  
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="font-semibold text-gray-800 text-xs sm:text-sm">Penyusunan SKP Terintegrasi</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="text-xs sm:text-sm text-gray-600">Manajemen Kinerja</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="text-xs sm:text-sm text-gray-600">21 Oct 2023</p>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
-                          <Clock className="w-3 h-3" /> 8 JPL
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
-                          <Book className="w-3 h-3" /> 3 Modul
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <button className="bg-teal-700 hover:bg-teal-800 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition-colors">
-                        Validate
-                      </button>
-                    </td>
-                  </tr>
+                  {recentCourses.length > 0 ? recentCourses.map((course) => (
+                    <tr key={course.pembelajaran_id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <p className="font-semibold text-gray-800 text-xs sm:text-sm">{course.judul_pembelajaran}</p>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <p className="text-xs sm:text-sm text-gray-600">ID Komunitas: {course.komunitas_id}</p>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <p className="text-xs sm:text-sm text-gray-600">{new Date(course.created_at).toLocaleDateString('id-ID')}</p>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
+                            <Clock className="w-3 h-3" /> {course.total_jp || 0} JPL
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <button 
+                          onClick={() => {
+                            localStorage.setItem('reviewCourseData', JSON.stringify(course));
+                            if (onNavigate) onNavigate('course-review');
+                          }}
+                          className="bg-teal-700 hover:bg-teal-800 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition-colors"
+                        >
+                          Validate
+                        </button>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="5" className="px-4 py-6 text-center text-xs text-gray-500">Belum ada pengajuan kursus baru.</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

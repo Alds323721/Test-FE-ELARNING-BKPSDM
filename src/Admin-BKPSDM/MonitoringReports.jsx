@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
+import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, Download, TrendingUp, Award, CheckCircle,
@@ -67,7 +69,11 @@ const AdminSidebar = ({ activeMenu = 'monitoring-reports', onNavigate, isOpen, s
             Bantuan Teknis
           </button>
           <button 
-            onClick={() => onNavigate && onNavigate('landing')}
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('user');
+              if (onNavigate) onNavigate('landing');
+            }}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
@@ -129,49 +135,46 @@ const StatCard = ({ title, value, icon: Icon, colorClass, iconColorClass }) => (
 
 const MonitoringReports = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
-  const reports = [
-    {
-      id: 1,
-      name: "Budi Prakoso",
-      nip: "198504122010011015",
-      course: "Etika Birokrasi Modern",
-      community: "Dinas Pendidikan",
-      progress: 100,
-      status: "Lulus",
-      hasCertificate: true
-    },
-    {
-      id: 2,
-      name: "Siti Aminah",
-      nip: "199011232015032008",
-      course: "Manajemen ASN",
-      community: "Dinas Kesehatan",
-      progress: 65,
-      status: "Sedang Berjalan",
-      hasCertificate: false
-    },
-    {
-      id: 3,
-      name: "Reza Wijaya",
-      nip: "199508172020121002",
-      course: "Literasi Digital",
-      community: "Dinas Perdagangan",
-      progress: 24,
-      status: "Belum Mulai",
-      hasCertificate: false
-    },
-    {
-      id: 4,
-      name: "Dewi Sartika",
-      nip: "198205202005012003",
-      course: "Dasar Pengadaan Barang & Jasa",
-      community: "BKPSDM",
-      progress: 100,
-      status: "Lulus",
-      hasCertificate: true
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await api.get('/admin-bkpsdm/laporan/peserta');
+        setReports(response.data.data.map((user, idx) => ({
+          id: user.pengguna_id,
+          name: user.nama_lengkap,
+          nip: user.nip || '-',
+          course: 'Belum terdaftar', // Fake data as backend does not provide
+          community: 'BKPSDM',
+          progress: 0,
+          status: 'Belum Mulai',
+          hasCertificate: false
+        })));
+      } catch (error) {
+        console.error('Failed to fetch reports:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReports();
+  }, []);
+
+  const handleExport = async () => {
+    try {
+      const response = await api.get('/admin-bkpsdm/laporan/peserta/export', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'laporan_peserta.csv');
+      document.body.appendChild(link);
+      link.click();
+    } catch (e) {
+      console.error(e);
+      alert('Gagal mengekspor laporan');
     }
-  ];
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -192,6 +195,8 @@ const MonitoringReports = ({ onNavigate }) => {
     return 'bg-red-500';
   };
 
+  if (loading) return <AdminLoadingSkeleton />;
+
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
       <AdminSidebar activeMenu="monitoring-reports" onNavigate={onNavigate} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
@@ -201,71 +206,53 @@ const MonitoringReports = ({ onNavigate }) => {
         
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
           
-          {/* Header section */}
           <div className="mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-2">Monitoring & Laporan</h1>
             <p className="text-sm text-gray-500">Pantau aktivitas belajar, progres peserta, dan statistik kelulusan secara real-time.</p>
           </div>
           
-          {/* Stats section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <StatCard 
               title="TOTAL PESERTA AKTIF" 
-              value="11,892" 
+              value={reports.length} 
               icon={Users}
               colorClass="bg-blue-50"
               iconColorClass="text-blue-500"
             />
             <StatCard 
               title="PROGRES RATA-RATA" 
-              value="68%" 
+              value="0%" 
               icon={TrendingUp}
               colorClass="bg-orange-50"
               iconColorClass="text-orange-500"
             />
             <StatCard 
               title="SERTIFIKAT TERBIT" 
-              value="8,920" 
+              value="0" 
               icon={Award}
               colorClass="bg-green-50"
               iconColorClass="text-green-500"
             />
             <StatCard 
               title="TINGKAT KELULUSAN (%)" 
-              value="94%" 
+              value="0%" 
               icon={CheckCircle}
               colorClass="bg-teal-50"
               iconColorClass="text-teal-600"
             />
           </div>
 
-          {/* Table section */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
-            {/* Table Filters */}
             <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
                 <select className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full sm:w-auto">
                   <option>Semua Komunitas</option>
-                  <option>Dinas Pendidikan</option>
-                  <option>Dinas Kesehatan</option>
                 </select>
                 <select className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full sm:w-auto">
                   <option>Semua Pembelajaran</option>
-                  <option>Etika Birokrasi Modern</option>
-                  <option>Manajemen ASN</option>
                 </select>
-                <div className="relative w-full sm:w-auto">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white"
-                    placeholder="Pilih Rentang Tanggal"
-                  />
-                </div>
               </div>
-              <button className="bg-white border-2 border-teal-600 text-teal-700 hover:bg-teal-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shrink-0 w-full lg:w-auto justify-center">
+              <button onClick={handleExport} className="bg-white border-2 border-teal-600 text-teal-700 hover:bg-teal-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shrink-0 w-full lg:w-auto justify-center">
                 <Download className="w-4 h-4" />
                 Export Laporan
               </button>
@@ -319,35 +306,17 @@ const MonitoringReports = ({ onNavigate }) => {
                       </td>
                     </tr>
                   ))}
+                  {reports.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                        Tidak ada laporan peserta.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <span className="text-sm text-gray-600 font-semibold text-center sm:text-left">
-                Menampilkan 1 - 10 dari 11,892 laporan
-              </span>
-              
-              <div className="flex items-center gap-1.5">
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 transition-colors">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded bg-teal-700 text-white font-semibold text-sm shadow-sm">
-                  1
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-sm transition-colors">
-                  2
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-sm transition-colors">
-                  3
-                </button>
-                <span className="px-1 text-gray-400">...</span>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
           </div>
 
         </div>

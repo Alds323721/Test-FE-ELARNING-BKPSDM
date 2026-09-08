@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, ArrowLeft, BookOpen, FileText, HelpCircle, 
@@ -67,7 +68,11 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
             Bantuan Teknis
           </button>
           <button 
-            onClick={() => onNavigate && onNavigate('landing')}
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('user');
+              if (onNavigate) onNavigate('landing');
+            }}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
@@ -115,7 +120,35 @@ const AdminHeader = ({ setIsOpen }) => {
 
 const CourseReview = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
+  const [course, setCourse] = useState(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [note, setNote] = useState('');
+
+  useEffect(() => {
+    const data = localStorage.getItem('reviewCourseData');
+    if (data) {
+      setCourse(JSON.parse(data));
+    } else {
+      if (onNavigate) onNavigate('course-validation');
+    }
+  }, [onNavigate]);
+
+  const handleAction = async (status) => {
+    try {
+      await api.post(`/admin-bkpsdm/approval/${course.pembelajaran_id}`, {
+        status_validasi: status,
+        catatan: note
+      });
+      alert(`Validasi berhasil disimpan: ${status}`);
+      if (onNavigate) onNavigate('course-validation');
+    } catch (error) {
+      console.error('Validation failed', error);
+      alert('Gagal menyimpan validasi');
+    }
+  };
+
+  if (!course) return null;
+
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
       <AdminSidebar activeMenu="course-validation" onNavigate={onNavigate} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
@@ -123,9 +156,8 @@ const CourseReview = ({ onNavigate }) => {
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full overflow-hidden">
         <AdminHeader setIsOpen={setIsSidebarOpen} />
         
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto relative">
           
-          {/* Back Button */}
           <button 
             onClick={() => onNavigate && onNavigate('course-validation')}
             className="flex items-center gap-2 text-gray-600 hover:text-teal-700 font-medium text-sm mb-6 transition-colors"
@@ -134,7 +166,6 @@ const CourseReview = ({ onNavigate }) => {
             Kembali ke Course Validation
           </button>
 
-          {/* Header section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 border-b border-gray-200 pb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-2">Review & Validasi Kursus</h1>
@@ -142,31 +173,25 @@ const CourseReview = ({ onNavigate }) => {
             </div>
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-orange-50 border border-orange-200 text-orange-700">
               <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-              Pending Review
+              {course.status.replace('_', ' ')}
             </span>
           </div>
           
-          {/* Main Content Grid */}
           <div className="flex flex-col lg:flex-row gap-6 mb-8">
-            {/* Left Column */}
             <div className="flex-1 space-y-6">
               
-              {/* Informasi Utama Kursus Card */}
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                 <h3 className="font-bold text-gray-800 text-lg mb-6">Informasi Utama Kursus</h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">JUDUL KURSUS</p>
-                    <p className="font-bold text-gray-800">Kepemimpinan Digital ASN</p>
+                    <p className="font-bold text-gray-800">{course.judul_pembelajaran}</p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">KOMUNITAS PENYELENGGARA</p>
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">
-                        DK
-                      </div>
-                      <p className="font-bold text-gray-800">Dinas Kominfo</p>
+                      <p className="font-bold text-gray-800">ID: {course.komunitas_id}</p>
                     </div>
                   </div>
                 </div>
@@ -175,72 +200,40 @@ const CourseReview = ({ onNavigate }) => {
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Kategori</p>
                     <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm font-medium">
-                      Manajemen
+                      {course.kategori || 'Tanpa Kategori'}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Total Durasi</p>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Nilai Kelulusan</p>
                     <div className="flex items-center gap-3">
                       <div className="border border-gray-200 rounded px-3 py-1 flex items-baseline gap-1">
-                        <span className="font-bold text-gray-800">12</span>
-                        <span className="text-sm text-gray-500">JPL</span>
+                        <span className="font-bold text-gray-800">{course.nilai_kelulusan}</span>
                       </div>
-                      <button className="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors">
-                        Sesuaikan JPL
-                      </button>
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Admin Komunitas</p>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Admin Pembuat</p>
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold shrink-0">
-                        AS
-                      </div>
-                      <p className="font-bold text-gray-800 text-sm">Agus Salim</p>
+                      <p className="font-bold text-gray-800 text-sm">ID: {course.dirancang_oleh_pengguna_id}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Ringkasan Materi Card */}
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-                <h3 className="font-bold text-gray-800 text-lg mb-6">Ringkasan Materi</h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">Modul Pembelajaran</p>
-                    <p className="text-2xl font-bold text-gray-800">4</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                    <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-3">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">Total Materi (PDF/Video)</p>
-                    <p className="text-2xl font-bold text-gray-800">12</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3">
-                      <HelpCircle className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">Soal Kuis & Post-Test</p>
-                    <p className="text-2xl font-bold text-gray-800">45</p>
-                  </div>
+                <h3 className="font-bold text-gray-800 text-lg mb-6">Deskripsi & Capaian</h3>
+                <div className="mb-4">
+                  <p className="text-sm font-bold text-gray-700 mb-1">Deskripsi:</p>
+                  <p className="text-sm text-gray-600">{course.deskripsi || '-'}</p>
                 </div>
-                
-                <div className="flex justify-end">
-                  <button className="text-teal-700 hover:text-teal-800 text-sm font-semibold flex items-center gap-1 transition-colors">
-                    Lihat Struktur Lengkap ↗
-                  </button>
+                <div className="mb-4">
+                  <p className="text-sm font-bold text-gray-700 mb-1">Capaian Pembelajaran:</p>
+                  <p className="text-sm text-gray-600">{course.capaian_pembelajaran || '-'}</p>
                 </div>
               </div>
             </div>
 
-            {/* Right Column */}
             <div className="w-full lg:w-80 shrink-0">
-              {/* Surat Pernyataan Card */}
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full flex flex-col">
                 <h3 className="font-bold text-gray-800 text-lg mb-3">Surat Pernyataan</h3>
                 <p className="text-sm text-gray-600 mb-6">
@@ -249,8 +242,7 @@ const CourseReview = ({ onNavigate }) => {
                 
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center flex-1 bg-gray-50/50 mb-6">
                   <File className="w-10 h-10 text-gray-400 mb-4" />
-                  <p className="font-bold text-gray-800 text-sm mb-1 break-all">SP_Keaslian_Materi_Kominfo.pdf</p>
-                  <p className="text-xs text-gray-500">Diunggah 24 Oct 2023, 1.2 MB</p>
+                  <p className="font-bold text-gray-800 text-sm mb-1 break-all">SP_Keaslian_Materi.pdf</p>
                 </div>
                 
                 <button className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
@@ -261,15 +253,51 @@ const CourseReview = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row justify-end items-center gap-4 border-t border-gray-200 pt-6">
-            <button className="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors">
-              Request Revision
+            <button 
+              onClick={() => setShowRejectModal(true)}
+              className="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 text-red-600 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+            >
+              Request Revision (Tolak)
             </button>
-            <button className="w-full sm:w-auto bg-teal-700 hover:bg-teal-800 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
+            <button 
+              onClick={() => handleAction('disetujui')}
+              className="w-full sm:w-auto bg-teal-700 hover:bg-teal-800 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+            >
               Approve & Publish
             </button>
           </div>
+
+          {/* Reject Modal */}
+          {showRejectModal && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-gray-800">Catatan Revisi</h2>
+                  <button onClick={() => setShowRejectModal(false)} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Pesan Revisi / Alasan Penolakan</label>
+                    <textarea 
+                      required 
+                      rows={4}
+                      value={note} 
+                      onChange={e => setNote(e.target.value)} 
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none" 
+                      placeholder="Masukkan catatan perbaikan..." 
+                    />
+                  </div>
+                  <div className="pt-4 flex justify-end gap-2">
+                    <button type="button" onClick={() => setShowRejectModal(false)} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Batal</button>
+                    <button onClick={() => handleAction('ditolak')} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Kirim & Tolak</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

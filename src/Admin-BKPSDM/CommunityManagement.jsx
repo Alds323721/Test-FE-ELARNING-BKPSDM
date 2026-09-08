@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
+import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, Plus, CheckCircle, ClipboardList, 
-  Filter, ChevronLeft
+  Filter, ChevronLeft, Edit, Trash2
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'community-management', onNavigate, isOpen, setIsOpen }) => {
@@ -67,7 +69,11 @@ const AdminSidebar = ({ activeMenu = 'community-management', onNavigate, isOpen,
             Bantuan Teknis
           </button>
           <button 
-            onClick={() => onNavigate && onNavigate('landing')}
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('user');
+              if (onNavigate) onNavigate('landing');
+            }}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
@@ -127,54 +133,87 @@ const StatCard = ({ title, value, icon: Icon, colorClass, iconColorClass }) => (
 
 const CommunityManagement = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
-  const communities = [
-    {
-      id: 1,
-      name: "Kepemimpinan",
-      description: "Fokus pada pengembangan kapabilitas man...",
-      admin: { name: "Dr. Hendra Saputra", nip: "NIP. 197805122005011003" },
-      modules: "24 Modul",
-      status: "Aktif"
-    },
-    {
-      id: 2,
-      name: "Manajemen ASN",
-      description: "Regulasi dan praktik kepegawaian terkini.",
-      admin: { name: "Siti Aminah, M.Si", nip: "NIP. 198211052008032001" },
-      modules: "18 Modul",
-      status: "Aktif"
-    },
-    {
-      id: 3,
-      name: "Literasi Digital",
-      description: "Peningkatan kemampuan IT dasar dan keam...",
-      admin: { name: "Belum Ditugaskan", nip: "-" },
-      modules: "8 Modul",
-      status: "Menunggu Validasi"
-    },
-    {
-      id: 4,
-      name: "Pelayanan Publik",
-      description: "Standar pelayanan prima untuk instansi pem...",
-      admin: { name: "Budi Santoso, S.E.", nip: "NIP. 197502282000031004" },
-      modules: "12 Modul",
-      status: "Nonaktif"
+  const [communities, setCommunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedCommunity, setSelectedCommunity] = useState(null);
+
+  const [formData, setFormData] = useState({
+    nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif'
+  });
+
+  const fetchCommunities = async () => {
+    try {
+      const response = await api.get('/admin-bkpsdm/komunitas');
+      setCommunities(response.data.data);
+    } catch (error) {
+      console.error('Failed to fetch communities:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchCommunities();
+  }, []);
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/admin-bkpsdm/komunitas', formData);
+      setShowAddModal(false);
+      setFormData({ nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif' });
+      fetchCommunities();
+    } catch (error) {
+      console.error('Failed to add community:', error);
+      alert('Gagal menambahkan komunitas.');
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/admin-bkpsdm/komunitas/${selectedCommunity.komunitas_id}`, {
+        nama_komunitas: selectedCommunity.nama_komunitas,
+        deskripsi: selectedCommunity.deskripsi,
+        rumpun_jabatan: selectedCommunity.rumpun_jabatan,
+        status: selectedCommunity.status
+      });
+      setShowEditModal(false);
+      setSelectedCommunity(null);
+      fetchCommunities();
+    } catch (error) {
+      console.error('Failed to update community:', error);
+      alert('Gagal memperbarui komunitas.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Yakin ingin menghapus komunitas ini?')) {
+      try {
+        await api.delete(`/admin-bkpsdm/komunitas/${id}`);
+        fetchCommunities();
+      } catch (error) {
+        console.error('Failed to delete community:', error);
+      }
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Aktif':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Aktif</span>;
-      case 'Menunggu Validasi':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">Menunggu Validasi</span>;
-      case 'Nonaktif':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Nonaktif</span>;
+      case 'aktif':
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 capitalize">{status}</span>;
+      case 'nonaktif':
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 capitalize">{status}</span>;
       default:
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{status}</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 capitalize">{status || 'menunggu'}</span>;
     }
   };
+
+  if (loading) return <AdminLoadingSkeleton />;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
@@ -183,48 +222,47 @@ const CommunityManagement = ({ onNavigate }) => {
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full overflow-hidden">
         <AdminHeader setIsOpen={setIsSidebarOpen} />
         
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full relative">
           
-          {/* Header section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-1">Community Management</h1>
               <p className="text-sm text-gray-500">Kelola daftar komunitas belajar dan penetapan admin komunitas.</p>
             </div>
-            <button className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center shrink-0">
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center shrink-0"
+            >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               Tambah Komunitas Baru
             </button>
           </div>
           
-          {/* Stats section */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <StatCard 
               title="TOTAL KOMUNITAS" 
-              value="56" 
+              value={communities.length} 
               icon={Users}
               colorClass="bg-blue-50"
               iconColorClass="text-blue-500"
             />
             <StatCard 
               title="KOMUNITAS AKTIF" 
-              value="48" 
+              value={communities.filter(c => c.status === 'aktif').length} 
               icon={CheckCircle}
               colorClass="bg-green-50"
               iconColorClass="text-green-500"
             />
             <StatCard 
-              title="MENUNGGU VALIDASI" 
-              value="8" 
+              title="KOMUNITAS NONAKTIF" 
+              value={communities.filter(c => c.status === 'nonaktif').length} 
               icon={ClipboardList}
               colorClass="bg-orange-50"
               iconColorClass="text-orange-500"
             />
           </div>
 
-          {/* Table section */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
-            {/* Table Filters */}
             <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="relative w-full md:w-80">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -236,17 +274,6 @@ const CommunityManagement = ({ onNavigate }) => {
                   placeholder="Cari komunitas..."
                 />
               </div>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <select className="border border-gray-200 rounded-lg px-3 sm:px-4 py-2 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full md:w-auto">
-                  <option>Semua Status</option>
-                  <option>Aktif</option>
-                  <option>Menunggu Validasi</option>
-                  <option>Nonaktif</option>
-                </select>
-                <button className="border border-gray-200 p-2 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shrink-0">
-                  <Filter className="w-5 h-5" />
-                </button>
-              </div>
             </div>
             
             <div className="overflow-x-auto">
@@ -255,64 +282,134 @@ const CommunityManagement = ({ onNavigate }) => {
                   <tr className="bg-white border-b border-gray-100">
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">NAMA KOMUNITAS</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">DESKRIPSI SINGKAT</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ADMIN KOMUNITAS</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">TOTAL PEMBELAJARAN</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">RUMPUN JABATAN</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">STATUS</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider text-right">AKSI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {communities.map((community) => (
-                    <tr key={community.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={community.komunitas_id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-bold text-gray-800">{community.name}</p>
+                        <p className="font-bold text-gray-800">{community.nama_komunitas}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-600">{community.description}</p>
+                        <p className="text-sm text-gray-600">{community.deskripsi}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <div>
-                          <p className="font-bold text-gray-800 text-sm">{community.admin.name}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{community.admin.nip}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-semibold text-gray-700">{community.modules}</p>
+                        <span className="text-sm font-medium text-gray-700 bg-gray-100 px-2.5 py-0.5 rounded-full">{community.rumpun_jabatan}</span>
                       </td>
                       <td className="px-6 py-4">
                         {getStatusBadge(community.status)}
                       </td>
+                      <td className="px-6 py-4 text-right flex justify-end gap-2">
+                        <button 
+                          onClick={() => { setSelectedCommunity({...community}); setShowEditModal(true); }}
+                          className="p-1.5 text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(community.komunitas_id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
+                  {communities.length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                        Belum ada komunitas.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
+          </div>
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <span className="text-sm text-gray-600 font-semibold text-center sm:text-left">
-                Menampilkan 1-4 dari 56 komunitas
-              </span>
-              
-              <div className="flex items-center gap-1.5">
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 transition-colors">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded bg-teal-700 text-white font-semibold text-sm shadow-sm">
-                  1
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-sm transition-colors">
-                  2
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-sm transition-colors">
-                  3
-                </button>
-                <span className="px-1 text-gray-400">...</span>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+          {/* Add Community Modal */}
+          {showAddModal && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-gray-800">Tambah Komunitas Baru</h2>
+                  <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <form onSubmit={handleAddSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Komunitas</label>
+                    <input required type="text" value={formData.nama_komunitas} onChange={e => setFormData({...formData, nama_komunitas: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Masukkan nama komunitas" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Deskripsi</label>
+                    <textarea value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Deskripsi singkat komunitas"></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Rumpun Jabatan</label>
+                    <select value={formData.rumpun_jabatan} onChange={e => setFormData({...formData, rumpun_jabatan: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                      <option value="JPT">JPT</option>
+                      <option value="JA">JA</option>
+                      <option value="JF">JF</option>
+                      <option value="Pelaksana">Pelaksana</option>
+                    </select>
+                  </div>
+                  <div className="pt-4 flex justify-end gap-2">
+                    <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Batal</button>
+                    <button type="submit" className="px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800">Simpan</button>
+                  </div>
+                </form>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Edit Community Modal */}
+          {showEditModal && selectedCommunity && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-gray-800">Edit Komunitas</h2>
+                  <button onClick={() => {setShowEditModal(false); setSelectedCommunity(null);}} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <form onSubmit={handleEditSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Komunitas</label>
+                    <input required type="text" value={selectedCommunity.nama_komunitas} onChange={e => setSelectedCommunity({...selectedCommunity, nama_komunitas: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Deskripsi</label>
+                    <textarea value={selectedCommunity.deskripsi || ''} onChange={e => setSelectedCommunity({...selectedCommunity, deskripsi: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Rumpun Jabatan</label>
+                    <select value={selectedCommunity.rumpun_jabatan} onChange={e => setSelectedCommunity({...selectedCommunity, rumpun_jabatan: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                      <option value="JPT">JPT</option>
+                      <option value="JA">JA</option>
+                      <option value="JF">JF</option>
+                      <option value="Pelaksana">Pelaksana</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                    <select value={selectedCommunity.status} onChange={e => setSelectedCommunity({...selectedCommunity, status: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                      <option value="aktif">Aktif</option>
+                      <option value="nonaktif">Nonaktif</option>
+                    </select>
+                  </div>
+                  <div className="pt-4 flex justify-end gap-2">
+                    <button type="button" onClick={() => {setShowEditModal(false); setSelectedCommunity(null);}} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Batal</button>
+                    <button type="submit" className="px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800">Update</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

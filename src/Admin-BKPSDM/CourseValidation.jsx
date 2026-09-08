@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
+import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, CheckCircle, ClipboardList, 
@@ -67,7 +69,11 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
             Bantuan Teknis
           </button>
           <button 
-            onClick={() => onNavigate && onNavigate('landing')}
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('user');
+              if (onNavigate) onNavigate('landing');
+            }}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
@@ -132,67 +138,41 @@ const StatCard = ({ title, value, subtitle, subtitleColor, icon: Icon, colorClas
 
 const CourseValidation = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
-  const courses = [
-    {
-      id: 1,
-      title: "Kepemimpinan Digital ASN",
-      tags: ["Manajemen", "Online"],
-      community: "Dinas Kominfo",
-      submitter: { name: "Agus Salim", initials: "AS", color: "bg-teal-100 text-teal-700" },
-      date: "24 Oct 2023",
-      status: "Pending",
-      action: "Review"
-    },
-    {
-      id: 2,
-      title: "Etika Pelayanan Publik",
-      tags: ["Sosial Kultural", "Hybrid"],
-      community: "Dinas Sosial",
-      submitter: { name: "Maria Rossi", initials: "MR", color: "bg-indigo-100 text-indigo-700" },
-      date: "22 Oct 2023",
-      status: "Revision",
-      action: "Detail"
-    },
-    {
-      id: 3,
-      title: "Pengadaan Barang & Jasa",
-      tags: ["Teknis", "Online"],
-      community: "Biro Umum",
-      submitter: { name: "Hendra Wijaya", initials: "HW", color: "bg-orange-100 text-orange-700" },
-      date: "20 Oct 2023",
-      status: "Validated",
-      action: "View"
-    },
-    {
-      id: 4,
-      title: "Penyusunan SKP Terintegrasi",
-      tags: ["Manajemen Kinerja", "Online"],
-      community: "BKPSDM",
-      submitter: { name: "Lina N.", initials: "LN", color: "bg-emerald-100 text-emerald-700" },
-      date: "18 Oct 2023",
-      status: "Pending",
-      action: "Review"
-    }
-  ];
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await api.get('/admin-bkpsdm/approval');
+        setCourses(response.data.data);
+      } catch (error) {
+        console.error('Failed to fetch approval courses:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Pending':
+      case 'menunggu_approval':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 border border-orange-200 text-orange-700">
             <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
             Pending
           </span>
         );
-      case 'Revision':
+      case 'ditolak':
+      case 'draft':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 border border-red-200 text-red-700">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
             Revision
           </span>
         );
-      case 'Validated':
+      case 'dipublikasikan':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-50 border border-green-200 text-green-700">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
@@ -200,9 +180,16 @@ const CourseValidation = ({ onNavigate }) => {
           </span>
         );
       default:
-        return null;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700">
+            <div className="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+            {status}
+          </span>
+        );
     }
   };
+
+  if (loading) return <AdminLoadingSkeleton />;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
@@ -223,7 +210,7 @@ const CourseValidation = ({ onNavigate }) => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <StatCard 
               title="PENDING REVIEW" 
-              value="12" 
+              value={courses.filter(c => c.status === 'menunggu_approval').length} 
               subtitle="Awaiting admin action"
               icon={Clock}
               colorClass="bg-orange-50"
@@ -231,8 +218,8 @@ const CourseValidation = ({ onNavigate }) => {
             />
             <StatCard 
               title="RECENTLY VALIDATED" 
-              value="45" 
-              subtitle="↑ +8 this month"
+              value={courses.filter(c => c.status === 'dipublikasikan').length} 
+              subtitle="All time"
               subtitleColor="text-green-500 font-medium"
               icon={CheckCircle}
               colorClass="bg-green-50"
@@ -240,7 +227,7 @@ const CourseValidation = ({ onNavigate }) => {
             />
             <StatCard 
               title="REVISION REQUIRED" 
-              value="5" 
+              value={courses.filter(c => c.status === 'draft' || c.status === 'ditolak').length} 
               subtitle="Returned to submitter"
               icon={FileWarning}
               colorClass="bg-red-50"
@@ -250,20 +237,14 @@ const CourseValidation = ({ onNavigate }) => {
 
           {/* Table section */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
-            {/* Table Filters */}
             <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <h3 className="font-bold text-gray-800">Course Submissions</h3>
               <div className="flex items-center gap-3 w-full md:w-auto">
-                <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full md:w-auto">
-                  <option>Semua Komunitas</option>
-                  <option>Dinas Kominfo</option>
-                  <option>Dinas Sosial</option>
-                </select>
-                <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full md:w-auto">
-                  <option>Semua Kategori</option>
-                  <option>Manajemen</option>
-                  <option>Teknis</option>
-                </select>
+                <input
+                  type="text"
+                  placeholder="Cari course..."
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 w-full md:w-auto"
+                />
               </div>
             </div>
             
@@ -272,8 +253,8 @@ const CourseValidation = ({ onNavigate }) => {
                 <thead>
                   <tr className="bg-white border-b border-gray-100">
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">COURSE TITLE</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">COMMUNITY</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ADMIN SUBMITTER</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">COMMUNITY ID</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">SUBMITTER ID</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">DATE SUBMITTED</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">STATUS</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ACTION</th>
@@ -281,79 +262,52 @@ const CourseValidation = ({ onNavigate }) => {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {courses.map((course) => (
-                    <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={course.pembelajaran_id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-bold text-gray-800 mb-1">{course.title}</p>
+                        <p className="font-bold text-gray-800 mb-1">{course.judul_pembelajaran}</p>
                         <div className="flex items-center gap-2">
-                          {course.tags.map((tag, idx) => (
-                            <span key={idx} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                              {tag}
-                            </span>
-                          ))}
+                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                            {course.kategori || 'Tanpa Kategori'}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-700">{course.community}</p>
+                        <p className="text-sm font-medium text-gray-700">Komunitas #{course.komunitas_id}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${course.submitter.color}`}>
-                            {course.submitter.initials}
-                          </div>
-                          <span className="font-bold text-gray-800 text-sm">{course.submitter.name}</span>
-                        </div>
+                        <p className="text-sm font-medium text-gray-700">User #{course.dirancang_oleh_pengguna_id}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-700">{course.date}</p>
+                        <p className="text-sm font-medium text-gray-700">{new Date(course.dibuat_pada).toLocaleDateString('id-ID')}</p>
                       </td>
                       <td className="px-6 py-4">
                         {getStatusBadge(course.status)}
                       </td>
                       <td className="px-6 py-4">
-                        {course.action === 'Review' ? (
-                          <button 
-                            onClick={() => onNavigate && onNavigate('course-review')}
-                            className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-                          >
-                            {course.action}
-                          </button>
-                        ) : (
-                          <button className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors">
-                            {course.action}
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => {
+                            localStorage.setItem('reviewCourseId', course.pembelajaran_id);
+                            localStorage.setItem('reviewCourseData', JSON.stringify(course));
+                            if (onNavigate) onNavigate('course-review');
+                          }}
+                          className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Review
+                        </button>
                       </td>
                     </tr>
                   ))}
+                  {courses.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                        Tidak ada course yang menunggu approval.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <span className="text-sm text-gray-600 font-semibold text-center sm:text-left">
-                Showing 1 to 4 of 12 entries
-              </span>
-              
-              <div className="flex items-center gap-1.5">
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 transition-colors">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded bg-teal-700 text-white font-semibold text-sm shadow-sm">
-                  1
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-sm transition-colors">
-                  2
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-sm transition-colors">
-                  3
-                </button>
-                <span className="px-1 text-gray-400">...</span>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
           </div>
 
         </div>

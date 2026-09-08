@@ -10,7 +10,7 @@ import {
 
 const AdminSidebar = ({ activeMenu = 'admin', onNavigate, isOpen, setIsOpen }) => {
   const menuItems = [
-    { id: 'admin', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
@@ -78,7 +78,7 @@ const AdminSidebar = ({ activeMenu = 'admin', onNavigate, isOpen, setIsOpen }) =
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
-            <span>Logout</span>
+            <span>Keluar</span>
           </button>
         </div>
       </div>
@@ -237,36 +237,36 @@ const AdminDashboard = ({ onNavigate }) => {
         <AdminHeader setIsOpen={setIsSidebarOpen} />
         
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Dashboard Admin BKPSDM</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Dasbor Admin BKPSDM</h1>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
             <StatCard 
-              title="Total Participants" 
+              title="Total Peserta" 
               value={(stats?.total_peserta || 0).toLocaleString()} 
               trend="up"
-              trendValue="↑ Active this month"
+              trendValue="↑ Aktif bulan ini"
               icon={Users}
               colorClass="bg-teal-50 text-teal-600"
             />
             <StatCard 
-              title="Active Users" 
+              title="Pengguna Aktif" 
               value={(stats?.user_aktif || 0).toLocaleString()} 
-              subtitle="Logged in recently"
+              subtitle="Baru saja masuk"
               icon={BookOpen}
               colorClass="bg-teal-50 text-teal-600"
             />
             <StatCard 
-              title="Total Communities" 
+              title="Total Komunitas" 
               value={(stats?.total_komunitas || 0).toLocaleString()} 
               trend="up"
-              trendValue="↑ Updated"
+              trendValue="↑ Diperbarui"
               icon={MessageSquare}
               colorClass="bg-teal-50 text-teal-600"
             />
             <StatCard 
-              title="Issued Certificates" 
+              title="Sertifikat Diterbitkan" 
               value={(stats?.sertifikat_terverifikasi || 0).toLocaleString()} 
-              subtitle="Verified completions"
+              subtitle="Penyelesaian terverifikasi"
               icon={Award}
               colorClass="bg-teal-50 text-teal-600"
             />
@@ -282,7 +282,7 @@ const AdminDashboard = ({ onNavigate }) => {
             </div>
 
             <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm">
-              <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">Community Activity</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">Aktivitas Komunitas</h2>
               <div className="space-y-3 sm:space-y-4">
                 {communities.length > 0 ? communities.map((comm, idx) => {
                   const colors = ['emerald', 'amber', 'rose'];
@@ -299,7 +299,7 @@ const AdminDashboard = ({ onNavigate }) => {
                         </div>
                         <div className="min-w-0">
                           <h4 className="font-semibold text-gray-800 text-xs sm:text-sm truncate">{comm.nama_komunitas}</h4>
-                          <p className="text-[10px] sm:text-xs text-gray-500 truncate">{idx === 0 ? 'High' : (idx === 1 ? 'Moderate' : 'Low')} Engagement</p>
+                          <p className="text-[10px] sm:text-xs text-gray-500 truncate">{idx === 0 ? 'Interaksi Tinggi' : (idx === 1 ? 'Interaksi Sedang' : 'Interaksi Rendah')}</p>
                         </div>
                       </div>
                       <span className={`font-bold text-${color}-600 text-sm sm:text-base ml-2`}>{p}%</span>
@@ -314,10 +314,10 @@ const AdminDashboard = ({ onNavigate }) => {
 
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
             <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h2 className="text-base sm:text-lg font-bold text-gray-800">Recent Course Submissions</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-800">Pengajuan Kursus Terbaru</h2>
               <div className="bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold flex items-center gap-1.5">
                 <Clock className="w-3 h-3" />
-                3 Pending Review
+                3 Menunggu Tinjauan
               </div>
             </div>
             
@@ -325,11 +325,11 @@ const AdminDashboard = ({ onNavigate }) => {
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Course Title</th>
-                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Community</th>
-                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Submitted</th>
-                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">JPL / Modules</th>
-                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Judul Kursus</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Komunitas</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal Diajukan</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">JPL / Modul</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -359,7 +359,7 @@ const AdminDashboard = ({ onNavigate }) => {
                           }}
                           className="bg-teal-700 hover:bg-teal-800 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition-colors"
                         >
-                          Validate
+                          Validasi
                         </button>
                       </td>
                     </tr>

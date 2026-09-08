@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
+
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer)
+    toast.addEventListener('mouseleave', Swal.resumeTimer)
+  }
+});
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, ArrowLeft, BookOpen, FileText, HelpCircle, 
@@ -8,7 +21,7 @@ import {
 
 const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, setIsOpen }) => {
   const menuItems = [
-    { id: 'admin', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
@@ -76,7 +89,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
-            <span>Logout</span>
+            <span>Keluar</span>
           </button>
         </div>
       </div>
@@ -139,11 +152,17 @@ const CourseReview = ({ onNavigate }) => {
         status_validasi: status,
         catatan: note
       });
-      alert(`Validasi berhasil disimpan: ${status}`);
+      Toast.fire({
+        icon: 'success',
+        title: `Validasi berhasil disimpan: ${status}`
+      });
       if (onNavigate) onNavigate('course-validation');
     } catch (error) {
       console.error('Validation failed', error);
-      alert('Gagal menyimpan validasi');
+      Toast.fire({
+        icon: 'error',
+        title: 'Gagal menyimpan validasi'
+      });
     }
   };
 
@@ -163,13 +182,13 @@ const CourseReview = ({ onNavigate }) => {
             className="flex items-center gap-2 text-gray-600 hover:text-teal-700 font-medium text-sm mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Kembali ke Course Validation
+            Kembali ke Validasi Kursus
           </button>
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 border-b border-gray-200 pb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-2">Review & Validasi Kursus</h1>
-              <p className="text-sm text-gray-500">Review detail konten pembelajaran sebelum dipublikasikan.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-2">Tinjauan & Validasi Kursus</h1>
+              <p className="text-sm text-gray-500">Tinjau detail konten pembelajaran sebelum dipublikasikan.</p>
             </div>
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-orange-50 border border-orange-200 text-orange-700">
               <div className="w-2 h-2 rounded-full bg-orange-500"></div>
@@ -247,7 +266,7 @@ const CourseReview = ({ onNavigate }) => {
                 
                 <button className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
                   <Eye className="w-4 h-4" />
-                  View Full Document
+                  Lihat Dokumen Lengkap
                 </button>
               </div>
             </div>
@@ -258,13 +277,13 @@ const CourseReview = ({ onNavigate }) => {
               onClick={() => setShowRejectModal(true)}
               className="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 text-red-600 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors"
             >
-              Request Revision (Tolak)
+              Minta Revisi (Tolak)
             </button>
             <button 
               onClick={() => handleAction('disetujui')}
               className="w-full sm:w-auto bg-teal-700 hover:bg-teal-800 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
             >
-              Approve & Publish
+              Setujui & Publikasikan
             </button>
           </div>
 

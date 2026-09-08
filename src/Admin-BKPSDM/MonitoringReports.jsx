@@ -9,7 +9,7 @@ import {
 
 const AdminSidebar = ({ activeMenu = 'monitoring-reports', onNavigate, isOpen, setIsOpen }) => {
   const menuItems = [
-    { id: 'admin', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
@@ -77,7 +77,7 @@ const AdminSidebar = ({ activeMenu = 'monitoring-reports', onNavigate, isOpen, s
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
-            <span>Logout</span>
+            <span>Keluar</span>
           </button>
         </div>
       </div>
@@ -254,7 +254,7 @@ const MonitoringReports = ({ onNavigate }) => {
               </div>
               <button onClick={handleExport} className="bg-white border-2 border-teal-600 text-teal-700 hover:bg-teal-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shrink-0 w-full lg:w-auto justify-center">
                 <Download className="w-4 h-4" />
-                Export Laporan
+                Ekspor Laporan
               </button>
             </div>
             

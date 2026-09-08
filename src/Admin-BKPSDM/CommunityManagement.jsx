@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
+
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer)
+    toast.addEventListener('mouseleave', Swal.resumeTimer)
+  }
+});
 import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
@@ -9,7 +22,7 @@ import {
 
 const AdminSidebar = ({ activeMenu = 'community-management', onNavigate, isOpen, setIsOpen }) => {
   const menuItems = [
-    { id: 'admin', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
@@ -77,7 +90,7 @@ const AdminSidebar = ({ activeMenu = 'community-management', onNavigate, isOpen,
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
-            <span>Logout</span>
+            <span>Keluar</span>
           </button>
         </div>
       </div>
@@ -167,9 +180,16 @@ const CommunityManagement = ({ onNavigate }) => {
       setShowAddModal(false);
       setFormData({ nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif' });
       fetchCommunities();
+      Toast.fire({
+        icon: 'success',
+        title: 'Komunitas berhasil ditambahkan'
+      });
     } catch (error) {
       console.error('Failed to add community:', error);
-      alert('Gagal menambahkan komunitas.');
+      Toast.fire({
+        icon: 'error',
+        title: 'Gagal menambahkan komunitas.'
+      });
     }
   };
 
@@ -185,19 +205,45 @@ const CommunityManagement = ({ onNavigate }) => {
       setShowEditModal(false);
       setSelectedCommunity(null);
       fetchCommunities();
+      Toast.fire({
+        icon: 'success',
+        title: 'Komunitas berhasil diperbarui'
+      });
     } catch (error) {
       console.error('Failed to update community:', error);
-      alert('Gagal memperbarui komunitas.');
+      Toast.fire({
+        icon: 'error',
+        title: 'Gagal memperbarui komunitas.'
+      });
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Yakin ingin menghapus komunitas ini?')) {
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Ingin menghapus komunitas ini?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#0f766e',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
       try {
         await api.delete(`/admin-bkpsdm/komunitas/${id}`);
         fetchCommunities();
+        Toast.fire({
+          icon: 'success',
+          title: 'Komunitas berhasil dihapus'
+        });
       } catch (error) {
         console.error('Failed to delete community:', error);
+        Toast.fire({
+          icon: 'error',
+          title: 'Gagal menghapus komunitas'
+        });
       }
     }
   };
@@ -226,7 +272,7 @@ const CommunityManagement = ({ onNavigate }) => {
           
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-1">Community Management</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-1">Manajemen Komunitas</h1>
               <p className="text-sm text-gray-500">Kelola daftar komunitas belajar dan penetapan admin komunitas.</p>
             </div>
             <button 

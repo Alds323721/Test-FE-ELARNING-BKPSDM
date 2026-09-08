@@ -9,7 +9,7 @@ import {
 
 const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, setIsOpen }) => {
   const menuItems = [
-    { id: 'admin', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
@@ -77,7 +77,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
-            <span>Logout</span>
+            <span>Keluar</span>
           </button>
         </div>
       </div>
@@ -161,7 +161,7 @@ const CourseValidation = ({ onNavigate }) => {
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 border border-orange-200 text-orange-700">
             <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
-            Pending
+            Menunggu
           </span>
         );
       case 'ditolak':
@@ -169,14 +169,14 @@ const CourseValidation = ({ onNavigate }) => {
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 border border-red-200 text-red-700">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-            Revision
+            Revisi
           </span>
         );
       case 'dipublikasikan':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-50 border border-green-200 text-green-700">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-            Validated
+            Divalidasi
           </span>
         );
       default:
@@ -202,33 +202,33 @@ const CourseValidation = ({ onNavigate }) => {
           
           {/* Header section */}
           <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-2">Course Validation</h1>
-            <p className="text-sm text-gray-500">Review and validate learning content submitted by Community Admins.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-2">Validasi Kursus</h1>
+            <p className="text-sm text-gray-500">Tinjau dan validasi konten pembelajaran yang diajukan oleh Admin Komunitas.</p>
           </div>
           
           {/* Stats section */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <StatCard 
-              title="PENDING REVIEW" 
+              title="MENUNGGU TINJAUAN" 
               value={courses.filter(c => c.status === 'menunggu_approval').length} 
-              subtitle="Awaiting admin action"
+              subtitle="Menunggu aksi admin"
               icon={Clock}
               colorClass="bg-orange-50"
               iconColorClass="text-orange-500"
             />
             <StatCard 
-              title="RECENTLY VALIDATED" 
+              title="BARU DIVALIDASI" 
               value={courses.filter(c => c.status === 'dipublikasikan').length} 
-              subtitle="All time"
+              subtitle="Sepanjang waktu"
               subtitleColor="text-green-500 font-medium"
               icon={CheckCircle}
               colorClass="bg-green-50"
               iconColorClass="text-green-500"
             />
             <StatCard 
-              title="REVISION REQUIRED" 
+              title="PERLU REVISI" 
               value={courses.filter(c => c.status === 'draft' || c.status === 'ditolak').length} 
-              subtitle="Returned to submitter"
+              subtitle="Dikembalikan ke pengaju"
               icon={FileWarning}
               colorClass="bg-red-50"
               iconColorClass="text-red-500"
@@ -238,7 +238,7 @@ const CourseValidation = ({ onNavigate }) => {
           {/* Table section */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
             <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <h3 className="font-bold text-gray-800">Course Submissions</h3>
+              <h3 className="font-bold text-gray-800">Pengajuan Kursus</h3>
               <div className="flex items-center gap-3 w-full md:w-auto">
                 <input
                   type="text"
@@ -252,12 +252,12 @@ const CourseValidation = ({ onNavigate }) => {
               <table className="w-full text-left border-collapse min-w-[1000px]">
                 <thead>
                   <tr className="bg-white border-b border-gray-100">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">COURSE TITLE</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">COMMUNITY ID</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">SUBMITTER ID</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">DATE SUBMITTED</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">JUDUL KURSUS</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ID KOMUNITAS</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ID PENGAJU</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">TANGGAL DIAJUKAN</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">STATUS</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ACTION</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">AKSI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -292,7 +292,7 @@ const CourseValidation = ({ onNavigate }) => {
                           }}
                           className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors"
                         >
-                          Review
+                          Tinjau
                         </button>
                       </td>
                     </tr>

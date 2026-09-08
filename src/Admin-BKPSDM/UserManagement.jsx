@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
+
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer)
+    toast.addEventListener('mouseleave', Swal.resumeTimer)
+  }
+});
 import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import {
   Users, BookOpen, MessageSquare, Award, CheckCircle,
@@ -11,7 +24,7 @@ import {
 
 const AdminSidebar = ({ activeMenu = 'user-management', onNavigate, isOpen, setIsOpen }) => {
   const menuItems = [
-    { id: 'admin', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
@@ -78,7 +91,7 @@ const AdminSidebar = ({ activeMenu = 'user-management', onNavigate, isOpen, setI
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />
-            <span>Logout</span>
+            <span>Keluar</span>
           </button>
         </div>
       </div>
@@ -170,9 +183,16 @@ const UserManagement = ({ onNavigate }) => {
       setShowAddModal(false);
       setFormData({ nip: '', nama_lengkap: '', email: '', peran: 'peserta', jabatan: '', rumpun_jabatan: 'Pelaksana', unit_kerja: '' });
       fetchUsers();
+      Toast.fire({
+        icon: 'success',
+        title: 'Pengguna berhasil ditambahkan'
+      });
     } catch (error) {
       console.error('Failed to add user:', error);
-      alert('Gagal menambahkan pengguna. Periksa kembali NIP/Email.');
+      Toast.fire({
+        icon: 'error',
+        title: 'Gagal menambahkan pengguna. Periksa kembali NIP/Email.'
+      });
     }
   };
 
@@ -186,30 +206,74 @@ const UserManagement = ({ onNavigate }) => {
       setShowEditModal(false);
       setSelectedUser(null);
       fetchUsers();
+      Toast.fire({
+        icon: 'success',
+        title: 'Pengguna berhasil diperbarui'
+      });
     } catch (error) {
       console.error('Failed to update user:', error);
-      alert('Gagal memperbarui pengguna.');
+      Toast.fire({
+        icon: 'error',
+        title: 'Gagal memperbarui pengguna.'
+      });
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Yakin ingin menghapus pengguna ini?')) {
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Ingin menghapus pengguna ini?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#0f766e',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
       try {
         await api.delete(`/admin-bkpsdm/pengguna/${id}`);
         fetchUsers();
+        Toast.fire({
+          icon: 'success',
+          title: 'Pengguna berhasil dihapus'
+        });
       } catch (error) {
         console.error('Failed to delete user:', error);
+        Toast.fire({
+          icon: 'error',
+          title: 'Gagal menghapus pengguna'
+        });
       }
     }
   };
 
   const handleResetPassword = async (id) => {
-    if (window.confirm('Yakin ingin reset password pengguna ini ke default (8 digit terakhir NIP)?')) {
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Reset password pengguna ini ke default (8 digit terakhir NIP)?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#0f766e',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, Reset!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
       try {
         await api.post(`/admin-bkpsdm/pengguna/${id}/reset-password`);
-        alert('Password berhasil direset!');
+        Toast.fire({
+          icon: 'success',
+          title: 'Password berhasil direset!'
+        });
       } catch (error) {
         console.error('Failed to reset password:', error);
+        Toast.fire({
+          icon: 'error',
+          title: 'Gagal mereset password'
+        });
       }
     }
   };
@@ -256,7 +320,7 @@ const UserManagement = ({ onNavigate }) => {
           {/* Header section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">User Management</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">Manajemen Pengguna</h1>
               <p className="text-sm text-gray-500">Kelola data, peran, dan status seluruh pengguna platform.</p>
             </div>
             <button

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
@@ -130,6 +131,68 @@ const Header = ({ setIsOpen }) => (
 const DetailKursus = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModule1Open, setIsModule1Open] = useState(true);
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCourse = async () => {
+    const id = localStorage.getItem('adminKomunitasCourseId');
+    if (!id) {
+      if (onNavigate) onNavigate('katalog-kursus');
+      return;
+    }
+    try {
+      setLoading(true);
+      const response = await api.get(`/admin-komunitas/pembelajaran/${id}`);
+      setCourse(response.data.data);
+    } catch (error) {
+      console.error('Error fetching course details:', error);
+      alert('Gagal memuat detail kursus.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCourse();
+  }, []);
+
+  const handleUpdateBasicInfo = async () => {
+    if (!course) return;
+    try {
+      const payload = {
+        judul_pembelajaran: course.judul_pembelajaran,
+        deskripsi: course.deskripsi,
+        kategori: course.kategori,
+        capaian_pembelajaran: course.capaian_pembelajaran || '-',
+        nilai_kelulusan: course.nilai_kelulusan,
+        komunitas_id: course.komunitas_id
+      };
+      await api.put(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, payload);
+      alert('Perubahan berhasil disimpan!');
+      fetchCourse();
+    } catch (error) {
+      console.error('Error updating course:', error);
+      alert(error.response?.data?.message || 'Gagal menyimpan perubahan.');
+    }
+  };
+
+  const handleAjukanApproval = async () => {
+    if (!course) return;
+    const confirmSubmit = window.confirm('Apakah Anda yakin ingin mengajukan kursus ini untuk direview oleh BKPSDM? Pastikan modul dan materi sudah lengkap.');
+    if (!confirmSubmit) return;
+    
+    try {
+      await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/ajukan-approval`);
+      alert('Pengajuan approval berhasil dikirim!');
+      fetchCourse();
+    } catch (error) {
+      console.error('Error submitting for approval:', error);
+      alert(error.response?.data?.message || 'Gagal mengajukan approval.');
+    }
+  };
+
+  if (loading) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">Memuat detail kursus...</div>;
+  if (!course) return null;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans pb-36 sm:pb-24">
@@ -155,16 +218,18 @@ const DetailKursus = ({ onNavigate }) => {
                   <ArrowLeft className="w-4 h-4" /> Kembali ke Katalog
                 </button>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-gray-900">Etika Birokrasi Modern</h1>
-                  <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Published</span>
+                  <h1 className="text-2xl font-bold text-gray-900">{course.judul_pembelajaran}</h1>
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${course.status === 'dipublikasikan' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                    {course.status.replace('_', ' ').toUpperCase()}
+                  </span>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
-                <button className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
+                <button onClick={handleUpdateBasicInfo} className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
                   Simpan Draft
                 </button>
-                <button className="w-full sm:w-auto px-4 py-2 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors">
-                  Publikasikan Perubahan
+                <button onClick={handleAjukanApproval} className="w-full sm:w-auto px-4 py-2 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors">
+                  Ajukan Approval Publikasi
                 </button>
               </div>
             </div>
@@ -177,28 +242,50 @@ const DetailKursus = ({ onNavigate }) => {
               <div className="p-6 space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Judul Kursus</label>
-                  <input type="text" defaultValue="Etika Birokrasi Modern" className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                  <input 
+                    type="text" 
+                    value={course.judul_pembelajaran} 
+                    onChange={(e) => setCourse({...course, judul_pembelajaran: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Kategori</label>
                     <div className="relative">
-                      <select className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 pr-10">
-                        <option>Pengembangan Kompetensi</option>
+                      <select 
+                        value={course.kategori || ''} 
+                        onChange={(e) => setCourse({...course, kategori: e.target.value})}
+                        className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 pr-10"
+                      >
+                        <option value="Pengembangan Kompetensi">Pengembangan Kompetensi</option>
+                        <option value="Manajemen ASN">Manajemen ASN</option>
+                        <option value="Teknologi Informasi">Teknologi Informasi</option>
+                        <option value="Lainnya">Lainnya</option>
                       </select>
                       <ChevronDown className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Jam Pelajaran (JPL)</label>
-                    <input type="number" defaultValue="12" className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nilai Kelulusan Minimal</label>
+                    <input 
+                      type="number" 
+                      value={course.nilai_kelulusan} 
+                      onChange={(e) => setCourse({...course, nilai_kelulusan: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                    />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi Kursus</label>
-                  <textarea rows="4" className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none" defaultValue="Kursus ini dirancang untuk membekali Aparatur Sipil Negara (ASN) dengan pemahaman mendalam tentang prinsip-prinsip etika dalam birokrasi modern, berfokus pada integritas, akuntabilitas, dan pelayanan prima."></textarea>
+                  <textarea 
+                    rows="4" 
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none" 
+                    value={course.deskripsi || ''}
+                    onChange={(e) => setCourse({...course, deskripsi: e.target.value})}
+                  ></textarea>
                 </div>
 
                 <div>
@@ -453,10 +540,10 @@ const DetailKursus = ({ onNavigate }) => {
 
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 p-4 px-6 z-20 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <button className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
+        <button onClick={handleUpdateBasicInfo} className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
           Simpan Perubahan
         </button>
-        <button className="w-full sm:w-auto px-6 py-2 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors">
+        <button onClick={handleAjukanApproval} className="w-full sm:w-auto px-6 py-2 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors">
           Ajukan Approval Publikasi ke BKPSDM
         </button>
       </div>

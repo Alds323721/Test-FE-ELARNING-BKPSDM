@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
@@ -131,37 +132,77 @@ const PelatihanSaya = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Aktif');
 
-  const tabs = ['Aktif', 'Draft', 'Selesai'];
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [komunitasList, setKomunitasList] = useState([]);
+  const [formData, setFormData] = useState({
+    komunitas_id: '',
+    judul_pembelajaran: '',
+    kategori: 'Pengembangan Kompetensi',
+    capaian_pembelajaran: '',
+    nilai_kelulusan: 70
+  });
 
-  const courseData = [
-    {
-      id: 1,
-      category: 'Pengembangan Kompetensi',
-      title: 'Etika Birokrasi Modern',
-      jpl: 12,
-      modules: 4,
-      participants: 342,
-      progress: 85,
-    },
-    {
-      id: 2,
-      category: 'Manajemen ASN',
-      title: 'Kepemimpinan Transformasional',
-      jpl: 24,
-      modules: 8,
-      participants: 156,
-      progress: 45,
-    },
-    {
-      id: 3,
-      category: 'Teknologi Informasi',
-      title: 'Literasi Digital Dasar untuk ASN',
-      jpl: 8,
-      modules: 3,
-      participants: 89,
-      progress: 12,
+  const tabs = ['Aktif', 'Draft', 'Menunggu Approval', 'Ditolak'];
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/admin-komunitas/pembelajaran');
+      setCourses(response.data.data);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const fetchKomunitas = async () => {
+    try {
+      const response = await api.get('/admin-komunitas/komunitas-saya');
+      setKomunitasList(response.data.data);
+      if (response.data.data.length > 0) {
+        setFormData(prev => ({ ...prev, komunitas_id: response.data.data[0].komunitas_id }));
+      }
+    } catch (error) {
+      console.error('Error fetching komunitas:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCourses();
+    fetchKomunitas();
+  }, []);
+
+  const handleCreateCourse = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...formData,
+        deskripsi: '-'
+      };
+      const response = await api.post('/admin-komunitas/pembelajaran', payload);
+      alert('Draf pembelajaran berhasil dibuat!');
+      setShowCreateModal(false);
+      
+      localStorage.setItem('adminKomunitasCourseId', response.data.data.pembelajaran_id);
+      if (onNavigate) onNavigate('detail-kursus');
+    } catch (error) {
+      console.error('Error creating course:', error);
+      alert(error.response?.data?.message || 'Gagal membuat pembelajaran');
+    }
+  };
+
+  const getFilteredCourses = () => {
+    if (activeTab === 'Aktif') return courses.filter(c => c.status === 'dipublikasikan');
+    if (activeTab === 'Draft') return courses.filter(c => c.status === 'draft');
+    if (activeTab === 'Menunggu Approval') return courses.filter(c => c.status === 'menunggu_approval');
+    if (activeTab === 'Ditolak') return courses.filter(c => c.status === 'ditolak');
+    return courses;
+  };
+
+  const filteredCourses = getFilteredCourses();
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans">
@@ -183,7 +224,10 @@ const PelatihanSaya = ({ onNavigate }) => {
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">Manajemen Pelatihan</h1>
                 <p className="text-sm text-gray-500">Kelola konten pelatihan dan pantau progres peserta di komunitas Anda.</p>
               </div>
-              <button className="flex items-center gap-2 bg-[#0F766E] hover:bg-teal-800 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors w-full sm:w-auto justify-center">
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 bg-[#0F766E] hover:bg-teal-800 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors w-full sm:w-auto justify-center"
+              >
                 <Plus className="w-4 h-4" />
                 Buat Pelatihan Baru
               </button>
@@ -212,72 +256,175 @@ const PelatihanSaya = ({ onNavigate }) => {
 
             {/* Course Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {courseData.map((course) => (
-                <div key={course.id} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col">
-                  {/* Card Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
-                      {course.category}
-                    </span>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* Course Info */}
-                  <div className="mb-6 flex-1">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
-                      {course.title}
-                    </h3>
-                    <div className="flex items-center gap-3 text-sm text-gray-500">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-4 h-4" />
-                        <span>{course.jpl} JPL</span>
-                      </div>
-                      <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                      <div className="flex items-center gap-1.5">
-                        <BookOpen className="w-4 h-4" />
-                        <span>{course.modules} Modul</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center justify-between py-4 border-t border-b border-gray-100 mb-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-teal-700" />
-                      </div>
-                      <span className="font-semibold text-gray-900">{course.participants} Peserta</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500 mb-0.5">Rata-rata Progres</p>
-                      <p className="font-bold text-teal-600">{course.progress}%</p>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button 
-                      onClick={() => onNavigate && onNavigate('detail-kursus')}
-                      className="flex-1 px-4 py-2.5 border border-[#0F766E] text-[#0F766E] hover:bg-teal-50 rounded-lg text-sm font-semibold transition-colors w-full text-center"
-                    >
-                      Edit Konten
-                    </button>
-                    <button 
-                      onClick={() => onNavigate && onNavigate('detail-kursus')}
-                      className="flex-1 px-4 py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors w-full text-center"
-                    >
-                      Lihat Detail
-                    </button>
-                  </div>
+              {loading ? (
+                <div className="col-span-full py-12 text-center text-gray-500">Memuat data pelatihan...</div>
+              ) : filteredCourses.length === 0 ? (
+                <div className="col-span-full py-12 text-center text-gray-500">
+                  Belum ada pelatihan untuk status {activeTab}.
                 </div>
-              ))}
+              ) : (
+                filteredCourses.map((course) => (
+                  <div key={course.pembelajaran_id} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col">
+                    {/* Card Header */}
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
+                        {course.kategori || 'Tanpa Kategori'}
+                      </span>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Course Info */}
+                    <div className="mb-6 flex-1">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
+                        {course.judul_pembelajaran}
+                      </h3>
+                      <div className="flex items-center gap-3 text-sm text-gray-500">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4" />
+                          <span>{course.nilai_kelulusan} Min. Lulus</span>
+                        </div>
+                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                        <div className="flex items-center gap-1.5">
+                          <BookOpen className="w-4 h-4" />
+                          <span>ID: {course.pembelajaran_id}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex items-center justify-between py-4 border-t border-b border-gray-100 mb-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center">
+                          <Users className="w-4 h-4 text-teal-700" />
+                        </div>
+                        <span className="font-semibold text-gray-900">- Peserta</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 mb-0.5">Rata-rata Progres</p>
+                        <p className="font-bold text-teal-600">- %</p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button 
+                        onClick={() => {
+                          localStorage.setItem('adminKomunitasCourseId', course.pembelajaran_id);
+                          if (onNavigate) onNavigate('detail-kursus');
+                        }}
+                        className="flex-1 px-4 py-2.5 border border-[#0F766E] text-[#0F766E] hover:bg-teal-50 rounded-lg text-sm font-semibold transition-colors w-full text-center"
+                      >
+                        {course.status === 'draft' || course.status === 'ditolak' ? 'Edit Konten' : 'Lihat Detail'}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
             
           </div>
         </main>
       </div>
+
+      {/* Modal Buat Pelatihan */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Buat Pelatihan Baru</h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateCourse} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Komunitas Penyelenggara</label>
+                <select 
+                  required
+                  value={formData.komunitas_id}
+                  onChange={e => setFormData({...formData, komunitas_id: e.target.value})}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="" disabled>Pilih Komunitas</option>
+                  {komunitasList.map(k => (
+                    <option key={k.komunitas_id} value={k.komunitas_id}>{k.nama_komunitas}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Judul Pelatihan</label>
+                <input 
+                  type="text" 
+                  required
+                  value={formData.judul_pembelajaran}
+                  onChange={e => setFormData({...formData, judul_pembelajaran: e.target.value})}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  placeholder="Contoh: Etika Birokrasi Modern"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Kategori</label>
+                <select 
+                  required
+                  value={formData.kategori}
+                  onChange={e => setFormData({...formData, kategori: e.target.value})}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="Pengembangan Kompetensi">Pengembangan Kompetensi</option>
+                  <option value="Manajemen ASN">Manajemen ASN</option>
+                  <option value="Teknologi Informasi">Teknologi Informasi</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Capaian Pembelajaran (Target)</label>
+                <textarea 
+                  required
+                  rows="3"
+                  value={formData.capaian_pembelajaran}
+                  onChange={e => setFormData({...formData, capaian_pembelajaran: e.target.value})}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  placeholder="Apa yang akan didapatkan peserta..."
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Nilai Kelulusan (0-100)</label>
+                <input 
+                  type="number" 
+                  required
+                  min="0" max="100"
+                  value={formData.nilai_kelulusan}
+                  onChange={e => setFormData({...formData, nilai_kelulusan: e.target.value})}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 font-semibold"
+                >
+                  Simpan Draft
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

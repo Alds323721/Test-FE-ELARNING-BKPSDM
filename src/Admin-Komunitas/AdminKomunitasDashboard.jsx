@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
@@ -182,6 +183,41 @@ const LineChartMockup = () => (
 
 const AdminKomunitasDashboard = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalPeserta: 0,
+    aktif: 0,
+    rataProgres: 0,
+    sertifikat: 0
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/admin-komunitas/pembelajaran');
+        const data = response.data.data;
+        setCourses(data);
+        
+        // Calculate basic stats
+        const activeCourses = data.filter(c => c.status === 'dipublikasikan').length;
+        
+        setStats({
+          totalPeserta: 0, // Need participants API for accurate count
+          aktif: activeCourses,
+          rataProgres: 0, // Mock
+          sertifikat: 0 // Mock
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex font-sans">
@@ -200,30 +236,30 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
             <StatCard 
               title="TOTAL PESERTA" 
-              value="1,240" 
+              value={stats.totalPeserta} 
               trend="up"
-              trendValue="+5% bulan ini"
+              trendValue="+0% bulan ini"
               icon={Users}
               colorClass="bg-teal-50 text-teal-600"
             />
             <StatCard 
               title="PEMBELAJARAN AKTIF" 
-              value="12" 
-              subtitle="Tersebar di 3 kategori"
+              value={stats.aktif} 
+              subtitle="Telah dipublikasikan"
               icon={FileText}
               colorClass="bg-indigo-50 text-indigo-600"
             />
             <StatCard 
               title="RATA-RATA PROGRES" 
-              value="75%" 
+              value={`${stats.rataProgres}%`} 
               trend="up"
-              trendValue="+2% minggu ini"
+              trendValue="+0% minggu ini"
               icon={RotateCcw}
               colorClass="bg-amber-50 text-amber-600"
             />
             <StatCard 
               title="SERTIFIKAT TERBIT" 
-              value="850" 
+              value={stats.sertifikat} 
               subtitle="Telah diverifikasi"
               icon={Award}
               colorClass="bg-emerald-50 text-emerald-600"
@@ -293,49 +329,68 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {[
-                    { title: 'Etika Birokrasi Modern', jpl: '12 JPL', modules: '4 Modul', category: 'Pengembangan Kompetensi', participants: 342, progress: 85, status: 'Published', statusColor: 'bg-emerald-100 text-emerald-700' },
-                    { title: 'Kepemimpinan Transformasional', jpl: '24 JPL', modules: '8 Modul', category: 'Manajemen ASN', participants: 156, progress: 45, status: 'Published', statusColor: 'bg-emerald-100 text-emerald-700' },
-                    { title: 'Literasi Digital Lanjutan', jpl: '8 JPL', modules: '3 Modul', category: 'Teknologi Informasi', participants: 0, progress: 0, status: 'Draft', statusColor: 'bg-gray-100 text-gray-600' }
-                  ].map((course, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-5">
-                        <p className="font-bold text-gray-900">{course.title}</p>
-                        <div className="flex gap-3 mt-1 text-xs text-gray-500 font-medium">
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {course.jpl}</span>
-                          <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {course.modules}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm font-medium text-gray-700 w-32">{course.category}</p>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <p className="font-bold text-gray-900">{course.participants}</p>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-full bg-gray-200 rounded-full h-1.5 w-24">
-                            <div className={`h-1.5 rounded-full ${course.progress > 50 ? 'bg-teal-600' : (course.progress > 0 ? 'bg-amber-400' : 'bg-gray-300')}`} style={{ width: `${course.progress}%` }}></div>
-                          </div>
-                          <span className="text-sm font-bold text-gray-700">{course.progress}%</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${course.statusColor}`}>
-                          {course.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <button 
-                          onClick={() => onNavigate && onNavigate('detail-kursus')}
-                          title="Kelola Kursus"
-                          className="text-teal-600 hover:text-teal-800 transition-colors p-2 rounded-md hover:bg-teal-50"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                        Memuat data pembelajaran...
                       </td>
                     </tr>
-                  ))}
+                  ) : courses.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                        Belum ada data pembelajaran di komunitas Anda.
+                      </td>
+                    </tr>
+                  ) : (
+                    courses.slice(0, 5).map((course, idx) => {
+                      const statusColor = course.status === 'dipublikasikan' ? 'bg-emerald-100 text-emerald-700' : 
+                                         course.status === 'ditolak' ? 'bg-red-100 text-red-700' :
+                                         course.status === 'menunggu_approval' ? 'bg-orange-100 text-orange-700' :
+                                         'bg-gray-100 text-gray-600';
+                      return (
+                        <tr key={course.pembelajaran_id || idx} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-5">
+                            <p className="font-bold text-gray-900">{course.judul_pembelajaran}</p>
+                            <div className="flex gap-3 mt-1 text-xs text-gray-500 font-medium">
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {course.nilai_kelulusan} Min. Kelulusan</span>
+                              <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> ID: {course.pembelajaran_id}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <p className="text-sm font-medium text-gray-700 w-32">{course.kategori || '-'}</p>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <p className="font-bold text-gray-900">-</p>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 w-24">
+                                <div className={`h-1.5 rounded-full bg-gray-300`} style={{ width: `0%` }}></div>
+                              </div>
+                              <span className="text-sm font-bold text-gray-700">0%</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${statusColor}`}>
+                              {course.status ? course.status.replace('_', ' ') : 'Draft'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <button 
+                              onClick={() => {
+                                localStorage.setItem('adminKomunitasCourseId', course.pembelajaran_id);
+                                if (onNavigate) onNavigate('detail-kursus');
+                              }}
+                              title="Kelola Kursus"
+                              className="text-teal-600 hover:text-teal-800 transition-colors p-2 rounded-md hover:bg-teal-50"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

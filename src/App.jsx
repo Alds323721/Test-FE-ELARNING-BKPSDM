@@ -73,38 +73,36 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 1500)
+    }, 100)
     return () => clearTimeout(timer)
   }, [])
 
   const handleNavigate = (route) => {
     setIsTransitioning(true)
-    setTimeout(() => {
-      setCurrentRoute(route)
-      if (route === 'landing') {
-        localStorage.removeItem('current_route');
-        window.history.pushState({}, '', '/');
-      } else {
-        localStorage.setItem('current_route', route);
-        if (route === 'admin') {
-          window.history.pushState({}, '', '/admin');
-        } else if (route === 'user-management') {
-          window.history.pushState({}, '', '/admin/user-management');
-        } else if (route === 'community-management') {
-          window.history.pushState({}, '', '/admin/community-management');
-        } else if (route === 'course-validation') {
-          window.history.pushState({}, '', '/admin/course-validation');
-        } else if (route === 'course-review') {
-          window.history.pushState({}, '', '/admin/course-validation/review');
-        } else if (route === 'monitoring-reports') {
-          window.history.pushState({}, '', '/admin/monitoring-reports');
-        } else if (route === 'admin-komunitas') {
-          window.history.pushState({}, '', '/admin-komunitas');
-        }
+    setCurrentRoute(route)
+    if (route === 'landing') {
+      localStorage.removeItem('current_route');
+      window.history.pushState({}, '', '/');
+    } else {
+      localStorage.setItem('current_route', route);
+      if (route === 'admin') {
+        window.history.pushState({}, '', '/admin');
+      } else if (route === 'user-management') {
+        window.history.pushState({}, '', '/admin/user-management');
+      } else if (route === 'community-management') {
+        window.history.pushState({}, '', '/admin/community-management');
+      } else if (route === 'course-validation') {
+        window.history.pushState({}, '', '/admin/course-validation');
+      } else if (route === 'course-review') {
+        window.history.pushState({}, '', '/admin/course-validation/review');
+      } else if (route === 'monitoring-reports') {
+        window.history.pushState({}, '', '/admin/monitoring-reports');
+      } else if (route === 'admin-komunitas') {
+        window.history.pushState({}, '', '/admin-komunitas');
       }
-      setIsTransitioning(false)
-      window.scrollTo(0, 0)
-    }, 500)
+    }
+    setIsTransitioning(false)
+    window.scrollTo(0, 0)
   }
 
   if (isLoading || isTransitioning) {

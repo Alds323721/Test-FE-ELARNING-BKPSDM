@@ -98,7 +98,7 @@ const AdminSidebar = ({ activeMenu = 'community-management', onNavigate, isOpen,
   );
 };
 
-const AdminHeader = ({ setIsOpen }) => {
+const AdminHeader = ({ setIsOpen, searchTerm, setSearchTerm }) => {
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
       <div className="flex items-center gap-2 sm:gap-4">
@@ -111,6 +111,8 @@ const AdminHeader = ({ setIsOpen }) => {
           </div>
           <input
             type="text"
+            value={searchTerm || ''}
+            onChange={(e) => setSearchTerm && setSearchTerm(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-full text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 bg-gray-50"
             placeholder="Cari komunitas..."
           />
@@ -148,6 +150,7 @@ const CommunityManagement = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -259,6 +262,11 @@ const CommunityManagement = ({ onNavigate }) => {
     }
   };
 
+  const filteredCommunities = communities.filter(c => 
+    c.nama_komunitas.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (c.deskripsi && c.deskripsi.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   if (loading) return <AdminLoadingSkeleton />;
 
   return (
@@ -266,7 +274,7 @@ const CommunityManagement = ({ onNavigate }) => {
       <AdminSidebar activeMenu="community-management" onNavigate={onNavigate} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full overflow-hidden">
-        <AdminHeader setIsOpen={setIsSidebarOpen} />
+        <AdminHeader setIsOpen={setIsSidebarOpen} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full relative">
           
@@ -316,6 +324,8 @@ const CommunityManagement = ({ onNavigate }) => {
                 </div>
                 <input
                   type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 bg-gray-50"
                   placeholder="Cari komunitas..."
                 />
@@ -334,7 +344,7 @@ const CommunityManagement = ({ onNavigate }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {communities.map((community) => (
+                  {filteredCommunities.map((community) => (
                     <tr key={community.komunitas_id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <p className="font-bold text-gray-800">{community.nama_komunitas}</p>
@@ -364,10 +374,10 @@ const CommunityManagement = ({ onNavigate }) => {
                       </td>
                     </tr>
                   ))}
-                  {communities.length === 0 && (
+                  {filteredCommunities.length === 0 && (
                     <tr>
                       <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                        Belum ada komunitas.
+                        {searchTerm ? 'Tidak ada komunitas yang sesuai dengan pencarian.' : 'Belum ada komunitas.'}
                       </td>
                     </tr>
                   )}

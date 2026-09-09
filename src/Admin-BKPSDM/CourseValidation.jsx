@@ -85,7 +85,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
   );
 };
 
-const AdminHeader = ({ setIsOpen }) => {
+const AdminHeader = ({ setIsOpen, searchTerm, setSearchTerm }) => {
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
       <div className="flex items-center gap-2 sm:gap-4">
@@ -98,6 +98,8 @@ const AdminHeader = ({ setIsOpen }) => {
           </div>
           <input
             type="text"
+            value={searchTerm || ''}
+            onChange={(e) => setSearchTerm && setSearchTerm(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-full text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 bg-gray-50"
             placeholder="Cari course..."
           />
@@ -140,6 +142,7 @@ const CourseValidation = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -189,6 +192,12 @@ const CourseValidation = ({ onNavigate }) => {
     }
   };
 
+  const filteredCourses = courses.filter(c => 
+    (c.judul_pembelajaran && c.judul_pembelajaran.toLowerCase().includes(searchTerm.toLowerCase())) || 
+    (c.kategori && c.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (c.komunitas_id && c.komunitas_id.toString().includes(searchTerm))
+  );
+
   if (loading) return <AdminLoadingSkeleton />;
 
   return (
@@ -196,7 +205,7 @@ const CourseValidation = ({ onNavigate }) => {
       <AdminSidebar activeMenu="course-validation" onNavigate={onNavigate} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full overflow-hidden">
-        <AdminHeader setIsOpen={setIsSidebarOpen} />
+        <AdminHeader setIsOpen={setIsSidebarOpen} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full">
           
@@ -242,6 +251,8 @@ const CourseValidation = ({ onNavigate }) => {
               <div className="flex items-center gap-3 w-full md:w-auto">
                 <input
                   type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Cari course..."
                   className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 w-full md:w-auto"
                 />
@@ -261,7 +272,7 @@ const CourseValidation = ({ onNavigate }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {courses.map((course) => (
+                  {filteredCourses.map((course) => (
                     <tr key={course.pembelajaran_id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <p className="font-bold text-gray-800 mb-1">{course.judul_pembelajaran}</p>
@@ -297,10 +308,10 @@ const CourseValidation = ({ onNavigate }) => {
                       </td>
                     </tr>
                   ))}
-                  {courses.length === 0 && (
+                  {filteredCourses.length === 0 && (
                     <tr>
                       <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                        Tidak ada course yang menunggu approval.
+                        {searchTerm ? 'Tidak ada course yang sesuai dengan pencarian.' : 'Tidak ada course yang menunggu approval.'}
                       </td>
                     </tr>
                   )}

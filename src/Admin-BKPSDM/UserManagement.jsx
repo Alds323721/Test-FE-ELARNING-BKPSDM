@@ -99,7 +99,7 @@ const AdminSidebar = ({ activeMenu = 'user-management', onNavigate, isOpen, setI
   );
 };
 
-const AdminHeader = ({ setIsOpen }) => {
+const AdminHeader = ({ setIsOpen, searchTerm, setSearchTerm }) => {
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
       <div className="flex items-center gap-2 sm:gap-4">
@@ -112,8 +112,10 @@ const AdminHeader = ({ setIsOpen }) => {
           </div>
           <input
             type="text"
+            value={searchTerm || ''}
+            onChange={(e) => setSearchTerm && setSearchTerm(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-full text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 bg-gray-50"
-            placeholder="Cari..."
+            placeholder="Cari pengguna..."
           />
         </div>
       </div>
@@ -149,6 +151,7 @@ const UserManagement = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -310,6 +313,12 @@ const UserManagement = ({ onNavigate }) => {
     );
   };
 
+  const filteredUsers = users.filter(u => 
+    u.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    u.nip.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   if (loading) return <AdminLoadingSkeleton />;
 
   return (
@@ -317,7 +326,7 @@ const UserManagement = ({ onNavigate }) => {
       <AdminSidebar activeMenu="user-management" onNavigate={onNavigate} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full overflow-hidden">
-        <AdminHeader setIsOpen={setIsSidebarOpen} />
+        <AdminHeader setIsOpen={setIsSidebarOpen} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full relative">
 
@@ -367,6 +376,8 @@ const UserManagement = ({ onNavigate }) => {
               <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                 <input
                   type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Cari pengguna..."
                   className="border border-gray-200 rounded-lg px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 w-full sm:w-64"
                 />
@@ -386,7 +397,7 @@ const UserManagement = ({ onNavigate }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <tr key={user.pengguna_id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -436,10 +447,10 @@ const UserManagement = ({ onNavigate }) => {
                       </td>
                     </tr>
                   ))}
-                  {users.length === 0 && (
+                  {filteredUsers.length === 0 && (
                     <tr>
                       <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                        Belum ada pengguna terdaftar.
+                        {searchTerm ? 'Tidak ada pengguna yang sesuai dengan pencarian.' : 'Belum ada pengguna terdaftar.'}
                       </td>
                     </tr>
                   )}

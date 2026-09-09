@@ -134,14 +134,29 @@ const AdminHeader = ({ setIsOpen }) => {
 const CourseReview = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [course, setCourse] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showMateriModal, setShowMateriModal] = useState(false);
   const [note, setNote] = useState('');
 
   useEffect(() => {
+    const fetchCourseDetails = async (id) => {
+      try {
+        setLoadingDetails(true);
+        const response = await api.get(`/admin-bkpsdm/approval/${id}`);
+        setCourse(response.data.data);
+      } catch (error) {
+        console.error('Failed to fetch course details:', error);
+      } finally {
+        setLoadingDetails(false);
+      }
+    };
+
     const data = localStorage.getItem('reviewCourseData');
     if (data) {
-      setCourse(JSON.parse(data));
+      const parsedData = JSON.parse(data);
+      setCourse(parsedData);
+      fetchCourseDetails(parsedData.pembelajaran_id);
     } else {
       if (onNavigate) onNavigate('course-validation');
     }
@@ -336,14 +351,25 @@ const CourseReview = ({ onNavigate }) => {
           {showMateriModal && (
             <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
               <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-xl">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center shrink-0">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-800">Detail Materi Pembelajaran</h2>
-                    <p className="text-sm text-gray-500 mt-1">{course.judul_pembelajaran}</p>
+                <div className="p-6 border-b border-gray-100 flex flex-col gap-4 shrink-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-800">Detail Materi Pembelajaran</h2>
+                      <p className="text-sm text-gray-500 mt-1">{course.judul_pembelajaran}</p>
+                    </div>
+                    <button onClick={() => setShowMateriModal(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button onClick={() => setShowMateriModal(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
+                  {course.pembelajaran_jp && course.pembelajaran_jp.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {course.pembelajaran_jp.map((jp, jpIdx) => (
+                        <span key={jp.pembelajaran_jp_id || jpIdx} className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold">
+                          {jp.kategori_jp}: {jp.jumlah_jp} JP
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
@@ -375,12 +401,12 @@ const CourseReview = ({ onNavigate }) => {
                             )}
                           </div>
                           
-                          {/* Daftar Materi */}
+                          {/* Daftar Materi & Kuis */}
                           <div className="p-0">
-                            {modul.materis && modul.materis.length > 0 ? (
+                            {((modul.materis && modul.materis.length > 0) || (modul.kuis && modul.kuis.length > 0)) ? (
                               <div className="divide-y divide-gray-100">
-                                {modul.materis.map((materi, mIdx) => (
-                                  <div key={materi.materi_id || mIdx} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                {modul.materis && modul.materis.map((materi, mIdx) => (
+                                  <div key={`materi-${materi.materi_id || mIdx}`} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${materi.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
                                       {materi.tipe_materi === 'pdf' ? <FileText className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
                                     </div>
@@ -403,15 +429,58 @@ const CourseReview = ({ onNavigate }) => {
                                     </a>
                                   </div>
                                 ))}
+                                {modul.kuis && modul.kuis.map((k, kIdx) => (
+                                  <div key={`kuis-${k.kuis_id || kIdx}`} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-purple-50 text-purple-600">
+                                      <HelpCircle className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-semibold text-gray-800 text-sm truncate">{k.judul_kuis}</h4>
+                                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold uppercase tracking-wider">Kuis</span>
+                                      </div>
+                                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {k.durasi_menit} Menit</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             ) : (
                               <div className="p-8 text-center text-gray-500">
-                                <p className="text-sm">Belum ada materi untuk modul ini.</p>
+                                <p className="text-sm">Belum ada materi atau kuis untuk modul ini.</p>
                               </div>
                             )}
                           </div>
                         </div>
                       ))}
+                      
+                      {/* Post Test */}
+                      {course.post_tests && course.post_tests.length > 0 && (
+                        <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm">
+                          <div className="p-5 border-b border-orange-100 bg-orange-50/50">
+                             <h3 className="font-bold text-orange-800 text-lg mb-2">Evaluasi Akhir (Post Test)</h3>
+                             <p className="text-sm text-orange-700">Evaluasi yang harus diselesaikan setelah semua modul selesai.</p>
+                          </div>
+                          <div className="divide-y divide-gray-100 p-0">
+                            {course.post_tests.map((pt, ptIdx) => (
+                              <div key={`pt-${pt.post_test_id || ptIdx}`} className="p-4 hover:bg-orange-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-orange-100 text-orange-600">
+                                  <FileText className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-semibold text-gray-800 text-sm truncate">{pt.judul_post_test}</h4>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {pt.durasi_menit} Menit</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full py-12 text-center">

@@ -19,6 +19,14 @@ import CommunityManagement from './Admin-BKPSDM/CommunityManagement'
 import CourseValidation from './Admin-BKPSDM/CourseValidation'
 import CourseReview from './Admin-BKPSDM/CourseReview'
 import MonitoringReports from './Admin-BKPSDM/MonitoringReports'
+import AdminKomunitasDashboard from './Admin-Komunitas/AdminKomunitasDashboard'
+import AdminKomunitasSkeleton from './Admin-Komunitas/AdminKomunitasSkeleton'
+import PelatihanSaya from './Admin-Komunitas/PelatihanSaya'
+import LaporanProgress from './Admin-Komunitas/LaporanProgress'
+import KatalogKursus from './Admin-Komunitas/KatalogKursus'
+import DetailKursus from './Admin-Komunitas/DetailKursus'
+import BankSoal from './Admin-Komunitas/BankSoal'
+import PusatBantuan from './Admin-Komunitas/PusatBantuan'
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState(() => {
@@ -33,6 +41,7 @@ function App() {
 
     // Enforce admin routes only on /admin path and role admin_bkpsdm
     if (path.startsWith('/admin')) {
+      if (path === '/admin-komunitas') return 'admin-komunitas';
       if (!hasToken || userRole !== 'admin_bkpsdm') {
         window.history.replaceState({}, '', '/');
         return hasToken ? 'dashboard' : 'landing';
@@ -89,6 +98,8 @@ function App() {
           window.history.pushState({}, '', '/admin/course-validation/review');
         } else if (route === 'monitoring-reports') {
           window.history.pushState({}, '', '/admin/monitoring-reports');
+        } else if (route === 'admin-komunitas') {
+          window.history.pushState({}, '', '/admin-komunitas');
         }
       }
       setIsTransitioning(false)
@@ -97,6 +108,9 @@ function App() {
   }
 
   if (isLoading || isTransitioning) {
+    if (currentRoute === 'admin-komunitas' || currentRoute === 'pelatihan-saya' || currentRoute === 'laporan-progress' || currentRoute === 'katalog-kursus' || currentRoute === 'detail-kursus' || currentRoute === 'bank-soal' || currentRoute === 'pusat-bantuan') {
+      return <AdminKomunitasSkeleton />
+    }
     if (currentRoute === 'admin' || currentRoute === 'user-management' || currentRoute === 'community-management' || currentRoute === 'course-validation' || currentRoute === 'course-review' || currentRoute === 'monitoring-reports') {
       return <AdminLoadingSkeleton />
     }
@@ -104,6 +118,34 @@ function App() {
   }
 
   const renderRoute = () => {
+    if (currentRoute === 'admin-komunitas') {
+      return <AdminKomunitasDashboard onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'pelatihan-saya') {
+      return <PelatihanSaya onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'laporan-progress') {
+      return <LaporanProgress onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'katalog-kursus') {
+      return <KatalogKursus onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'detail-kursus') {
+      return <DetailKursus onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'bank-soal') {
+      return <BankSoal onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'pusat-bantuan') {
+      return <PusatBantuan onNavigate={handleNavigate} />
+    }
+
     if (currentRoute === 'admin') {
       return <AdminDashboard onNavigate={handleNavigate} />
     }

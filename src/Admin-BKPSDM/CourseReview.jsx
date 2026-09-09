@@ -13,9 +13,9 @@ const Toast = Swal.mixin({
     toast.addEventListener('mouseleave', Swal.resumeTimer)
   }
 });
-import { 
+import {
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
-  Search, ChevronRight, Menu, X, ArrowLeft, BookOpen, FileText, HelpCircle, 
+  Search, ChevronRight, Menu, X, ArrowLeft, BookOpen, FileText, HelpCircle,
   Eye, File, Clock, PlayCircle
 } from 'lucide-react';
 
@@ -31,7 +31,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
   return (
     <>
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
@@ -51,7 +51,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -63,11 +63,10 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
                   if (onNavigate) onNavigate(item.id);
                   if (window.innerWidth < 1024) setIsOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  isActive 
-                    ? 'bg-teal-700 text-white shadow-md' 
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
+                    ? 'bg-teal-700 text-white shadow-md'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
                 <span className="text-left truncate leading-tight">{item.label}</span>
@@ -80,7 +79,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
           <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-teal-600 text-teal-700 rounded-lg text-sm font-medium hover:bg-teal-50 transition-colors">
             Bantuan Teknis
           </button>
-          <button 
+          <button
             onClick={() => {
               localStorage.removeItem('access_token');
               localStorage.removeItem('user');
@@ -187,13 +186,13 @@ const CourseReview = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
       <AdminSidebar activeMenu="course-validation" onNavigate={onNavigate} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      
+
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full overflow-hidden">
         <AdminHeader setIsOpen={setIsSidebarOpen} />
-        
+
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto relative">
-          
-          <button 
+
+          <button
             onClick={() => onNavigate && onNavigate('course-validation')}
             className="flex items-center gap-2 text-gray-600 hover:text-teal-700 font-medium text-sm mb-6 transition-colors"
           >
@@ -211,13 +210,13 @@ const CourseReview = ({ onNavigate }) => {
               {course.status.replace('_', ' ')}
             </span>
           </div>
-          
+
           <div className="flex flex-col lg:flex-row gap-6 mb-8">
             <div className="flex-1 space-y-6">
-              
+
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                 <h3 className="font-bold text-gray-800 text-lg mb-6">Informasi Utama Kursus</h3>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">JUDUL KURSUS</p>
@@ -270,7 +269,7 @@ const CourseReview = ({ onNavigate }) => {
                     <h4 className="font-bold text-gray-800 text-sm mb-1">Modul & Materi</h4>
                     <p className="text-xs text-gray-500">Lihat rincian modul, topik, dan bahan ajar.</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setShowMateriModal(true)}
                     className="flex items-center gap-2 bg-teal-50 text-teal-700 hover:bg-teal-100 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
                   >
@@ -287,28 +286,40 @@ const CourseReview = ({ onNavigate }) => {
                 <p className="text-sm text-gray-600 mb-6">
                   Dokumen pertanggungjawaban keaslian dan validitas materi dari penyelenggara.
                 </p>
-                
+
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center flex-1 bg-gray-50/50 mb-6">
                   <File className="w-10 h-10 text-gray-400 mb-4" />
-                  <p className="font-bold text-gray-800 text-sm mb-1 break-all">SP_Keaslian_Materi.pdf</p>
+                  <p className="font-bold text-gray-800 text-sm mb-1 break-all">
+                    {course.surat_pernyataan_url ? course.surat_pernyataan_url.split('/').pop() : 'Tidak ada lampiran'}
+                  </p>
                 </div>
-                
-                <button className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                  <Eye className="w-4 h-4" />
+
+                <a
+                  href={course.surat_pernyataan_url ? (course.surat_pernyataan_url.startsWith('/storage/') ? `http://localhost:8000${course.surat_pernyataan_url}` : course.surat_pernyataan_url) : '#'}
+                  target={course.surat_pernyataan_url ? "_blank" : "_self"}
+                  rel="noreferrer"
+                  className={`w-full bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${course.surat_pernyataan_url ? 'hover:bg-gray-50 text-gray-700' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                  onClick={(e) => {
+                    if (!course.surat_pernyataan_url) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
+                  <Eye className="w-4 h-4" /> 
                   Lihat Dokumen Lengkap
-                </button>
+                </a>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row justify-end items-center gap-4 border-t border-gray-200 pt-6">
-            <button 
+            <button
               onClick={() => setShowRejectModal(true)}
               className="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 text-red-600 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors"
             >
               Minta Revisi (Tolak)
             </button>
-            <button 
+            <button
               onClick={() => handleAction('disetujui')}
               className="w-full sm:w-auto bg-teal-700 hover:bg-teal-800 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
             >
@@ -329,13 +340,13 @@ const CourseReview = ({ onNavigate }) => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Pesan Revisi / Alasan Penolakan</label>
-                    <textarea 
-                      required 
+                    <textarea
+                      required
                       rows={4}
-                      value={note} 
-                      onChange={e => setNote(e.target.value)} 
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none" 
-                      placeholder="Masukkan catatan perbaikan..." 
+                      value={note}
+                      onChange={e => setNote(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                      placeholder="Masukkan catatan perbaikan..."
                     />
                   </div>
                   <div className="pt-4 flex justify-end gap-2">
@@ -371,7 +382,7 @@ const CourseReview = ({ onNavigate }) => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
                   {course.moduls && course.moduls.length > 0 ? (
                     <div className="space-y-6">
@@ -395,12 +406,12 @@ const CourseReview = ({ onNavigate }) => {
                             <p className="text-sm text-gray-600">{modul.gambaran_umum}</p>
                             {modul.info_tatap_muka && (
                               <div className="mt-3 inline-flex items-start gap-2 bg-amber-50 text-amber-800 p-2.5 rounded-lg text-xs font-medium w-full">
-                                 <Users className="w-4 h-4 shrink-0 mt-0.5" />
-                                 <p>Info Tatap Muka: {modul.info_tatap_muka}</p>
+                                <Users className="w-4 h-4 shrink-0 mt-0.5" />
+                                <p>Info Tatap Muka: {modul.info_tatap_muka}</p>
                               </div>
                             )}
                           </div>
-                          
+
                           {/* Daftar Materi & Kuis */}
                           <div className="p-0">
                             {((modul.materis && modul.materis.length > 0) || (modul.kuis && modul.kuis.length > 0)) ? (
@@ -424,7 +435,7 @@ const CourseReview = ({ onNavigate }) => {
                                         <span className="flex items-center gap-1.5"><File className="w-3.5 h-3.5" /> {materi.tipe_materi.replace('_', ' ').toUpperCase()}</span>
                                       </div>
                                     </div>
-                                    <a href={materi.tautan_atau_berkas} target="_blank" rel="noreferrer" className="w-full sm:w-auto mt-3 sm:mt-0 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shrink-0">
+                                    <a href={materi.tautan_atau_berkas?.startsWith('/storage/') ? `http://localhost:8000${materi.tautan_atau_berkas}` : materi.tautan_atau_berkas} target="_blank" rel="noreferrer" className="w-full sm:w-auto mt-3 sm:mt-0 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shrink-0">
                                       <Eye className="w-4 h-4" /> Lihat
                                     </a>
                                   </div>
@@ -454,13 +465,13 @@ const CourseReview = ({ onNavigate }) => {
                           </div>
                         </div>
                       ))}
-                      
+
                       {/* Post Test */}
                       {course.post_tests && course.post_tests.length > 0 && (
                         <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm">
                           <div className="p-5 border-b border-orange-100 bg-orange-50/50">
-                             <h3 className="font-bold text-orange-800 text-lg mb-2">Evaluasi Akhir (Post Test)</h3>
-                             <p className="text-sm text-orange-700">Evaluasi yang harus diselesaikan setelah semua modul selesai.</p>
+                            <h3 className="font-bold text-orange-800 text-lg mb-2">Evaluasi Akhir (Post Test)</h3>
+                            <p className="text-sm text-orange-700">Evaluasi yang harus diselesaikan setelah semua modul selesai.</p>
                           </div>
                           <div className="divide-y divide-gray-100 p-0">
                             {course.post_tests.map((pt, ptIdx) => (
@@ -492,7 +503,7 @@ const CourseReview = ({ onNavigate }) => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="p-6 border-t border-gray-100 flex justify-end shrink-0">
                   <button onClick={() => setShowMateriModal(false)} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors w-full sm:w-auto">
                     Tutup

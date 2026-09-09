@@ -152,6 +152,7 @@ const UserManagement = ({ onNavigate }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [komunitasList, setKomunitasList] = useState([]);
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -161,7 +162,7 @@ const UserManagement = ({ onNavigate }) => {
   // Form states
   const [formData, setFormData] = useState({
     nip: '', nama_lengkap: '', email: '', peran: 'peserta',
-    jabatan: '', rumpun_jabatan: 'Pelaksana', unit_kerja: ''
+    jabatan: '', rumpun_jabatan: 'Pelaksana', unit_kerja: '', komunitas_id: ''
   });
 
   const fetchUsers = async () => {
@@ -175,8 +176,18 @@ const UserManagement = ({ onNavigate }) => {
     }
   };
 
+  const fetchKomunitas = async () => {
+    try {
+      const response = await api.get('/admin-bkpsdm/komunitas');
+      setKomunitasList(response.data.data);
+    } catch (error) {
+      console.error('Failed to fetch komunitas:', error);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchKomunitas();
   }, []);
 
   const handleAddSubmit = async (e) => {
@@ -186,9 +197,15 @@ const UserManagement = ({ onNavigate }) => {
       if (!payload.email || payload.email.trim() === '') {
         payload.email = null;
       }
+      if (payload.peran !== 'admin_komunitas') {
+        delete payload.komunitas_id;
+      } else if (!payload.komunitas_id) {
+        Toast.fire({ icon: 'error', title: 'Komunitas harus dipilih untuk Admin Komunitas' });
+        return;
+      }
       await api.post('/admin-bkpsdm/pengguna', payload);
       setShowAddModal(false);
-      setFormData({ nip: '', nama_lengkap: '', email: '', peran: 'peserta', jabatan: '', rumpun_jabatan: 'Pelaksana', unit_kerja: '' });
+      setFormData({ nip: '', nama_lengkap: '', email: '', peran: 'peserta', jabatan: '', rumpun_jabatan: 'Pelaksana', unit_kerja: '', komunitas_id: '' });
       fetchUsers();
       Toast.fire({
         icon: 'success',
@@ -206,10 +223,19 @@ const UserManagement = ({ onNavigate }) => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/admin-bkpsdm/pengguna/${selectedUser.pengguna_id}`, {
+      const payload = {
         peran: selectedUser.peran,
         status: selectedUser.status
-      });
+      };
+      if (selectedUser.peran === 'admin_komunitas') {
+        if (!selectedUser.komunitas_id) {
+          Toast.fire({ icon: 'error', title: 'Komunitas harus dipilih untuk Admin Komunitas' });
+          return;
+        }
+        payload.komunitas_id = selectedUser.komunitas_id;
+      }
+      
+      await api.put(`/admin-bkpsdm/pengguna/${selectedUser.pengguna_id}`, payload);
       setShowEditModal(false);
       setSelectedUser(null);
       fetchUsers();
@@ -490,6 +516,17 @@ const UserManagement = ({ onNavigate }) => {
                       <option value="admin_bkpsdm">Admin BKPSDM</option>
                     </select>
                   </div>
+                  {formData.peran === 'admin_komunitas' && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Pilih Komunitas</label>
+                      <select required value={formData.komunitas_id} onChange={e => setFormData({ ...formData, komunitas_id: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        <option value="" disabled>Pilih Komunitas...</option>
+                        {komunitasList.map(k => (
+                          <option key={k.komunitas_id} value={k.komunitas_id}>{k.nama_komunitas}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Jabatan</label>
                     <input type="text" value={formData.jabatan} onChange={e => setFormData({ ...formData, jabatan: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Pranata Komputer Ahli Pertama" />
@@ -539,6 +576,17 @@ const UserManagement = ({ onNavigate }) => {
                       <option value="admin_bkpsdm">Admin BKPSDM</option>
                     </select>
                   </div>
+                  {selectedUser.peran === 'admin_komunitas' && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Pilih Komunitas</label>
+                      <select required value={selectedUser.komunitas_id || ''} onChange={e => setSelectedUser({ ...selectedUser, komunitas_id: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        <option value="" disabled>Pilih Komunitas...</option>
+                        {komunitasList.map(k => (
+                          <option key={k.komunitas_id} value={k.komunitas_id}>{k.nama_komunitas}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Status Akun</label>
                     <select value={selectedUser.status} onChange={e => setSelectedUser({ ...selectedUser, status: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none">

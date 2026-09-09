@@ -31,7 +31,7 @@ import PusatBantuan from './Admin-Komunitas/PusatBantuan'
 function App() {
   const [currentRoute, setCurrentRoute] = useState(() => {
     const path = window.location.pathname;
-    
+
     const hasToken = localStorage.getItem('access_token');
     const userStr = localStorage.getItem('user');
     let userRole = null;
@@ -39,12 +39,12 @@ function App() {
       if (userStr) userRole = JSON.parse(userStr).peran;
     } catch(e) {}
 
-    // Enforce admin routes only on /admin path and role admin_bkpsdm
-    if (path.startsWith('/admin')) {
-      if (path === '/admin-komunitas') return 'admin-komunitas';
+    // Rute khusus Admin BKPSDM (path /admin/*)
+    if (path.startsWith('/admin') && path !== '/admin-komunitas') {
       if (!hasToken || userRole !== 'admin_bkpsdm') {
         window.history.replaceState({}, '', '/');
-        return hasToken ? 'dashboard' : 'landing';
+        if (!hasToken) return 'landing';
+        return userRole === 'admin_komunitas' ? 'admin-komunitas' : 'dashboard';
       }
       if (path === '/admin/user-management') return 'user-management';
       if (path === '/admin/community-management') return 'community-management';
@@ -54,15 +54,33 @@ function App() {
       return 'admin';
     }
 
-    const savedRoute = localStorage.getItem('current_route');
-    
-    // Only restore non-admin routes from localStorage if not an admin path
-    if (savedRoute && !savedRoute.startsWith('admin') && savedRoute !== 'landing' && savedRoute !== 'user-management' && savedRoute !== 'community-management' && savedRoute !== 'course-validation' && savedRoute !== 'course-review' && savedRoute !== 'monitoring-reports') {
-      return savedRoute;
+    // Rute khusus Admin Komunitas (path /admin-komunitas)
+    if (path === '/admin-komunitas') {
+      if (!hasToken || userRole !== 'admin_komunitas') {
+        window.history.replaceState({}, '', '/');
+        if (!hasToken) return 'landing';
+        return userRole === 'admin_bkpsdm' ? 'admin' : 'dashboard';
+      }
+      return 'admin-komunitas';
     }
-    
+
+    // Rute Admin Komunitas yang tersimpan di localStorage
+    const adminKomunitasRoutes = ['admin-komunitas', 'pelatihan-saya', 'laporan-progress', 'katalog-kursus', 'detail-kursus', 'bank-soal', 'pusat-bantuan'];
+    const adminBkpsdmRoutes = ['admin', 'user-management', 'community-management', 'course-validation', 'course-review', 'monitoring-reports'];
+
+    const savedRoute = localStorage.getItem('current_route');
+
+    if (savedRoute) {
+      // Validasi savedRoute sesuai role aktual
+      if (adminBkpsdmRoutes.includes(savedRoute) && userRole === 'admin_bkpsdm') return savedRoute;
+      if (adminKomunitasRoutes.includes(savedRoute) && userRole === 'admin_komunitas') return savedRoute;
+      if (!adminBkpsdmRoutes.includes(savedRoute) && !adminKomunitasRoutes.includes(savedRoute) && savedRoute !== 'landing' && userRole === 'peserta') return savedRoute;
+    }
+
     if (hasToken) {
-      return userRole === 'admin_bkpsdm' ? 'admin' : 'dashboard';
+      if (userRole === 'admin_bkpsdm') return 'admin';
+      if (userRole === 'admin_komunitas') return 'admin-komunitas';
+      return 'dashboard';
     }
     return 'landing';
   })
@@ -204,20 +222,24 @@ function App() {
       return <HelpCenter onNavigate={handleNavigate} />
     }
 
-    return <LandingPage onLogin={(route = 'dashboard') => {
+    return <LandingPage onLogin={() => {
       setShowLoginSuccess(true);
       setTimeout(() => setShowLoginSuccess(false), 3000);
-      
+
       const userStr = localStorage.getItem('user');
       let userRole = null;
       try {
         if (userStr) userRole = JSON.parse(userStr).peran;
       } catch(e) {}
-      
+
+      // Arahkan ke halaman yang sesuai berdasarkan role
       if (userRole === 'admin_bkpsdm') {
         handleNavigate('admin');
+      } else if (userRole === 'admin_komunitas') {
+        handleNavigate('admin-komunitas');
       } else {
-        handleNavigate(route);
+        // role: peserta (atau default)
+        handleNavigate('dashboard');
       }
     }} onNavigate={handleNavigate} />
   }

@@ -16,7 +16,7 @@ const Toast = Swal.mixin({
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, ArrowLeft, BookOpen, FileText, HelpCircle, 
-  Eye, File
+  Eye, File, Clock, PlayCircle
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, setIsOpen }) => {
@@ -135,6 +135,7 @@ const CourseReview = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [course, setCourse] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showMateriModal, setShowMateriModal] = useState(false);
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -249,6 +250,19 @@ const CourseReview = ({ onNavigate }) => {
                   <p className="text-sm font-bold text-gray-700 mb-1">Capaian Pembelajaran:</p>
                   <p className="text-sm text-gray-600">{course.capaian_pembelajaran || '-'}</p>
                 </div>
+                <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-gray-800 text-sm mb-1">Modul & Materi</h4>
+                    <p className="text-xs text-gray-500">Lihat rincian modul, topik, dan bahan ajar.</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowMateriModal(true)}
+                    className="flex items-center gap-2 bg-teal-50 text-teal-700 hover:bg-teal-100 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Lihat Detail Materi
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -313,6 +327,107 @@ const CourseReview = ({ onNavigate }) => {
                     <button type="button" onClick={() => setShowRejectModal(false)} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Batal</button>
                     <button onClick={() => handleAction('ditolak')} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Kirim & Tolak</button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Materi Modal */}
+          {showMateriModal && (
+            <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-xl">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center shrink-0">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">Detail Materi Pembelajaran</h2>
+                    <p className="text-sm text-gray-500 mt-1">{course.judul_pembelajaran}</p>
+                  </div>
+                  <button onClick={() => setShowMateriModal(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
+                  {course.moduls && course.moduls.length > 0 ? (
+                    <div className="space-y-6">
+                      {course.moduls.map((modul, index) => (
+                        <div key={modul.modul_id || index} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                          {/* Header Modul */}
+                          <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
+                              <h3 className="font-bold text-gray-800 text-lg">Modul {modul.urutan || index + 1}: {modul.judul_modul}</h3>
+                              <div className="flex flex-wrap items-center gap-3">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {modul.durasi_total_menit} Menit
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold">
+                                  <BookOpen className="w-3.5 h-3.5" />
+                                  {modul.jp_modul} JP
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600">{modul.gambaran_umum}</p>
+                            {modul.info_tatap_muka && (
+                              <div className="mt-3 inline-flex items-start gap-2 bg-amber-50 text-amber-800 p-2.5 rounded-lg text-xs font-medium w-full">
+                                 <Users className="w-4 h-4 shrink-0 mt-0.5" />
+                                 <p>Info Tatap Muka: {modul.info_tatap_muka}</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Daftar Materi */}
+                          <div className="p-0">
+                            {modul.materis && modul.materis.length > 0 ? (
+                              <div className="divide-y divide-gray-100">
+                                {modul.materis.map((materi, mIdx) => (
+                                  <div key={materi.materi_id || mIdx} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${materi.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                                      {materi.tipe_materi === 'pdf' ? <FileText className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-semibold text-gray-800 text-sm truncate">{materi.judul_materi}</h4>
+                                        {materi.apakah_wajib ? (
+                                          <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold uppercase tracking-wider">Wajib</span>
+                                        ) : (
+                                          <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold uppercase tracking-wider">Opsional</span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {materi.durasi_menit} Menit</span>
+                                        <span className="flex items-center gap-1.5"><File className="w-3.5 h-3.5" /> {materi.tipe_materi.replace('_', ' ').toUpperCase()}</span>
+                                      </div>
+                                    </div>
+                                    <a href={materi.tautan_atau_berkas} target="_blank" rel="noreferrer" className="w-full sm:w-auto mt-3 sm:mt-0 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shrink-0">
+                                      <Eye className="w-4 h-4" /> Lihat
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="p-8 text-center text-gray-500">
+                                <p className="text-sm">Belum ada materi untuk modul ini.</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                        <BookOpen className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-800 mb-2">Modul & Materi Kosong</h3>
+                      <p className="text-sm text-gray-500 max-w-sm">Kursus ini belum memiliki modul atau materi yang terdaftar pada sistem.</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-6 border-t border-gray-100 flex justify-end shrink-0">
+                  <button onClick={() => setShowMateriModal(false)} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors w-full sm:w-auto">
+                    Tutup
+                  </button>
                 </div>
               </div>
             </div>

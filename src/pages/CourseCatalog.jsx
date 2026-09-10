@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -125,99 +126,84 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
 
 /* ── Main Catalog Section ────────────────────────────── */
 const CatalogContent = ({ onNavigate }) => {
-  const [enrolledSet, setEnrolledSet] = useState(new Set());
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
+  const [category, setCategory] = useState('Semua Kategori');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sort, setSort] = useState('terbaru');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const handleEnroll = (id) => {
-    setEnrolledSet(prev => new Set([...prev, id]));
+  const fetchKatalog = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: currentPage,
+        kategori: category,
+        sort: sort
+      };
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+
+      const response = await api.get('/user/katalog', { params });
+      if (response.data?.data) {
+        setCourses(response.data.data.data || []);
+        setCurrentPage(response.data.data.current_page || 1);
+        setTotalPages(response.data.data.last_page || 1);
+        setTotalItems(response.data.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching katalog:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [category, searchQuery, sort, currentPage]);
+
+  useEffect(() => {
+    fetchKatalog();
+  }, [fetchKatalog]);
+
+  const handleEnroll = async (id) => {
+    try {
+      setEnrolling(true);
+      await api.post(`/user/katalog/${id}/enroll`);
+      alert('Berhasil mendaftar ke pelatihan!');
+      fetchKatalog(); // refresh to update isEnrolled status
+    } catch (error) {
+      alert(error.response?.data?.message || 'Gagal mendaftar ke pelatihan');
+    } finally {
+      setEnrolling(false);
+    }
   };
 
-  const courses = [
-    { 
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop', 
-      category: 'Manajemen ASN', 
-      title: 'Manajemen Kinerja Pegawai', 
-      description: 'Pelajari strategi dan implementasi penilaian kinerja modern berbasis sistem informasi.', 
-      jpl: 20, 
-      modules: 5,
-    },
-    { 
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=2070&auto=format&fit=crop', 
-      category: 'Teknologi Informasi', 
-      title: 'Dasar Keamanan Siber untuk ASN', 
-      description: 'Pahami ancaman siber dan cara melindungi data instansi Anda secara efektif.', 
-      jpl: 15, 
-      modules: 3,
-    },
-    { 
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=2074&auto=format&fit=crop', 
-      category: 'Pelayanan Publik', 
-      title: 'Service Excellence', 
-      description: 'Teknik komunikasi prima dan penanganan komplain untuk meningkatkan kepuasan publik.', 
-      jpl: 30, 
-      modules: 8,
-    },
-  ];
+  const categories = ['Semua Kategori', 'Manajemen ASN', 'Teknologi Informasi', 'Pelayanan Publik', 'Kepemimpinan'];
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-12 gap-8">
       {/* Sidebar Filters */}
       <aside className="md:col-span-3 space-y-6">
-        {/* Kategori Filter */}
         <div className="bg-white border border-[#BBC9C7] rounded-lg p-5">
+          <div className="relative mb-6">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text" 
+              placeholder="Cari pelatihan..." 
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-[#006A63]"
+            />
+          </div>
           <h3 className="font-bold text-xl text-[#1D315F] mb-4 pb-4 border-b border-gray-100">Kategori</h3>
           <div className="space-y-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded flex items-center justify-center bg-[#006A63]">
-                 <Check className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Semua Kategori</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center bg-white">
-              </div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Manajemen ASN</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center bg-white">
-              </div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Teknologi Informasi</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center bg-white">
-              </div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Pelayanan Publik</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center bg-white">
-              </div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Kepemimpinan</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Tingkat Kesulitan Filter */}
-        <div className="bg-white border border-[#BBC9C7] rounded-lg p-5">
-          <h3 className="font-bold text-xl text-[#1D315F] mb-4 pb-4 border-b border-gray-100">Tingkat Kesulitan</h3>
-          <div className="space-y-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded-full border-[5px] border-[#006A63] bg-white flex-shrink-0"></div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Semua Tingkat</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded-full border border-gray-300 bg-white flex-shrink-0"></div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Dasar (Basic)</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded-full border border-gray-300 bg-white flex-shrink-0"></div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Menengah (Intermediate)</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className="w-5 h-5 rounded-full border border-gray-300 bg-white flex-shrink-0"></div>
-              <span className="text-[14px] font-semibold text-[#1D315F]">Lanjut (Advanced)</span>
-            </label>
+            {categories.map((c, idx) => (
+              <label key={idx} className="flex items-center gap-3 cursor-pointer" onClick={() => { setCategory(c); setCurrentPage(1); }}>
+                <div className={`w-5 h-5 rounded flex items-center justify-center border ${category === c ? 'bg-[#006A63] border-[#006A63]' : 'bg-white border-gray-300'}`}>
+                  {category === c && <Check className="w-3.5 h-3.5 text-white" />}
+                </div>
+                <span className="text-[14px] font-semibold text-[#1D315F]">{c}</span>
+              </label>
+            ))}
           </div>
         </div>
       </aside>
@@ -226,42 +212,58 @@ const CatalogContent = ({ onNavigate }) => {
       <div className="md:col-span-9">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-[#BBC9C7]">
           <p className="text-[14px] font-medium text-gray-500 mb-4 sm:mb-0">
-            Menampilkan <span className="font-bold text-[#1D315F]">12</span> dari <span className="font-bold text-[#1D315F]">45</span> pelatihan
+            Menampilkan <span className="font-bold text-[#1D315F]">{courses.length}</span> dari <span className="font-bold text-[#1D315F]">{totalItems}</span> pelatihan
           </p>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-[#1D315F]">
             Urutkan:
-            <div className="flex items-center gap-1 border border-gray-300 px-3 py-1.5 rounded bg-white cursor-pointer ml-1">
-              Terbaru <ChevronDown className="w-4 h-4 text-gray-500" />
-            </div>
+            <select 
+              className="border border-gray-300 px-3 py-1.5 rounded bg-white cursor-pointer ml-1 outline-none"
+              value={sort}
+              onChange={(e) => { setSort(e.target.value); setCurrentPage(1); }}
+            >
+              <option value="terbaru">Terbaru</option>
+              <option value="abjad">A-Z</option>
+            </select>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {courses.map((c) => (
-            <CatalogCard
-              key={c.id}
-              {...c}
-              isEnrolled={enrolledSet.has(c.id)}
-              onEnroll={handleEnroll}
-              onNavigate={onNavigate}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="py-20 text-center text-gray-500 font-bold">Memuat Katalog...</div>
+        ) : courses.length === 0 ? (
+          <div className="py-20 text-center text-gray-500 font-bold">Tidak ada pelatihan ditemukan.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            {courses.map((c) => (
+              <CatalogCard
+                key={c.id}
+                {...c}
+                onEnroll={() => handleEnroll(c.id)}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Pagination */}
-        <div className="flex justify-center items-center gap-2">
-          <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button className="w-9 h-9 flex items-center justify-center rounded bg-[#006A63] text-white font-semibold">1</button>
-          <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 font-semibold">2</button>
-          <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 font-semibold">3</button>
-          <span className="px-1 text-gray-400">...</span>
-          <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 font-semibold">5</button>
-          <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50">
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2">
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm font-semibold text-gray-600">Hal {currentPage} dari {totalPages}</span>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import {
@@ -71,197 +72,194 @@ const CourseDetailNavbar = ({ onNavigate }) => {
   );
 };
 
-const CourseHeader = ({ onBack }) => (
-  <div className="bg-[#1D315F] py-6 md:py-8 px-6 md:px-12 relative overflow-hidden" style={{ backgroundImage: `url(${hiasanImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-    <div className="absolute inset-0 bg-[#1D315F] opacity-55"></div>
-    <div className="max-w-7xl mx-auto relative z-10">
-      <h1 className="text-white text-2xl md:text-3xl font-bold mb-4">Detail Materi Pelatihan</h1>
-      
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-white text-xs sm:text-sm">
-          <button 
-            onClick={onBack}
-            className="flex items-center gap-1 hover:text-[#3FCDC1] transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Kembali ke Pelatihanku</span>
-          </button>
-          <span className="hidden sm:inline">•</span>
-          <span className="text-xs sm:text-sm">Modul 2: Prinsip Dasar Manajemen Risiko</span>
-        </div>
+const CourseHeader = ({ onBack, courseData }) => {
+  const currentModule = courseData?.modul?.[0]?.judul || 'Modul';
+  
+  return (
+    <div className="bg-[#1D315F] py-6 md:py-8 px-6 md:px-12 relative overflow-hidden" style={{ backgroundImage: `url(${hiasanImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="absolute inset-0 bg-[#1D315F] opacity-55"></div>
+      <div className="max-w-7xl mx-auto relative z-10">
+        <h1 className="text-white text-2xl md:text-3xl font-bold mb-4">{courseData?.judul || 'Detail Pelatihan'}</h1>
         
-        <div className="flex items-center gap-2 text-xs sm:text-sm">
-          <span className="text-white">Modul 2</span>
-          <span>•</span>
-          <div className="flex items-center gap-1">
-            <div className="w-16 sm:w-20 h-1.5 bg-[#3FCDC1] rounded-full"></div>
-            <span className="text-white text-xs">1/6</span>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-white text-xs sm:text-sm">
+            <button 
+              onClick={onBack}
+              className="flex items-center gap-1 hover:text-[#3FCDC1] transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Kembali ke Pelatihanku</span>
+            </button>
+            <span className="hidden sm:inline">•</span>
+            <span className="text-xs sm:text-sm">{courseData?.kategori || ''}</span>
+          </div>
+          
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <span className="text-white">{courseData?.progress}% Selesai</span>
+            <span>•</span>
+            <div className="flex items-center gap-1">
+              <div className="w-32 sm:w-48 h-2 bg-gray-600 rounded-full overflow-hidden">
+                <div className="h-full bg-[#3FCDC1]" style={{ width: `${courseData?.progress || 0}%` }}></div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-);
-
-const SyllabusItem = ({ number, title, subtitle, duration, status, isLocked }) => {
-  const getStatusIcon = () => {
-    if (status === 'completed') return <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-[#10B981]" />;
-    if (isLocked) return <Lock className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />;
-    return <Circle className="w-4 h-4 md:w-5 md:h-5 text-gray-300" />;
-  };
-
-  return (
-    <div className={`flex items-start gap-2 md:gap-3 py-2 md:py-3 ${isLocked ? 'opacity-50' : ''}`}>
-      <div className="flex-shrink-0 mt-0.5">
-        {getStatusIcon()}
-      </div>
-      <div className="flex-1 min-w-0">
-        <h4 className="font-semibold text-[#1D315F] text-xs md:text-sm mb-0.5">{number}. {title}</h4>
-        <p className="text-xs text-gray-500 mb-1 font-semibold line-clamp-1">{subtitle}</p>
-        {duration && <p className="text-xs text-gray-400 font-semibold">{duration}</p>}
       </div>
     </div>
   );
 };
 
-const Sidebar = ({ onNavigate }) => (
-  <aside className="bg-white border border-[#BBC9C7] rounded-lg p-4 md:p-6">
-    <h2 className="font-semibold text-[#1D315F] text-base md:text-lg mb-1">Silabus Modul 2</h2>
-    <p className="text-xs md:text-sm text-gray-500 mb-4 md:mb-6 font-semibold">Prinsip Dasar Manajemen Risiko</p>
+const SyllabusItem = ({ index, title, subtitle, duration, status, onClick, isActive }) => {
+  const getStatusIcon = () => {
+    if (status === 'completed') return <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-[#10B981]" />;
+    return <Circle className="w-4 h-4 md:w-5 md:h-5 text-gray-300" />;
+  };
 
-    <div className="space-y-2 divide-y divide-gray-100">
-      <SyllabusItem
-        number="1"
-        title="Pengenalan Risiko"
-        subtitle="Materi Bacaan"
-        duration="• 10 menit"
-        status="completed"
-        isLocked={false}
-      />
-      <SyllabusItem
-        number="2"
-        title="Jenis Risiko"
-        subtitle="Video"
-        duration="• 12 menit"
-        status="completed"
-        isLocked={false}
-      />
-      <SyllabusItem
-        number="3"
-        title="Analisis Risiko Kualitatif"
-        subtitle="Video • 15 menit • Sedang dipelajari"
-        status="active"
-        isLocked={false}
-      />
-      <SyllabusItem
-        number="4"
-        title="Analisis Kuantitatif"
-        subtitle=""
-        isLocked={true}
-      />
-      <SyllabusItem
-        number="5"
-        title="Studi Kasus"
-        subtitle="Materi Bacaan • 30 menit"
-        isLocked={true}
-      />
-      <SyllabusItem
-        number="6"
-        title="Kuis Evaluasi Modul 2"
-        subtitle="Kuis • 10 menit • Syarat Kelulusan"
-        isLocked={true}
-      />
-    </div>
-
-    <button 
-      onClick={() => onNavigate('post-test')}
-      className="w-full mt-4 md:mt-6 py-2.5 md:py-3 bg-[#006A63] text-white text-sm md:text-base font-semibold rounded-md hover:bg-[#00534D] transition-colors"
+  return (
+    <div 
+      className={`flex items-start gap-2 md:gap-3 py-2 md:py-3 cursor-pointer hover:bg-gray-50 transition-colors px-2 rounded ${isActive ? 'bg-[#F4F8FB] border-l-4 border-[#3FCDC1]' : 'border-l-4 border-transparent'}`}
+      onClick={onClick}
     >
-      Lanjut ke Materi Berikutnya →
-    </button>
-  </aside>
-);
+      <div className="flex-shrink-0 mt-0.5">
+        {getStatusIcon()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold text-[#1D315F] text-xs md:text-sm mb-0.5">{index}. {title}</h4>
+        <p className="text-xs text-gray-500 mb-1 font-semibold line-clamp-1">{subtitle}</p>
+        {duration && <p className="text-xs text-gray-400 font-semibold">{duration} Menit</p>}
+      </div>
+    </div>
+  );
+};
 
-const MainContent = () => (
-  <div className="space-y-4 md:space-y-6">
-    <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden">
-      <h2 className="text-lg md:text-xl font-semibold text-[#1D315F] p-4 md:p-6 pb-3 md:pb-4">
-        Video Pembelajaran: Analisis Risiko Kualitatif
-      </h2>
+const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
+  return (
+    <aside className="bg-white border border-[#BBC9C7] rounded-lg p-4 md:p-6 overflow-y-auto max-h-[600px] custom-scrollbar">
+      <h2 className="font-semibold text-[#1D315F] text-base md:text-lg mb-4">Silabus Pelatihan</h2>
       
-      <div className="aspect-video bg-gray-900 flex items-center justify-center relative">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center px-4">
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-red-700 transition-colors">
-              <div className="w-0 h-0 border-t-[10px] md:border-t-[12px] border-t-transparent border-l-[16px] md:border-l-[20px] border-l-white border-b-[10px] md:border-b-[12px] border-b-transparent ml-1"></div>
-            </div>
-            <div className="bg-black/70 px-4 py-4 md:px-6 md:py-8 rounded-lg max-w-md mx-auto">
-              <p className="text-white font-semibold text-base md:text-2xl mb-1 md:mb-2">KEPEMIMPINAN & PELAYANAN</p>
-              <p className="text-white font-semibold text-base md:text-2xl mb-2 md:mb-4">PUBLIK MODERN</p>
-              <p className="text-white text-xs md:text-sm font-semibold">Agung Prasetyo, M.Si - Widyaiswara Ahli Madya</p>
-            </div>
-            <div className="absolute bottom-2 right-2 md:bottom-4 md:right-4 text-white text-xs md:text-sm font-semibold bg-black/50 px-2 py-1 rounded">
-              45:30
-            </div>
+      {courseData?.modul?.map((modul, idx) => (
+        <div key={modul.modul_id} className="mb-6">
+          <p className="text-xs md:text-sm text-[#006A63] font-bold mb-2">Modul {modul.urutan}: {modul.judul}</p>
+          <div className="space-y-1 divide-y divide-gray-100 pl-2">
+            {modul.materi?.map((mat, i) => (
+              <SyllabusItem
+                key={mat.materi_id}
+                index={i + 1}
+                title={mat.judul}
+                subtitle={`Tipe: ${mat.tipe === 'video' ? 'Video' : 'Materi Bacaan'}`}
+                duration={mat.durasi}
+                status={mat.is_read ? 'completed' : 'pending'}
+                isActive={activeMateri?.materi_id === mat.materi_id}
+                onClick={() => onSelectMateri(mat)}
+              />
+            ))}
+            {modul.kuis && (
+              <SyllabusItem
+                key={`kuis-${modul.kuis.kuis_id}`}
+                index="Kuis"
+                title={modul.kuis.judul}
+                subtitle="Kuis Evaluasi Modul"
+                duration={modul.kuis.durasi}
+                status="pending"
+                isActive={false}
+                onClick={() => { /* Navigate to quiz if needed */ }}
+              />
+            )}
           </div>
         </div>
-      </div>
-    </div>
-
-    <div className="bg-white border border-[#BBC9C7] rounded-lg p-4 md:p-6">
-      <div className="flex items-start gap-3 mb-4">
-        <FileText className="w-5 h-5 md:w-6 md:h-6 text-[#1D315F] flex-shrink-0 mt-1" />
-        <div>
-          <h3 className="text-base md:text-lg font-semibold text-[#1D315F] mb-2">Deskripsi Materi</h3>
-          <div className="text-xs sm:text-sm text-[#64748B] leading-relaxed space-y-3 font-semibold">
-            <p>
-              Dalam materi ini, Anda akan mempelajari konsep dasar dan penerapan analisis risiko kualitatif dalam 
-              konteks sektor publik. Materi ini dirancang untuk memberikan pemahaman praktis mengenai cara mengidentifikasi dan 
-              mengevaluasi risiko tanpa menggunakan perhitungan matematis yang rumit.
-            </p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>Memahami perbedaan antara analisis kualitatif dan kuantitatif</li>
-              <li>Menggunakan metrik probabilitas dan dampak untuk menilai risiko</li>
-              <li>Mengidentifikasi prioritas risiko berdasarkan hasil analisis kualitatif</li>
-              <li>Studi kasus penerapan pada instansi pemerintah daerah</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div className="bg-white border border-[#BBC9C7] rounded-lg p-4 md:p-6">
-      <div className="flex items-start gap-3 mb-4">
-        <Download className="w-5 h-5 md:w-6 md:h-6 text-[#1D315F] flex-shrink-0 mt-1" />
-        <h3 className="text-base md:text-lg font-semibold text-[#1D315F]">Unduh Materi Pendukung</h3>
-      </div>
+      ))}
       
-      <div className="grid grid-cols-1 gap-3 md:gap-4">
-        <div className="border border-gray-200 rounded-lg p-3 md:p-4 flex items-center gap-3 hover:border-[#3FCDC1] hover:shadow-sm transition-all cursor-pointer">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-red-50 rounded flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-xs sm:text-sm text-[#1D315F]">Slide Presentasi (PDF)</p>
-            <p className="text-xs text-gray-500 font-semibold">2.6 MB</p>
-          </div>
-          <Download className="w-4 h-4 md:w-5 md:h-5 text-[#006A63] flex-shrink-0" />
+      {courseData?.post_test && (
+        <div className="mt-6 border-t pt-4">
+          <p className="text-xs md:text-sm text-red-600 font-bold mb-2">Post Test</p>
+          <SyllabusItem
+            index="Akhir"
+            title={courseData.post_test.judul}
+            subtitle="Syarat Kelulusan"
+            duration={courseData.post_test.durasi}
+            status={courseData.progress === 100 ? 'active' : 'locked'}
+            onClick={() => {
+               if (courseData.progress === 100) onNavigate('post-test');
+               else alert('Selesaikan semua materi terlebih dahulu.');
+            }}
+          />
         </div>
+      )}
+    </aside>
+  );
+};
 
-        <div className="border border-gray-200 rounded-lg p-3 md:p-4 flex items-center gap-3 hover:border-[#3FCDC1] hover:shadow-sm transition-all cursor-pointer">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-green-50 rounded flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
+const MainContent = ({ activeMateri, onMarkAsRead }) => {
+  if (!activeMateri) {
+    return (
+      <div className="bg-white border border-[#BBC9C7] rounded-lg p-10 text-center text-gray-500">
+        Silakan pilih materi di silabus untuk mulai belajar.
+      </div>
+    );
+  }
+
+  const isVideo = activeMateri.tipe === 'video';
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden">
+        <h2 className="text-lg md:text-xl font-semibold text-[#1D315F] p-4 md:p-6 pb-3 md:pb-4">
+          {activeMateri.judul}
+        </h2>
+        
+        {isVideo ? (
+          <div className="aspect-video bg-gray-900 flex items-center justify-center relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center px-4">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-red-700 transition-colors">
+                  <div className="w-0 h-0 border-t-[10px] md:border-t-[12px] border-t-transparent border-l-[16px] md:border-l-[20px] border-l-white border-b-[10px] md:border-b-[12px] border-b-transparent ml-1"></div>
+                </div>
+                <div className="bg-black/70 px-4 py-4 md:px-6 md:py-8 rounded-lg max-w-md mx-auto">
+                   {/* In a real app, this would be an iframe or video tag taking the full size */}
+                  <p className="text-white text-xs md:text-sm font-semibold text-center mb-2">{activeMateri.tautan || 'Tautan video tidak tersedia'}</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-xs sm:text-sm text-[#1D315F] line-clamp-1">Template Checklist Analisis Risiko (XLS)</p>
-            <p className="text-xs text-gray-500 font-semibold">1.1 MB</p>
+        ) : (
+          <div className="p-6 bg-gray-50 flex items-center justify-center">
+             <div className="text-center">
+               <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+               <p className="text-gray-600 mb-4">Silakan baca dokumen materi berikut</p>
+               {activeMateri.tautan && (
+                  <a href={activeMateri.tautan} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-[#006A63] text-white rounded font-bold hover:bg-[#00534D]">
+                    Buka Dokumen <Download className="w-4 h-4" />
+                  </a>
+               )}
+             </div>
           </div>
-          <Download className="w-4 h-4 md:w-5 md:h-5 text-[#006A63] flex-shrink-0" />
-        </div>
+        )}
+      </div>
+
+      <div className="bg-white border border-[#BBC9C7] rounded-lg p-4 md:p-6 flex justify-between items-center flex-wrap gap-4">
+         <div>
+            <h3 className="text-base md:text-lg font-semibold text-[#1D315F] mb-1">Status Penyelesaian</h3>
+            <p className="text-xs text-gray-500">Tandai telah selesai jika Anda sudah memahami materi ini.</p>
+         </div>
+         <button 
+           onClick={onMarkAsRead}
+           disabled={activeMateri.is_read}
+           className={`px-6 py-2.5 rounded text-sm font-bold flex items-center gap-2 transition-colors ${
+             activeMateri.is_read 
+               ? 'bg-green-100 text-green-700 cursor-not-allowed border border-green-200' 
+               : 'bg-[#1D315F] text-white hover:bg-[#162847]'
+           }`}
+         >
+           {activeMateri.is_read ? (
+             <><CheckCircle2 className="w-5 h-5" /> Selesai Dibaca</>
+           ) : (
+             'Tandai Telah Dibaca'
+           )}
+         </button>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Footer = () => (
   <footer className="bg-[#EAEFF4] pt-16 pb-8 border-t border-[#BBC9C7]">
@@ -308,20 +306,81 @@ const Footer = () => (
 );
 
 export default function CourseDetail({ onNavigate, onBack }) {
+  const [courseData, setCourseData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeMateri, setActiveMateri] = useState(null);
+  
+  const courseId = localStorage.getItem('userCourseId');
+
+  const fetchCourse = async () => {
+    if (!courseId) {
+      alert('Tidak ada course ID');
+      onBack();
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await api.get(`/user/courses/${courseId}`);
+      if (res.data?.data) {
+        setCourseData(res.data.data);
+        if (!activeMateri && res.data.data.modul?.[0]?.materi?.[0]) {
+          setActiveMateri(res.data.data.modul[0].materi[0]);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Gagal mengambil data pelatihan');
+      onBack();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCourse();
+  }, []);
+
+  const handleMarkAsRead = async () => {
+    try {
+      await api.post(`/user/courses/${courseId}/materi/${activeMateri.materi_id}/read`);
+      // Update local state to reflect UI change instantly without full reload
+      setActiveMateri(prev => ({ ...prev, is_read: true }));
+      fetchCourse(); // refresh stats
+    } catch (error) {
+      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan progres.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F9FBFC]">
+        <div className="text-[#1D315F] font-bold">Memuat Detail Pelatihan...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#F9FBFC]">
       <CourseDetailNavbar onNavigate={onNavigate} />
-      <CourseHeader onBack={onBack} />
+      <CourseHeader onBack={onBack} courseData={courseData} />
       
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-6 md:py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
             <div className="lg:col-span-8 order-2 lg:order-1">
-              <MainContent />
+              <MainContent 
+                activeMateri={activeMateri} 
+                onMarkAsRead={handleMarkAsRead} 
+              />
             </div>
             
             <div className="lg:col-span-4 order-1 lg:order-2">
-              <Sidebar onNavigate={onNavigate} />
+              <Sidebar 
+                courseData={courseData} 
+                activeMateri={activeMateri}
+                onSelectMateri={setActiveMateri}
+                onNavigate={onNavigate}
+              />
             </div>
           </div>
         </div>

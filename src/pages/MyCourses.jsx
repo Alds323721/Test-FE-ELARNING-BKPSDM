@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -88,20 +89,20 @@ const MyCoursesHeader = () => (
 );
 
 /* ── Tabs ──────────────────────────── */
-const Tabs = ({ activeTab, setActiveTab }) => (
+const Tabs = ({ activeTab, setActiveTab, stats }) => (
   <div className="max-w-7xl mx-auto px-6 md:px-12 mt-6 border-b border-gray-200">
     <div className="flex items-center gap-8 text-[15px] font-semibold">
       <button 
-        onClick={() => setActiveTab('in-progress')}
-        className={`pb-3 border-b-2 transition-colors ${activeTab === 'in-progress' ? 'border-[#006A63] text-[#006A63]' : 'border-transparent text-gray-500 hover:text-[#1D315F]'}`}
+        onClick={() => setActiveTab('berjalan')}
+        className={`pb-3 border-b-2 transition-colors ${activeTab === 'berjalan' ? 'border-[#006A63] text-[#006A63]' : 'border-transparent text-gray-500 hover:text-[#1D315F]'}`}
       >
-        Sedang Berjalan (3)
+        Sedang Berjalan ({stats?.berjalan || 0})
       </button>
       <button 
-        onClick={() => setActiveTab('completed')}
-        className={`pb-3 border-b-2 transition-colors ${activeTab === 'completed' ? 'border-[#006A63] text-[#006A63]' : 'border-transparent text-gray-500 hover:text-[#1D315F]'}`}
+        onClick={() => setActiveTab('selesai')}
+        className={`pb-3 border-b-2 transition-colors ${activeTab === 'selesai' ? 'border-[#006A63] text-[#006A63]' : 'border-transparent text-gray-500 hover:text-[#1D315F]'}`}
       >
-        Selesai (12)
+        Selesai ({stats?.selesai || 0})
       </button>
     </div>
   </div>
@@ -178,56 +179,66 @@ const CompletedCard = ({ image, categoryIcon: Icon, category, title, jpl, comple
 
 /* ── Main Section ───────────────────────────── */
 const MyCoursesContent = ({ onNavigate }) => {
-  const [activeTab, setActiveTab] = useState('in-progress');
+  const [activeTab, setActiveTab] = useState('berjalan');
+  const [courses, setCourses] = useState([]);
+  const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const inProgressCourses = [
-    { 
-      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2076&auto=format&fit=crop', 
-      category: 'Manajemen Risiko', 
-      categoryIcon: Folder,
-      title: 'Pengantar Manajemen Risiko Sektor Publik Tahun 2024', 
-      jpl: 20, 
-      modules: 5,
-      progress: 65
-    },
-    { 
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop', 
-      category: 'Literasi Digital', 
-      categoryIcon: Folder,
-      title: 'Implementasi Sistem Pemerintahan Berbasis Elektronik (SPBE)', 
-      jpl: 40, 
-      modules: 8,
-      progress: 15
-    },
-  ];
+  useEffect(() => {
+    const fetchMyCourses = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/user/my-courses', { params: { status: activeTab } });
+        if (response.data?.data) {
+          setCourses(response.data.data.courses);
+          setStats(response.data.data.stats);
+        }
+      } catch (error) {
+        console.error('Error fetching my courses:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const completedCourses = [
-    { 
-      image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?q=80&w=2070&auto=format&fit=crop', 
-      category: 'Hukum & Regulasi', 
-      categoryIcon: Scale,
-      title: 'Dasar-Dasar Hukum Administrasi Negara', 
-      jpl: 10, 
-      completedDate: '12 Okt 2024'
-    },
-  ];
+    fetchMyCourses();
+  }, [activeTab]);
 
   return (
     <section className="bg-[#F9FBFC] min-h-[500px]">
-      <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Tabs activeTab={activeTab} setActiveTab={setActiveTab} stats={stats} />
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {activeTab === 'in-progress' && inProgressCourses.map((c, i) => (
-            <InProgressCard 
-              key={i} 
-              {...c} 
-              onContinue={() => onNavigate('course-detail')}
-            />
-          ))}
-          {activeTab === 'in-progress' && completedCourses.map((c, i) => <CompletedCard key={i} {...c} />)}
-          
-          {activeTab === 'completed' && completedCourses.map((c, i) => <CompletedCard key={i} {...c} />)}
-        </div>
+        {loading ? (
+          <div className="text-center py-10 font-bold text-gray-500">Memuat data...</div>
+        ) : courses.length === 0 ? (
+          <div className="text-center py-10 font-bold text-gray-500">Tidak ada pelatihan di bagian ini.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((c, i) => {
+              if (activeTab === 'berjalan') {
+                return (
+                  <InProgressCard 
+                    key={i} 
+                    {...c}
+                    categoryIcon={Folder} 
+                    onContinue={() => {
+                      localStorage.setItem('userCourseId', c.pembelajaran_id);
+                      onNavigate('course-detail');
+                    }}
+                  />
+                );
+              } else {
+                return (
+                  <CompletedCard 
+                    key={i} 
+                    {...c}
+                    categoryIcon={Scale}
+                    completedDate={c.terdaftar_pada ? new Date(c.terdaftar_pada).toLocaleDateString() : '-'}
+                  />
+                );
+              }
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

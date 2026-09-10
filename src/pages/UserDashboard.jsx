@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -91,24 +92,15 @@ const DashboardHeader = () => (
 );
 
 /* ── Welcome & Stats ────────────────────────────────── */
-const WelcomeSection = () => {
-  const [userName, setUserName] = useState('Budi Santoso');
-
-  // Dalam aplikasi nyata, panggil API di sini jika perlu.
-  // Untuk saat ini, kita ambil nama dari localStorage saat komponen dimuat.
-  useEffect(() => {
-    // optional effect logic
-  }, []);
-  
-  // To avoid import issues, we'll just read directly since it's a simple component
+const WelcomeSection = ({ statsData }) => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const name = user.nama_lengkap || 'Peserta ASN';
 
   const stats = [
-    { label: 'Pelatihan Aktif', value: 2, icon: BookMarked, color: '#3FCDC1' },
-    { label: 'Selesai', value: 5, icon: CheckCircle2, color: '#10B981' },
-    { label: 'Total JPL', value: 4, icon: Clock, color: '#F59E0B' },
-    { label: 'Sertifikat', value: 5, icon: Award, color: '#3FCDC1' },
+    { label: 'Pelatihan Aktif', value: statsData?.aktif || 0, icon: BookMarked, color: '#3FCDC1' },
+    { label: 'Selesai', value: statsData?.selesai || 0, icon: CheckCircle2, color: '#10B981' },
+    { label: 'Total JPL', value: statsData?.total_jpl || 0, icon: Clock, color: '#F59E0B' },
+    { label: 'Sertifikat', value: statsData?.sertifikat || 0, icon: Award, color: '#3FCDC1' },
   ];
 
   return (
@@ -136,59 +128,73 @@ const WelcomeSection = () => {
 };
 
 /* ── Current Course + Activity ──────────────────────── */
-const CurrentCourseSection = ({ onNavigate }) => {
-  const activities = [
-    { icon: CheckCircle2, color: '#10B981', title: 'Selesai Modul 7 - Inovasi Pelayanan', time: 'Hari ini, 10:30 WIB' },
-    { icon: Award, color: '#F59E0B', title: 'Lulus Kuis Evaluasi Tahap 2', time: 'Kemarin, 15:45 WIB' },
-    { icon: PlayCircle, color: '#3FCDC1', title: 'Mulai Pelatihan Kepemimpinan', time: '12 Okt 2023' },
-    { icon: FileDown, color: '#6366F1', title: 'Unduh Materi Dasar Hukum', time: '10 Okt 2023' },
+const CurrentCourseSection = ({ onNavigate, currentCourse, activitiesData }) => {
+  const defaultActivities = [
+    { icon: CheckCircle2, color: '#10B981', title: 'Belum ada aktivitas', time: '' }
   ];
+  
+  const activities = activitiesData?.length > 0 ? activitiesData.map(a => ({
+    icon: a.type === 'selesai' || a.type === 'lulus' ? CheckCircle2 : PlayCircle,
+    color: a.type === 'selesai' || a.type === 'lulus' ? '#10B981' : '#3FCDC1',
+    title: a.title,
+    time: a.time
+  })) : defaultActivities;
 
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-8 md:pb-12">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Current Course Card */}
         <div className="lg:col-span-2 bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col">
-          <div className="h-48 sm:h-56 md:h-64 overflow-hidden">
-            <img
-              src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop"
-              alt="Current course"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="p-4 sm:p-6 flex-1 flex flex-col">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">◇ Manajemen Publik</span>
-            <h3 className="text-lg sm:text-xl font-bold text-[#1D315F] mb-3 leading-tight">Kepemimpinan Transformatif untuk ASN Era Digital</h3>
-
-            <div className="flex items-center gap-4 sm:gap-5 text-xs text-gray-500 mb-4 sm:mb-5">
-              <span className="flex items-center gap-1"><Clock className="w-3 sm:w-3.5 sm:h-3.5" /> 1 JPL</span>
-              <span className="flex items-center gap-1"><BookOpen className="w-3 sm:w-3.5 sm:h-3.5" /> 12 Modul</span>
-            </div>
-
-            {/* Progress bar */}
-            <div className="mb-4">
-              <div className="flex justify-between text-xs mb-1.5">
-                <span className="font-bold text-[#1D315F]">Progress</span>
-                <span className="font-bold text-[#3FCDC1]">65%</span>
+          {currentCourse ? (
+            <>
+              <div className="h-48 sm:h-56 md:h-64 overflow-hidden bg-gray-100">
+                <img
+                  src={currentCourse.image || 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop'}
+                  alt="Current course"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-[#3FCDC1] rounded-full transition-all" style={{ width: '65%' }}></div>
+              <div className="p-4 sm:p-6 flex-1 flex flex-col">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">◇ {currentCourse.kategori}</span>
+                <h3 className="text-lg sm:text-xl font-bold text-[#1D315F] mb-3 leading-tight">{currentCourse.judul}</h3>
+
+                <div className="flex items-center gap-4 sm:gap-5 text-xs text-gray-500 mb-4 sm:mb-5">
+                  <span className="flex items-center gap-1"><Clock className="w-3 sm:w-3.5 sm:h-3.5" /> {currentCourse.jpl} JPL</span>
+                  <span className="flex items-center gap-1"><BookOpen className="w-3 sm:w-3.5 sm:h-3.5" /> {currentCourse.total_modul} Modul</span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="font-bold text-[#1D315F]">Progress</span>
+                    <span className="font-bold text-[#3FCDC1]">{currentCourse.progress}%</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#3FCDC1] rounded-full transition-all" style={{ width: `${currentCourse.progress}%` }}></div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem('userCourseId', currentCourse.pembelajaran_id);
+                    onNavigate('course-detail');
+                  }}
+                  className="w-full py-2.5 sm:py-3 bg-[#1D315F] text-white text-sm sm:text-base font-bold rounded-md hover:bg-[#162847] transition-colors flex items-center justify-center gap-2 mt-auto"
+                >
+                  Lanjutkan Belajar <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center text-gray-500 bg-gray-50">
+              <BookOpen className="w-12 h-12 text-gray-300 mb-3" />
+              <p className="font-semibold text-gray-700">Belum ada pelatihan aktif.</p>
+              <p className="text-xs mt-1">Daftar pelatihan di Katalog untuk mulai belajar.</p>
+              <button onClick={() => onNavigate('catalog')} className="mt-4 px-4 py-2 bg-[#006A63] text-white text-sm font-bold rounded-md hover:bg-[#00534D]">
+                Lihat Katalog
+              </button>
             </div>
-
-            {/* Next module */}
-            <div className="bg-[#F4F8FB] border border-gray-200 rounded-md p-3 mb-4 sm:mb-5">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-0.5">Selanjutnya</p>
-              <p className="text-xs sm:text-sm text-[#1D315F] font-bold">Modul 8 - Etika Digital</p>
-            </div>
-
-            <button
-              onClick={() => onNavigate('course-detail')}
-              className="w-full py-2.5 sm:py-3 bg-[#1D315F] text-white text-sm sm:text-base font-bold rounded-md hover:bg-[#162847] transition-colors flex items-center justify-center gap-2"
-            >
-              Lanjutkan Belajar <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          )}
         </div>
 
         {/* Activity Feed */}
@@ -205,9 +211,6 @@ const CurrentCourseSection = ({ onNavigate }) => {
               </div>
             ))}
           </div>
-          <button className="w-full mt-4 sm:mt-5 py-2 sm:py-2.5 border border-[#BBC9C7] text-[#1D315F] font-bold text-xs sm:text-sm rounded-md hover:bg-gray-50 transition-colors">
-            Lihat Semua
-          </button>
         </div>
       </div>
     </section>
@@ -236,12 +239,10 @@ const RecommendationCard = ({ image, title, jpl, modules, onNavigate }) => (
   </div>
 );
 
-const Recommendations = ({ onNavigate }) => {
-  const courses = [
-    { image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop', title: 'Manajemen Keuangan Daerah Berbasis Kinerja', jpl: 20, modules: 5 },
-    { image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=2074&auto=format&fit=crop', title: 'Komunikasi Publik dan Pelayanan Prima', jpl: 15, modules: 4 },
-    { image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=2070&auto=format&fit=crop', title: 'Penyusunan Kebijakan Publik Berbasis Data', jpl: 30, modules: 8 },
-  ];
+const Recommendations = ({ onNavigate, coursesData }) => {
+  const courses = coursesData?.length > 0 ? coursesData : [];
+
+  if (courses.length === 0) return null;
 
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 md:pb-16">
@@ -305,14 +306,43 @@ const Footer = ({ onNavigate }) => (
 
 /* ── Main Export ─────────────────────────────────────── */
 export default function UserDashboard({ onLogout, onNavigate }) {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await api.get('/user/dashboard');
+        setDashboardData(response.data.data);
+      } catch (error) {
+        console.error('Error fetching user dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
+        <div className="text-[#1D315F] font-bold">Memuat Dashboard...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col font-sans bg-white">
       <DashboardNavbar onLogout={onLogout} onNavigate={onNavigate} />
       <main className="flex-grow bg-[#F9FAFB]">
         <DashboardHeader />
-        <WelcomeSection />
-         <CurrentCourseSection onNavigate={onNavigate} />
-         <Recommendations onNavigate={onNavigate} />
+        <WelcomeSection statsData={dashboardData?.stats} />
+        <CurrentCourseSection 
+           onNavigate={onNavigate} 
+           currentCourse={dashboardData?.current_course} 
+           activitiesData={dashboardData?.activities} 
+        />
+        <Recommendations onNavigate={onNavigate} coursesData={dashboardData?.rekomendasi} />
       </main>
       <Footer onNavigate={onNavigate} />
     </div>

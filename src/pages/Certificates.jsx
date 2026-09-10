@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import sertifikatImg from '../assets/Sertifikat.png';
@@ -121,38 +122,31 @@ const CertificateCard = ({ id, image, title, institution, date, certificateId, i
 );
 
 const CertificatesContent = () => {
-  const certificates = [
-    {
-      id: 1,
-      title: 'Manajemen Kinerja Pegawai ASN berbasis Sistem Informasi',
-      institution: 'BKPSDM Provinsi Bima',
-      date: '12 Oktober 2024',
-      certificateId: 'CERT-2024-BKPSDM-001',
-      image: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop',
-      isNew: true,
-    },
-    {
-      id: 2,
-      title: 'Dasar-Dasar Keamanan Siber untuk ASN',
-      institution: 'BKPSDM Provinsi Bima',
-      date: '5 September 2024',
-      certificateId: 'CERT-2024-BKPSDM-002',
-      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop',
-      isNew: false,
-    },
-    {
-      id: 3,
-      title: 'Service Excellence: Komunikasi Prim di Pelayanan Publik',
-      institution: 'BKPSDM Provinsi Bima',
-      date: '28 Agustus 2024',
-      certificateId: 'CERT-2024-BKPSDM-003',
-      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2076&auto=format&fit=crop',
-      isNew: false,
-    },
-  ];
+  const [certificates, setCertificates] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      try {
+        const res = await api.get('/user/certificates');
+        if (res.data?.data) {
+          setCertificates(res.data.data);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCertificates();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-10 text-[#1D315F] font-bold">Memuat sertifikat...</div>;
+  }
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-10">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-10 min-h-[500px]">
       <div className="mb-8">
         <h2 className="text-xl md:text-2xl font-semibold text-[#1D315F] mb-2">Sertifikat yang Tersedia</h2>
         <p className="text-gray-500 text-sm font-semibold">{certificates.length} Sertifikat ditemukan</p>
@@ -161,7 +155,16 @@ const CertificatesContent = () => {
       {certificates.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {certificates.map((cert) => (
-            <CertificateCard key={cert.id} {...cert} />
+            <CertificateCard 
+               key={cert.sertifikat_id} 
+               id={cert.sertifikat_id}
+               image={cert.image}
+               title={cert.judul_pelatihan}
+               institution="BKPSDM Provinsi Buleleng"
+               date={new Date(cert.tanggal_terbit).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+               certificateId={cert.nomor_sertifikat}
+               isNew={false}
+            />
           ))}
         </div>
       ) : (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import {
@@ -110,7 +110,7 @@ const CertificatePreview = () => (
   </div>
 );
 
-const ScoreSummary = () => (
+const ScoreSummary = ({ resultData }) => (
   <div className="bg-white border border-[#BBC9C7] rounded-lg p-6">
     <h3 className="font-semibold text-[#1D315F] text-lg mb-6">Ringkasan Nilai</h3>
     
@@ -118,22 +118,24 @@ const ScoreSummary = () => (
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <span className="text-gray-600 font-semibold text-sm">Nilai Akhir Post Test</span>
         <div className="text-right">
-          <span className="text-3xl font-semibold text-[#006A63]">92</span>
+          <span className="text-3xl font-semibold text-[#006A63]">{Math.round(resultData.nilai)}</span>
           <span className="text-gray-500 font-semibold">/100</span>
         </div>
       </div>
       
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <span className="text-gray-600 font-semibold text-sm">Status Kelulusan</span>
-        <span className="px-4 py-1.5 bg-[#10B981]/10 text-[#10B981] font-semibold text-sm rounded-full">
-          Lulus
+        <span className={`px-4 py-1.5 font-semibold text-sm rounded-full ${
+          resultData.apakah_lulus ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-red-100 text-red-600'
+        }`}>
+          {resultData.apakah_lulus ? 'Lulus' : 'Tidak Lulus'}
         </span>
       </div>
       
       <div className="bg-[#F4F8FB] border border-[#3FCDC1]/30 rounded-lg p-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-[#006A63] flex-shrink-0 mt-0.5" />
         <p className="text-xs text-gray-600 font-semibold">
-          Sertifikat ini diakui secara resmi dalam sistem kepegawaian.
+          Percobaan ke-{resultData.percobaan_ke} dari maksimal {resultData.maks_percobaan} kali percobaan.
         </p>
       </div>
     </div>
@@ -185,33 +187,66 @@ const FeedbackSection = () => {
 };
 
 export default function TestResult({ onNavigate }) {
+  const [resultData, setResultData] = useState(null);
+
+  useEffect(() => {
+    const data = localStorage.getItem('postTestResult');
+    if (data) {
+      setResultData(JSON.parse(data));
+    }
+  }, []);
+
+  if (!resultData) {
+    return <div className="min-h-screen flex items-center justify-center font-bold text-[#1D315F]">Memuat Hasil...</div>;
+  }
+
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#F9FBFC]">
       <TestResultNavbar onNavigate={onNavigate} />
       
       <main className="flex-grow py-8 md:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12">
-          {/* Success Banner */}
+          {/* Success / Fail Banner */}
           <div className="text-center mb-8 md:mb-12">
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-[#10B981]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Award className="w-8 h-8 md:w-10 md:h-10 text-[#10B981]" />
+            <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              resultData.apakah_lulus ? 'bg-[#10B981]/10' : 'bg-red-100'
+            }`}>
+              <Award className={`w-8 h-8 md:w-10 md:h-10 ${resultData.apakah_lulus ? 'text-[#10B981]' : 'text-red-500'}`} />
             </div>
             <h1 className="text-3xl md:text-4xl font-semibold text-[#1D315F] mb-3">
-              Selamat, Anda Lulus!
+              {resultData.apakah_lulus ? 'Selamat, Anda Lulus!' : 'Mohon Maaf, Anda Belum Lulus'}
             </h1>
             <p className="text-sm md:text-base text-gray-600 font-semibold">
-              Anda telah berhasil menyelesaikan program pelatihan dan berhak mendapatkan sertifikat resmi.
+              {resultData.apakah_lulus 
+                ? 'Anda telah berhasil menyelesaikan program pelatihan dan berhak mendapatkan sertifikat resmi.'
+                : `Nilai Anda masih di bawah standar kelulusan. Sisa percobaan Anda: ${resultData.sisa_percobaan} kali.`
+              }
             </p>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-8">
-              <CertificatePreview />
+              {resultData.apakah_lulus ? (
+                 <CertificatePreview />
+              ) : (
+                 <div className="bg-white border border-[#BBC9C7] rounded-lg p-8 md:p-12 flex flex-col items-center text-center shadow-sm">
+                    <h2 className="text-2xl font-bold text-[#1D315F] mb-4">Belum Bisa Mengunduh Sertifikat</h2>
+                    <p className="text-gray-500 mb-6 font-semibold">Anda harus lulus Post Test terlebih dahulu untuk dapat mengunduh sertifikat pelatihan ini.</p>
+                    {resultData.sisa_percobaan > 0 && (
+                      <button 
+                        onClick={() => onNavigate('post-test')}
+                        className="px-6 py-3 bg-[#006A63] text-white font-semibold rounded-md hover:bg-[#00534D] transition-colors"
+                      >
+                        Coba Lagi Post Test
+                      </button>
+                    )}
+                 </div>
+              )}
             </div>
             
             <div className="lg:col-span-4">
-              <ScoreSummary />
-              <FeedbackSection />
+              <ScoreSummary resultData={resultData} />
+              {resultData.apakah_lulus && <FeedbackSection />}
             </div>
           </div>
           

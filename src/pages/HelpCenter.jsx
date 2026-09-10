@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -136,6 +137,32 @@ const ContactForm = () => {
     description: '',
     rating: 0
   });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.type || !formData.description) {
+      alert('Harap lengkapi jenis dan deskripsi keluhan.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const subjekText = `${formData.type.toUpperCase()}: Tiket Keluhan Baru`;
+      await api.post('/user/bantuan/tiket', {
+        subjek: subjekText,
+        deskripsi: formData.description
+      });
+      setSuccess(true);
+      setFormData({ type: '', description: '', rating: 0 });
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Gagal mengirim keluhan.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="bg-white border border-[#BBC9C7] rounded-lg p-6 md:p-8">
@@ -149,7 +176,14 @@ const ContactForm = () => {
         </div>
       </div>
 
-      <form className="space-y-5">
+      {success && (
+        <div className="mb-6 p-4 bg-[#10B981]/10 border border-[#10B981]/20 rounded-lg flex items-center gap-3">
+          <Award className="w-5 h-5 text-[#10B981] flex-shrink-0" />
+          <p className="text-sm text-[#10B981] font-semibold">Keluhan Anda berhasil dikirim. Tim kami akan segera merespons melalui email.</p>
+        </div>
+      )}
+
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <div>
           <label className="block text-sm font-semibold text-[#1D315F] mb-2">
             Jenis Keluhan <span className="text-red-500">*</span>
@@ -204,9 +238,10 @@ const ContactForm = () => {
 
         <button
           type="submit"
-          className="w-full px-6 py-3 bg-[#006A63] text-white font-semibold rounded-md hover:bg-[#00534D] transition-colors"
+          disabled={loading}
+          className="w-full px-6 py-3 bg-[#006A63] text-white font-semibold rounded-md hover:bg-[#00534D] transition-colors disabled:opacity-50"
         >
-          Kirim Keluhan ▶
+          {loading ? 'Mengirim...' : 'Kirim Keluhan ▶'}
         </button>
 
         <p className="text-xs text-gray-500 font-semibold text-center">

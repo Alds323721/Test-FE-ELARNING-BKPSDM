@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -105,15 +106,29 @@ const PostTestHeader = ({ onBack }) => (
   </div>
 );
 
-const TimerCard = ({ answeredCount, totalQuestions }) => {
-  const [time, setTime] = useState(2535);
+const TimerCard = ({ answeredCount, totalQuestions, durationMinutes, onTimeUp }) => {
+  const [time, setTime] = useState(durationMinutes ? durationMinutes * 60 : 3600);
+  const timerRef = useRef(null);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTime((prev) => (prev > 0 ? prev - 1 : 0));
+    if (durationMinutes) {
+        setTime(durationMinutes * 60);
+    }
+  }, [durationMinutes]);
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setTime((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          if (onTimeUp) onTimeUp();
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    return () => clearInterval(timerRef.current);
+  }, [onTimeUp]);
 
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
@@ -185,15 +200,16 @@ const QuestionNavigation = ({ currentQuestion, totalQuestions, onNavigate, flagg
   );
 };
 
-const QuestionCard = ({ questionNumber, onPrevious, onNext, onFlag, onAnswer, isDisabled }) => {
-  const [selectedAnswer, setSelectedAnswer] = useState('B');
+const QuestionCard = ({ questionNumber, questionData, onPrevious, onNext, onFlag, onAnswer, isDisabled, savedAnswer }) => {
+  if (!questionData) return null;
 
   const handleSelectAnswer = (value) => {
-    setSelectedAnswer(value);
     if (onAnswer) {
-      onAnswer(questionNumber);
+      onAnswer(questionData.soal_post_test_id, value);
     }
   };
+
+  const options = questionData.pilihan_jawaban ? Object.entries(questionData.pilihan_jawaban) : [];
 
   return (
     <div className="bg-white border border-[#BBC9C7] rounded-lg p-6 md:p-8">
@@ -210,37 +226,30 @@ const QuestionCard = ({ questionNumber, onPrevious, onNext, onFlag, onAnswer, is
 
       <div className="mb-8">
         <p className="text-[#1D315F] text-base md:text-lg leading-relaxed font-semibold">
-          Menurut Peraturan Menteri Pendayagunaan Aparatur Negara dan Reformasi Birokrasi terbaru,
-          komponen apa saja yang menjadi indikator utama dalam penilaian capaian Manajemen Kinerja
-          Pegawai ASN secara sistem informasi?
+          {questionData.teks_soal}
         </p>
       </div>
 
       <div className="space-y-4">
-        {[
-          { id: 'A', text: 'Kehadiran fisik, loyalitas kepada atasan, dan jumlah jam kerja harian.' },
-          { id: 'B', text: 'Sasaran Kinerja Pegawai (SKP), Perilaku Kerja, dan Ide Baru/Inovasi yang terukur.' },
-          { id: 'C', text: 'Lamanya masa jabatan, pangkat golongan, dan tingkat pendidikan terakhir.' },
-          { id: 'D', text: 'Jumlah pelatihan yang diikuti, sertifikasi teknis, dan surat tugas dinas luar.' },
-        ].map((option) => (
+        {options.map(([key, text]) => (
           <label
-            key={option.id}
-            className={`flex items-start gap-4 p-4 md:p-5 border-2 rounded-lg cursor-pointer transition-all ${selectedAnswer === option.id
+            key={key}
+            className={`flex items-start gap-4 p-4 md:p-5 border-2 rounded-lg cursor-pointer transition-all ${savedAnswer === key
                 ? 'border-[#006A63] bg-[#EFF5F3]'
                 : 'border-gray-200 hover:border-[#3FCDC1] hover:bg-gray-50'
               }`}
           >
             <input
               type="radio"
-              name="answer"
-              value={option.id}
-              checked={selectedAnswer === option.id}
+              name={`answer-${questionData.soal_post_test_id}`}
+              value={key}
+              checked={savedAnswer === key}
               onChange={(e) => handleSelectAnswer(e.target.value)}
               className="mt-1 w-5 h-5 text-[#006A63] focus:ring-[#006A63] focus:ring-offset-0"
             />
             <div className="flex-1">
               <span className="font-semibold text-[#1D315F] text-sm md:text-base">
-                {option.id}. {option.text}
+                {key}. {text}
               </span>
             </div>
           </label>
@@ -327,7 +336,35 @@ const Footer = () => (
 export default function PostTest({ onNavigate, onBack }) {
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [flaggedQuestions, setFlaggedQuestions] = useState([]);
-  const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
+  const [answers, setAnswers] = useState({});
+  const [testData, setTestData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const courseId = localStorage.getItem('userCourseId');
+
+  useEffect(() => {
+    const fetchPostTest = async () => {
+      try {
+        const res = await api.get(`/user/courses/${courseId}/post-test`);
+        if (res.data?.data) {
+          setTestData(res.data.data);
+        }
+      } catch (error) {
+        alert(error.response?.data?.message || 'Gagal mengambil soal');
+        if (onBack) onBack();
+        else onNavigate('my-courses');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (courseId) {
+      fetchPostTest();
+    } else {
+      alert('Tidak ada course id');
+      onNavigate('my-courses');
+    }
+  }, [courseId]);
 
   const handleFlag = () => {
     setFlaggedQuestions((prev) => {
@@ -346,20 +383,60 @@ export default function PostTest({ onNavigate, onBack }) {
   };
 
   const handleNext = () => {
-    if (currentQuestion < 20) {
+    if (testData && currentQuestion < testData.soal.length) {
       setCurrentQuestion((prev) => prev + 1);
     }
   };
 
   const handleQuestionSelect = (num) => {
     setCurrentQuestion(num);
-    // Mark as answered/visited when clicked
-    setAnsweredQuestions((prev) => new Set([...prev, num]));
   };
 
-  const handleSubmit = () => {
-    onNavigate('test-result');
+  const handleAnswer = (soalId, value) => {
+    setAnswers(prev => ({
+      ...prev,
+      [soalId]: value
+    }));
   };
+
+  const handleSubmit = async () => {
+    if (!testData) return;
+    try {
+      setSubmitting(true);
+      
+      const formattedAnswers = Object.entries(answers).map(([id, val]) => ({
+        soal_post_test_id: parseInt(id),
+        jawaban: val
+      }));
+
+      const res = await api.post(`/user/courses/${courseId}/post-test/submit`, {
+        jawaban: formattedAnswers
+      });
+      
+      localStorage.setItem('postTestResult', JSON.stringify(res.data.data));
+      onNavigate('test-result');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Gagal mengumpulkan soal');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-[#1D315F] font-bold">Memuat Soal...</div>;
+  }
+
+  if (!testData || testData.soal.length === 0) {
+    return <div className="min-h-screen flex items-center justify-center text-[#1D315F] font-bold">Tidak ada soal tersedia.</div>;
+  }
+
+  const answeredQuestionsSet = new Set(
+    testData.soal
+      .map((s, idx) => (answers[s.soal_post_test_id] ? idx + 1 : null))
+      .filter(Boolean)
+  );
+
+  const currentQuestionData = testData.soal[currentQuestion - 1];
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#F9FBFC]">
@@ -370,7 +447,12 @@ export default function PostTest({ onNavigate, onBack }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-6 md:py-8">
           {/* Timer Card - Top untuk semua tampilan */}
           <div className="mb-6">
-            <TimerCard answeredCount={answeredQuestions.size} totalQuestions={20} />
+            <TimerCard 
+              answeredCount={Object.keys(answers).length} 
+              totalQuestions={testData.soal.length} 
+              durationMinutes={testData.durasi_menit}
+              onTimeUp={handleSubmit}
+            />
           </div>
 
           {/* Desktop Layout: QuestionCard + Navigation + Submit */}
@@ -378,13 +460,15 @@ export default function PostTest({ onNavigate, onBack }) {
             <div className="lg:col-span-8">
               <QuestionCard
                 questionNumber={currentQuestion}
+                questionData={currentQuestionData}
+                savedAnswer={answers[currentQuestionData?.soal_post_test_id]}
                 onPrevious={handlePrevious}
                 onNext={handleNext}
                 onFlag={handleFlag}
-                onAnswer={handleQuestionSelect}
+                onAnswer={handleAnswer}
                 isDisabled={{
                   previous: currentQuestion === 1,
-                  next: currentQuestion === 20,
+                  next: currentQuestion === testData.soal.length,
                 }}
               />
             </div>
@@ -392,20 +476,21 @@ export default function PostTest({ onNavigate, onBack }) {
             <div className="lg:col-span-4 space-y-6">
               <QuestionNavigation
                 currentQuestion={currentQuestion}
-                totalQuestions={20}
+                totalQuestions={testData.soal.length}
                 onNavigate={handleQuestionSelect}
                 flaggedQuestions={flaggedQuestions}
-                answeredQuestions={answeredQuestions}
+                answeredQuestions={answeredQuestionsSet}
               />
 
               {/* Submit Button - Desktop (di samping navigasi) */}
               <div>
                 <button
                   onClick={handleSubmit}
-                  className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2"
+                  disabled={submitting}
+                  className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <span className="text-lg">▶</span>
-                  Submit Post Test
+                  {submitting ? 'Mengumpulkan...' : 'Submit Post Test'}
                 </button>
               </div>
             </div>
@@ -418,13 +503,15 @@ export default function PostTest({ onNavigate, onBack }) {
               <div className="md:col-span-8">
                 <QuestionCard
                   questionNumber={currentQuestion}
+                  questionData={currentQuestionData}
+                  savedAnswer={answers[currentQuestionData?.soal_post_test_id]}
                   onPrevious={handlePrevious}
                   onNext={handleNext}
                   onFlag={handleFlag}
-                  onAnswer={handleQuestionSelect}
+                  onAnswer={handleAnswer}
                   isDisabled={{
                     previous: currentQuestion === 1,
-                    next: currentQuestion === 20,
+                    next: currentQuestion === testData.soal.length,
                   }}
                 />
               </div>
@@ -432,10 +519,10 @@ export default function PostTest({ onNavigate, onBack }) {
               <div className="md:col-span-4">
                 <QuestionNavigation
                   currentQuestion={currentQuestion}
-                  totalQuestions={20}
+                  totalQuestions={testData.soal.length}
                   onNavigate={handleQuestionSelect}
                   flaggedQuestions={flaggedQuestions}
-                  answeredQuestions={answeredQuestions}
+                  answeredQuestions={answeredQuestionsSet}
                 />
               </div>
             </div>
@@ -444,10 +531,11 @@ export default function PostTest({ onNavigate, onBack }) {
             <div className="mt-6">
               <button
                 onClick={handleSubmit}
-                className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2"
+                disabled={submitting}
+                className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <span className="text-lg">▶</span>
-                Submit Post Test
+                {submitting ? 'Mengumpulkan...' : 'Submit Post Test'}
               </button>
             </div>
           </div>

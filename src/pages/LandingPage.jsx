@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
-import heroImg from '../assets/BG_BKPSDM.jpeg';
+import heroImg from '../assets/BG_BKPSDM.jpg';
 import {
   Search,
   Users,
@@ -85,7 +85,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
     return (
       <div className="relative h-[650px] sm:h-[700px] flex flex-col justify-center text-left">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-[#1D315F]/80 z-10"></div>
+          <div className="absolute inset-0 bg-[#1D315F]/50 z-10"></div>
           <img
             src={heroImg}
             alt="Hero Background"
@@ -93,7 +93,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
           />
         </div>
         <div className="relative z-20 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col md:flex-row justify-between items-center mt-10">
-          
+
           {/* Left Content */}
           <div className="w-full md:w-1/2 text-white mb-10 md:mb-0">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-['Inter'] font-semibold text-white mb-4 md:mb-6 tracking-tight">BKPSDM</h1>
@@ -233,7 +233,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
               )}
 
               {resetStep === 'email' ? (
-                <form onSubmit={async (e) => { 
+                <form onSubmit={async (e) => {
                   e.preventDefault();
                   setResetError('');
                   setResetLoading(true);
@@ -299,15 +299,15 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
                   </button>
                 </form>
               ) : (
-                <form onSubmit={async (e) => { 
+                <form onSubmit={async (e) => {
                   e.preventDefault();
                   setResetError('');
-                  
+
                   if (newPassword !== resetConfirmPassword) {
                     setResetError('Konfirmasi password tidak cocok');
                     return;
                   }
-                  
+
                   setResetLoading(true);
                   try {
                     await api.post('/reset-password', {
@@ -316,7 +316,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
                       password_baru: newPassword,
                       password_baru_confirmation: resetConfirmPassword
                     });
-                    
+
                     alert('Password berhasil direset! Silakan login dengan password baru Anda.');
                     setShowForgotPassword(false);
                     setResetStep('email');
@@ -491,13 +491,13 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
           )}
 
           <button
-            onClick={() => { 
-              setShowLogin(false); 
-              setError(''); 
-              setNip(''); 
-              setPassword(''); 
-              setShowForgotPassword(false); 
-              setResetStep('email'); 
+            onClick={() => {
+              setShowLogin(false);
+              setError('');
+              setNip('');
+              setPassword('');
+              setShowForgotPassword(false);
+              setResetStep('email');
               setResetError('');
               setResetNip('');
               setResetEmail('');

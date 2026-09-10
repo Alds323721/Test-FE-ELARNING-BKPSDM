@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
@@ -151,56 +152,24 @@ const StatCard = ({ title, value, subtitle, trend, trendLabel, icon: Icon, iconB
 const LaporanProgress = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const tableData = [
-    {
-      id: 1,
-      initials: 'BS',
-      name: 'Budi Santoso',
-      nip: '198005122005011004',
-      course: 'Etika Birokrasi Modern',
-      progress: 100,
-      score: 92,
-      status: 'Selesai',
-      avatarColor: 'bg-[#20C997]',
-      statusColor: 'bg-green-100 text-green-700',
-    },
-    {
-      id: 2,
-      initials: 'SA',
-      name: 'Siti Aminah',
-      nip: '198503152010122001',
-      course: 'Kepemimpinan Transformasional',
-      progress: 65,
-      score: '-',
-      status: 'Berjalan',
-      avatarColor: 'bg-[#F59E0B]',
-      statusColor: 'bg-orange-100 text-orange-700',
-    },
-    {
-      id: 3,
-      initials: 'AR',
-      name: 'Ahmad Ridwan',
-      nip: '199011222015031002',
-      course: 'Etika Birokrasi Modern',
-      progress: 0,
-      score: '-',
-      status: 'Belum Mulai',
-      avatarColor: 'bg-[#C1C7D0]',
-      statusColor: 'bg-gray-100 text-gray-600',
-    },
-    {
-      id: 4,
-      avatar: 'https://ui-avatars.com/api/?name=Dewi+Lestari&background=0D8ABC&color=fff',
-      name: 'Dewi Lestari',
-      nip: '198807192011012003',
-      course: 'Literasi Digital Dasar',
-      progress: 100,
-      score: 85,
-      status: 'Selesai',
-      avatarColor: 'bg-[#20C997]',
-      statusColor: 'bg-green-100 text-green-700',
-    }
-  ];
+  const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLaporan = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/admin-komunitas/laporan-progress');
+        setTableData(response.data?.data || response.data || []);
+      } catch (error) {
+        console.error('Error fetching laporan:', error);
+        setTableData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLaporan();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans">
@@ -312,48 +281,58 @@ const LaporanProgress = ({ onNavigate }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {tableData.map((row) => (
-                      <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            {row.avatar ? (
-                              <img src={row.avatar} alt={row.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
-                            ) : (
-                              <div className={`w-10 h-10 rounded-full ${row.avatarColor} text-white flex items-center justify-center font-bold text-sm shrink-0`}>
-                                {row.initials}
-                              </div>
-                            )}
-                            <div>
-                              <p className="font-bold text-gray-900">{row.name}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">NIP. {row.nip}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-gray-800">{row.course}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden w-24">
-                              <div 
-                                className={`h-full rounded-full ${row.progress === 100 ? 'bg-[#0F766E]' : row.progress > 0 ? 'bg-orange-600' : 'bg-gray-300'}`}
-                                style={{ width: `${row.progress}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-sm font-semibold text-gray-700 w-10">{row.progress}%</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 font-medium">{row.score}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${row.statusColor}`}>
-                            {row.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
-                            <Eye className="w-5 h-5" />
-                          </button>
-                        </td>
+                    {loading ? (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">Memuat data...</td>
                       </tr>
-                    ))}
+                    ) : tableData.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">Belum ada data progress.</td>
+                      </tr>
+                    ) : (
+                      tableData.map((row) => (
+                        <tr key={row.id || row.peserta_id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              {row.avatar ? (
+                                <img src={row.avatar} alt={row.name || row.nama} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                              ) : (
+                                <div className={`w-10 h-10 rounded-full ${row.avatarColor || 'bg-gray-300'} text-white flex items-center justify-center font-bold text-sm shrink-0`}>
+                                  {row.initials || (row.name || row.nama || 'A').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-bold text-gray-900">{row.name || row.nama}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">NIP. {row.nip}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-gray-800">{row.course || row.judul_pembelajaran}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden w-24">
+                                <div 
+                                  className={`h-full rounded-full ${row.progress === 100 ? 'bg-[#0F766E]' : row.progress > 0 ? 'bg-orange-600' : 'bg-gray-300'}`}
+                                  style={{ width: `${row.progress || 0}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-semibold text-gray-700 w-10">{row.progress || 0}%</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-medium">{row.score || row.nilai_post_test || '-'}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${row.statusColor || 'bg-gray-100 text-gray-700'}`}>
+                              {row.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
+                              <Eye className="w-5 h-5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

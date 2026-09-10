@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
   FileText, RotateCcw, ChevronDown, CheckCircle2,
   PlayCircle, Edit, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Clock,
-  BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Check
+  BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Check, Plus
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIsOpen }) => {
@@ -137,13 +138,13 @@ const CourseCard = ({ course, onNavigate }) => (
       {/* Category */}
       <div className="mb-3">
         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
-          {course.category}
+          {course.category || course.kategori || '-'}
         </span>
       </div>
 
       {/* Title */}
       <h3 className="text-lg font-bold text-gray-900 mb-4 line-clamp-2 leading-tight flex-1">
-        {course.title}
+        {course.title || course.judul_pembelajaran || '-'}
       </h3>
 
       {/* Meta Info */}
@@ -160,7 +161,10 @@ const CourseCard = ({ course, onNavigate }) => (
 
       {/* Action Button */}
       <button 
-        onClick={() => onNavigate('detail-kursus')}
+        onClick={() => {
+          localStorage.setItem('adminKomunitasCourseId', course.id || course.pembelajaran_id);
+          onNavigate('detail-kursus');
+        }}
         className="w-full py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors"
       >
         Lihat Detail
@@ -181,43 +185,24 @@ const KatalogKursus = ({ onNavigate }) => {
     'Pelayanan Publik'
   ];
 
-  const courses = [
-    {
-      id: 1,
-      category: 'Pengembangan Kompetensi',
-      title: 'Etika Birokrasi Modern',
-      jpl: 12,
-      modules: 4,
-    },
-    {
-      id: 2,
-      category: 'Teknologi Informasi',
-      title: 'Literasi Digital Dasar untuk ASN',
-      jpl: 8,
-      modules: 3,
-    },
-    {
-      id: 3,
-      category: 'Manajemen ASN',
-      title: 'Kepemimpinan Transformasional',
-      jpl: 24,
-      modules: 8,
-    },
-    {
-      id: 4,
-      category: 'Pelayanan Publik',
-      title: 'Standar Pelayanan Prima',
-      jpl: 10,
-      modules: 3,
-    },
-    {
-      id: 5,
-      category: 'Teknologi Informasi',
-      title: 'Analisis Data Dasar',
-      jpl: 16,
-      modules: 5,
-    }
-  ];
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/admin-komunitas/pembelajaran');
+        setCourses(response.data?.data || response.data || []);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+        setCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans">
@@ -234,9 +219,20 @@ const KatalogKursus = ({ onNavigate }) => {
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Page Header */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Katalog Kursus</h1>
-              <p className="text-sm text-gray-500">Pilih dan ikuti berbagai pelatihan untuk meningkatkan kompetensi Anda.</p>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">Katalog Kursus</h1>
+                <p className="text-sm text-gray-500">Pilih dan ikuti berbagai pelatihan untuk meningkatkan kompetensi Anda.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('adminKomunitasCourseId');
+                  onNavigate('detail-kursus');
+                }}
+                className="bg-[#0F766E] hover:bg-teal-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 w-full sm:w-auto justify-center"
+              >
+                <Plus className="w-4 h-4" /> Tambah Kursus
+              </button>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
@@ -280,9 +276,15 @@ const KatalogKursus = ({ onNavigate }) => {
               {/* Course Grid */}
               <div className="flex-1 flex flex-col">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-                  {courses.map((course) => (
-                    <CourseCard key={course.id} course={course} onNavigate={onNavigate} />
-                  ))}
+                  {loading ? (
+                    <div className="col-span-full text-center py-12 text-gray-500">Memuat data...</div>
+                  ) : courses.length === 0 ? (
+                    <div className="col-span-full text-center py-12 text-gray-500">Belum ada kursus.</div>
+                  ) : (
+                    courses.map((course) => (
+                      <CourseCard key={course.id || course.pembelajaran_id} course={course} onNavigate={onNavigate} />
+                    ))
+                  )}
                 </div>
 
                 {/* Pagination */}

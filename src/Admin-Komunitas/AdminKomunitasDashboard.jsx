@@ -9,6 +9,24 @@ import {
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'admin-komunitas', onNavigate, isOpen, setIsOpen }) => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [communityName, setCommunityName] = useState('Dinas Kesehatan');
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        setCurrentUser(u);
+      }
+      api.get('/admin-komunitas/komunitas-saya').then(res => {
+        if (res.data?.data?.length > 0) {
+          setCommunityName(res.data.data[0].nama_komunitas);
+        }
+      }).catch(() => {});
+    } catch (e) {}
+  }, []);
+
   const menuItems = [
     { id: 'admin-komunitas', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'pelatihan-saya', label: 'Pelatihan Saya', icon: GraduationCap },
@@ -40,11 +58,11 @@ const AdminSidebar = ({ activeMenu = 'admin-komunitas', onNavigate, isOpen, setI
           
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center overflow-hidden shrink-0">
-              <img src="https://ui-avatars.com/api/?name=Admin+Komunitas&background=0D8ABC&color=fff" alt="Admin" className="w-full h-full object-cover" />
+              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.nama_lengkap || 'Admin Komunitas')}&background=0D8ABC&color=fff`} alt="Admin" className="w-full h-full object-cover" />
             </div>
             <div>
-              <h2 className="font-bold text-gray-900 text-sm truncate w-36">Admin Komunitas</h2>
-              <p className="text-xs text-gray-500">Dinas Kesehatan</p>
+              <h2 className="font-bold text-gray-900 text-sm truncate w-36">{currentUser?.nama_lengkap || 'Admin Komunitas'}</h2>
+              <p className="text-xs text-gray-500 truncate w-36">{communityName}</p>
             </div>
           </div>
         </div>
@@ -74,7 +92,10 @@ const AdminSidebar = ({ activeMenu = 'admin-komunitas', onNavigate, isOpen, setI
         </div>
 
         <div className="p-4 space-y-2 mt-auto">
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-teal-600 text-teal-700 rounded-lg text-sm font-semibold hover:bg-teal-50 transition-colors">
+          <button 
+            onClick={() => onNavigate && onNavigate('pusat-bantuan')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-teal-600 text-teal-700 rounded-lg text-sm font-semibold hover:bg-teal-50 transition-colors"
+          >
             <HeadphonesIcon className="w-4 h-4" /> Bantuan Teknis
           </button>
           <button 
@@ -119,7 +140,7 @@ const AdminHeader = ({ setIsOpen }) => {
           <Settings className="w-5 h-5" />
         </button>
         <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-300 ml-1 sm:ml-2 shrink-0">
-          <img src="https://ui-avatars.com/api/?name=Budi&background=random" alt="Admin" className="w-full h-full object-cover" />
+          <img src="https://ui-avatars.com/api/?name=Admin+Komunitas&background=random" alt="Admin" className="w-full h-full object-cover" />
         </div>
       </div>
     </div>
@@ -150,40 +171,75 @@ const StatCard = ({ title, value, subtitle, icon: Icon, trend, trendValue, color
   </div>
 );
 
-const LineChartMockup = () => (
-  <div className="relative w-full h-64 mt-6">
-    <div className="absolute inset-0 flex flex-col justify-between pt-2 pb-6">
-      {[1000, 750, 500, 250, 0].map((val, i) => (
-        <div key={i} className="flex items-center w-full">
-          <span className="text-[10px] sm:text-xs text-gray-400 w-8 sm:w-10 text-right pr-2">
-            {val === 0 ? '0' : val.toLocaleString()}
+const LineChartMockup = ({ data = [] }) => {
+  const chartData = data.length === 6 ? data : [
+    { month: 'Mei', percent: 20 },
+    { month: 'Jun', percent: 40 },
+    { month: 'Jul', percent: 60 },
+    { month: 'Agu', percent: 30 },
+    { month: 'Sep', percent: 80 },
+    { month: 'Okt', percent: 100 }
+  ];
+
+  // Calculate paths
+  const getPath = () => {
+    if (!chartData || chartData.length === 0) return '';
+    const points = chartData.map((d, i) => {
+      const x = (i / (chartData.length - 1)) * 100;
+      const y = 100 - (d.percent || 0);
+      return `${x},${y}`;
+    });
+    
+    // Create a smooth curve
+    let path = `M 0,${100 - (chartData[0].percent || 0)}`;
+    for (let i = 1; i < points.length; i++) {
+      const [prevX, prevY] = points[i - 1].split(',');
+      const [currX, currY] = points[i].split(',');
+      const cp1X = parseFloat(prevX) + (parseFloat(currX) - parseFloat(prevX)) / 3;
+      const cp2X = parseFloat(prevX) + 2 * (parseFloat(currX) - parseFloat(prevX)) / 3;
+      path += ` C ${cp1X},${prevY} ${cp2X},${currY} ${currX},${currY}`;
+    }
+    return path;
+  };
+
+  return (
+    <div className="relative w-full h-64 mt-6">
+      <div className="absolute inset-0 flex flex-col justify-between pt-2 pb-6">
+        {[100, 75, 50, 25, 0].map((val, i) => (
+          <div key={i} className="flex items-center w-full">
+            <span className="text-[10px] sm:text-xs text-gray-400 w-8 sm:w-10 text-right pr-2">
+              {val}%
+            </span>
+            <div className="flex-1 border-t border-gray-100 border-dashed"></div>
+          </div>
+        ))}
+      </div>
+      <div className="absolute inset-0 left-8 sm:left-10 bottom-6 right-0">
+        <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <path d={getPath()} fill="none" stroke="#0F766E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          {chartData.map((d, i) => {
+            const x = (i / (chartData.length - 1)) * 100;
+            const y = 100 - (d.percent || 0);
+            return <circle key={i} cx={x} cy={y} r="2.5" fill="#0F766E" className="transition-all duration-500 hover:r-4" />;
+          })}
+        </svg>
+      </div>
+      <div className="absolute bottom-0 left-8 sm:left-10 right-0 flex justify-between">
+        {chartData.map((d, idx) => (
+          <span key={idx} className="text-[10px] sm:text-xs text-gray-500 font-medium text-center w-8 -ml-4 first:ml-0 last:-ml-8">
+            {d.month}
           </span>
-          <div className="flex-1 border-t border-gray-100 border-dashed"></div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-    <div className="absolute inset-0 left-8 sm:left-10 bottom-6 right-0">
-      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <path d="M 0,80 Q 20,60 40,65 T 70,40 T 95,20" fill="none" stroke="#3FCDC1" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="0" cy="80" r="2" fill="#1D315F" />
-        <circle cx="40" cy="65" r="2" fill="#1D315F" />
-        <circle cx="70" cy="40" r="2" fill="#1D315F" />
-        <circle cx="95" cy="20" r="2" fill="#1D315F" />
-      </svg>
-    </div>
-    <div className="absolute bottom-0 left-8 sm:left-10 right-0 flex justify-between px-2 sm:px-4">
-      {['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map((month, idx) => (
-        <span key={idx} className="text-[10px] sm:text-xs text-gray-500 font-medium">
-          {month}
-        </span>
-      ))}
-    </div>
-  </div>
-);
+  );
+};
 
 const AdminKomunitasDashboard = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [courses, setCourses] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [trenPenyelesaian, setTrenPenyelesaian] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalPeserta: 0,
@@ -196,19 +252,20 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/admin-komunitas/pembelajaran');
+        const response = await api.get('/admin-komunitas/dashboard');
         const data = response.data.data;
-        setCourses(data);
-        
-        // Calculate basic stats
-        const activeCourses = data.filter(c => c.status === 'dipublikasikan').length;
-        
-        setStats({
-          totalPeserta: 0, // Need participants API for accurate count
-          aktif: activeCourses,
-          rataProgres: 0, // Mock
-          sertifikat: 0 // Mock
-        });
+
+        if (data) {
+          setStats(data.stats || {
+            totalPeserta: 0,
+            aktif: 0,
+            rataProgres: 0,
+            sertifikat: 0
+          });
+          setCourses(data.kursus_terbaru || []);
+          setActivities(data.aktivitas_terkini || []);
+          setTrenPenyelesaian(data.tren_penyelesaian || []);
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -229,7 +286,7 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full">
           <div className="mb-6">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Admin Komunitas</h1>
-            <p className="text-sm text-gray-500 mt-1">Pantau perkembangan pembelajaran dan peserta di komunitas Anda.</p>
+            <p className="text-sm text-gray-500 mt-1">Pantau perkembangan pembelajaran dan peserta di komunitas Anda secara real-time.</p>
           </div>
           
           {/* Stat Cards */}
@@ -237,8 +294,7 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
             <StatCard 
               title="TOTAL PESERTA" 
               value={stats.totalPeserta} 
-              trend="up"
-              trendValue="+0% bulan ini"
+              subtitle="Terdaftar di komunitas"
               icon={Users}
               colorClass="bg-teal-50 text-teal-600"
             />
@@ -252,8 +308,7 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
             <StatCard 
               title="RATA-RATA PROGRES" 
               value={`${stats.rataProgres}%`} 
-              trend="up"
-              trendValue="+0% minggu ini"
+              subtitle="Dari seluruh peserta"
               icon={RotateCcw}
               colorClass="bg-amber-50 text-amber-600"
             />
@@ -271,38 +326,40 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
             <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm lg:col-span-2">
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-base sm:text-lg font-bold text-gray-900">Tren Penyelesaian Modul</h2>
-                <button className="flex items-center gap-2 text-sm text-gray-600 font-medium border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">
-                  Last 6 Months <ChevronDown className="w-4 h-4" />
-                </button>
+                <span className="text-xs text-gray-500 font-medium">6 Bulan Terakhir</span>
               </div>
-              <LineChartMockup />
+              <LineChartMockup data={trenPenyelesaian} />
             </div>
 
             {/* Recent Activity Section */}
             <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col">
               <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-6">Aktivitas Belajar Terkini</h2>
-              <div className="flex-1 space-y-6">
-                {[
-                  { name: 'Budi Santoso', action: 'menyelesaikan Modul 1: Etika Birokrasi', time: '2 jam yang lalu', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                  { name: 'Siti Aminah', action: 'lulus Post Test Kepemimpinan ASN', time: '5 jam yang lalu', icon: FileText, color: 'text-teal-600', bg: 'bg-teal-50' },
-                  { name: 'Ahmad Ridwan', action: 'memulai Literasi Digital Dasar', time: 'Hari ini, 09:00', icon: PlayCircle, color: 'text-amber-500', bg: 'bg-amber-50' },
-                  { name: 'Dewi Lestari', action: 'mendapatkan sertifikat Manajemen Kinerja', time: 'Kemarin', icon: Award, color: 'text-emerald-500', bg: 'bg-emerald-50' }
-                ].map((item, idx) => (
-                  <div key={idx} className="flex gap-4">
-                    <div className={`w-8 h-8 rounded-full ${item.bg} flex items-center justify-center shrink-0`}>
-                      <item.icon className={`w-4 h-4 ${item.color}`} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-800 leading-snug">
-                        <span className="font-bold">{item.name}</span> {item.action}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">{item.time}</p>
-                    </div>
+              <div className="flex-1 space-y-5">
+                {activities.length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 text-xs italic">
+                    Belum ada aktivitas peserta terkini.
                   </div>
-                ))}
+                ) : (
+                  activities.map((item, idx) => (
+                    <div key={idx} className="flex gap-3.5 items-start">
+                      <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center shrink-0 text-teal-700 font-bold text-xs">
+                        {(item.name || 'P').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-800 leading-snug">
+                          <span className="font-bold text-gray-900">{item.name}</span> {item.action}
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{item.time}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-              <button className="mt-6 text-teal-600 font-semibold text-sm hover:text-teal-700 w-full text-center">
-                Lihat Semua Aktivitas
+              <button 
+                onClick={() => onNavigate && onNavigate('laporan-progress')}
+                className="mt-6 text-[#0F766E] font-semibold text-xs hover:underline w-full text-center"
+              >
+                Lihat Laporan Progress Lengkap
               </button>
             </div>
           </div>
@@ -310,9 +367,15 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
           {/* Table Section */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
             <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900">Daftar Pembelajaran di Komunitas</h2>
-              <button className="flex items-center justify-center gap-2 text-sm text-gray-700 font-medium border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 w-full sm:w-auto transition-colors">
-                <Filter className="w-4 h-4" /> Filter
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">Daftar Pembelajaran di Komunitas</h2>
+                <p className="text-xs text-gray-500 mt-0.5">5 Pembelajaran terbaru yang dikelola oleh komunitas Anda</p>
+              </div>
+              <button 
+                onClick={() => onNavigate && onNavigate('pelatihan-saya')}
+                className="flex items-center justify-center gap-2 text-xs text-[#0F766E] font-bold border border-[#0F766E]/20 bg-teal-50/50 px-4 py-2 rounded-lg hover:bg-teal-100 w-full sm:w-auto transition-colors"
+              >
+                Kelola Semua Pelatihan
               </button>
             </div>
             
@@ -328,7 +391,7 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 text-sm">
                   {loading ? (
                     <tr>
                       <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
@@ -342,47 +405,50 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
                       </td>
                     </tr>
                   ) : (
-                    courses.slice(0, 5).map((course, idx) => {
+                    courses.map((course) => {
                       const statusColor = course.status === 'dipublikasikan' ? 'bg-emerald-100 text-emerald-700' : 
                                          course.status === 'ditolak' ? 'bg-red-100 text-red-700' :
                                          course.status === 'menunggu_approval' ? 'bg-orange-100 text-orange-700' :
                                          'bg-gray-100 text-gray-600';
                       return (
-                        <tr key={course.pembelajaran_id || idx} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-5">
+                        <tr key={course.pembelajaran_id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
                             <p className="font-bold text-gray-900">{course.judul_pembelajaran}</p>
                             <div className="flex gap-3 mt-1 text-xs text-gray-500 font-medium">
-                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {course.nilai_kelulusan} Min. Kelulusan</span>
-                              <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> ID: {course.pembelajaran_id}</span>
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Min. {course.nilai_kelulusan}%</span>
+                              <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> ID: #{course.pembelajaran_id}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-5">
-                            <p className="text-sm font-medium text-gray-700 w-32">{course.kategori || '-'}</p>
+                          <td className="px-6 py-4">
+                            <p className="text-xs font-medium text-gray-700">{course.kategori || '-'}</p>
                           </td>
-                          <td className="px-6 py-5 text-center">
-                            <p className="font-bold text-gray-900">-</p>
+                          <td className="px-6 py-4 text-center">
+                            <p className="font-bold text-gray-900">{course.total_peserta || 0} Peserta</p>
                           </td>
-                          <td className="px-6 py-5">
+                          <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 w-24">
-                                <div className={`h-1.5 rounded-full bg-gray-300`} style={{ width: `0%` }}></div>
+                              <div className="w-24 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="h-2 rounded-full bg-[#0F766E]" 
+                                  style={{ width: `${Math.min(100, Math.max(0, course.rata_rata_progres || 0))}%` }}
+                                ></div>
                               </div>
-                              <span className="text-sm font-bold text-gray-700">0%</span>
+                              <span className="text-xs font-bold text-gray-700">{course.rata_rata_progres || 0}%</span>
                             </div>
                           </td>
-                          <td className="px-6 py-5 text-center">
-                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${statusColor}`}>
-                              {course.status ? course.status.replace('_', ' ') : 'Draft'}
+                          <td className="px-6 py-4 text-center">
+                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase ${statusColor}`}>
+                              {(course.status || 'draft').replace('_', ' ')}
                             </span>
                           </td>
-                          <td className="px-6 py-5 text-center">
+                          <td className="px-6 py-4 text-center">
                             <button 
                               onClick={() => {
                                 localStorage.setItem('adminKomunitasCourseId', course.pembelajaran_id);
                                 if (onNavigate) onNavigate('detail-kursus');
                               }}
                               title="Kelola Kursus"
-                              className="text-teal-600 hover:text-teal-800 transition-colors p-2 rounded-md hover:bg-teal-50"
+                              className="text-teal-700 hover:text-teal-900 transition-colors p-2 rounded-md hover:bg-teal-50"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -393,33 +459,6 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
                   )}
                 </tbody>
               </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <span className="text-sm text-gray-600 font-medium">
-                Menampilkan 1-3 dari 12 pembelajaran
-              </span>
-              <div className="flex items-center gap-1">
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 cursor-not-allowed">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded bg-teal-700 text-white font-medium text-sm">
-                  1
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm">
-                  2
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm">
-                  3
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center text-gray-500">
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-700 hover:bg-gray-50">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           </div>
 

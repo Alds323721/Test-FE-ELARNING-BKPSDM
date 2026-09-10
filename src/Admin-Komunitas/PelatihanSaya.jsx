@@ -8,8 +8,25 @@ import {
   BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Plus, MoreVertical
 } from 'lucide-react';
 
-// Reuse the exact same sidebar component
 const AdminSidebar = ({ activeMenu = 'pelatihan-saya', onNavigate, isOpen, setIsOpen }) => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [communityName, setCommunityName] = useState('Dinas Kesehatan');
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        setCurrentUser(u);
+      }
+      api.get('/admin-komunitas/komunitas-saya').then(res => {
+        if (res.data?.data?.length > 0) {
+          setCommunityName(res.data.data[0].nama_komunitas);
+        }
+      }).catch(() => {});
+    } catch (e) {}
+  }, []);
+
   const menuItems = [
     { id: 'admin-komunitas', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'pelatihan-saya', label: 'Pelatihan Saya', icon: GraduationCap },
@@ -41,11 +58,11 @@ const AdminSidebar = ({ activeMenu = 'pelatihan-saya', onNavigate, isOpen, setIs
           
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center overflow-hidden shrink-0">
-              <img src="https://ui-avatars.com/api/?name=Admin+Komunitas&background=0D8ABC&color=fff" alt="Admin" className="w-full h-full object-cover" />
+              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.nama_lengkap || 'Admin Komunitas')}&background=0D8ABC&color=fff`} alt="Admin" className="w-full h-full object-cover" />
             </div>
             <div>
-              <h2 className="font-bold text-gray-900 text-sm truncate w-36">Admin Komunitas</h2>
-              <p className="text-xs text-gray-500">Dinas Kesehatan</p>
+              <h2 className="font-bold text-gray-900 text-sm truncate w-36">{currentUser?.nama_lengkap || 'Admin Komunitas'}</h2>
+              <p className="text-xs text-gray-500 truncate w-36">{communityName}</p>
             </div>
           </div>
         </div>
@@ -267,9 +284,21 @@ const PelatihanSaya = ({ onNavigate }) => {
                   <div key={course.pembelajaran_id} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col">
                     {/* Card Header */}
                     <div className="flex justify-between items-start mb-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
-                        {course.kategori || 'Tanpa Kategori'}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
+                          {course.kategori || 'Tanpa Kategori'}
+                        </span>
+                        {course.status === 'ditolak' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 uppercase">
+                            Ditolak
+                          </span>
+                        )}
+                        {course.status === 'menunggu_approval' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase">
+                            Menunggu Approval
+                          </span>
+                        )}
+                      </div>
                       <button className="text-gray-400 hover:text-gray-600">
                         <MoreVertical className="w-5 h-5" />
                       </button>
@@ -291,6 +320,14 @@ const PelatihanSaya = ({ onNavigate }) => {
                           <span>ID: {course.pembelajaran_id}</span>
                         </div>
                       </div>
+
+                      {/* Rejection Note Preview */}
+                      {course.status === 'ditolak' && course.validasi?.catatan && (
+                        <div className="mt-3 p-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">
+                          <span className="font-bold block text-red-800 mb-0.5">Catatan Penolakan:</span>
+                          <p className="line-clamp-2 italic">"{course.validasi.catatan}"</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Stats */}
@@ -299,11 +336,11 @@ const PelatihanSaya = ({ onNavigate }) => {
                         <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center">
                           <Users className="w-4 h-4 text-teal-700" />
                         </div>
-                        <span className="font-semibold text-gray-900">- Peserta</span>
+                        <span className="font-semibold text-gray-900">{course.total_peserta ?? course.peserta_count ?? 0} Peserta</span>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-500 mb-0.5">Rata-rata Progres</p>
-                        <p className="font-bold text-teal-600">- %</p>
+                        <p className="font-bold text-teal-600">{course.avg_progres ?? 0}%</p>
                       </div>
                     </div>
 

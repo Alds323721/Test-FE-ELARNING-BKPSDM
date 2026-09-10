@@ -9,6 +9,24 @@ import {
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIsOpen }) => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [communityName, setCommunityName] = useState('Dinas Kesehatan');
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        setCurrentUser(u);
+      }
+      api.get('/admin-komunitas/komunitas-saya').then(res => {
+        if (res.data?.data?.length > 0) {
+          setCommunityName(res.data.data[0].nama_komunitas);
+        }
+      }).catch(() => {});
+    } catch (e) {}
+  }, []);
+
   const menuItems = [
     { id: 'admin-komunitas', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'pelatihan-saya', label: 'Pelatihan Saya', icon: GraduationCap },
@@ -40,11 +58,11 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
           
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center overflow-hidden shrink-0">
-              <img src="https://ui-avatars.com/api/?name=Admin+Komunitas&background=0D8ABC&color=fff" alt="Admin" className="w-full h-full object-cover" />
+              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.nama_lengkap || 'Admin Komunitas')}&background=0D8ABC&color=fff`} alt="Admin" className="w-full h-full object-cover" />
             </div>
             <div>
-              <h2 className="font-bold text-gray-900 text-sm truncate w-36">Admin Komunitas</h2>
-              <p className="text-xs text-gray-500">Dinas Kesehatan</p>
+              <h2 className="font-bold text-gray-900 text-sm truncate w-36">{currentUser?.nama_lengkap || 'Admin Komunitas'}</h2>
+              <p className="text-xs text-gray-500 truncate w-36">{communityName}</p>
             </div>
           </div>
         </div>
@@ -75,7 +93,10 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
         </div>
 
         <div className="p-4 space-y-2 mt-auto">
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-teal-600 text-teal-700 rounded-lg text-sm font-semibold hover:bg-teal-50 transition-colors">
+          <button 
+            onClick={() => onNavigate && onNavigate('pusat-bantuan')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-teal-600 text-teal-700 rounded-lg text-sm font-semibold hover:bg-teal-50 transition-colors"
+          >
             <HeadphonesIcon className="w-4 h-4" /> Bantuan Teknis
           </button>
           <button 
@@ -93,7 +114,7 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
   );
 };
 
-const Header = ({ setIsOpen }) => (
+const Header = ({ setIsOpen, searchQuery, setSearchQuery }) => (
   <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
     <div className="flex items-center gap-4 flex-1">
       <button 
@@ -106,7 +127,9 @@ const Header = ({ setIsOpen }) => (
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input 
           type="text" 
-          placeholder="Cari modul atau peserta..." 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Cari kursus atau modul..." 
           className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
         />
       </div>
@@ -127,55 +150,85 @@ const Header = ({ setIsOpen }) => (
   </header>
 );
 
-const CourseCard = ({ course, onNavigate }) => (
-  <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col h-full">
-    {/* Image Placeholder */}
-    <div className="h-40 bg-gray-100 relative w-full overflow-hidden shrink-0">
-      <img src={`https://picsum.photos/seed/${course.id}/400/200`} alt={course.title} className="w-full h-full object-cover" />
-    </div>
-    
-    <div className="p-5 flex flex-col flex-1">
-      {/* Category */}
-      <div className="mb-3">
-        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
-          {course.category || course.kategori || '-'}
-        </span>
-      </div>
+const CourseCard = ({ course, onNavigate }) => {
+  const courseId = course.pembelajaran_id || course.id;
+  const courseTitle = course.judul_pembelajaran || course.title || 'Pembelajaran';
+  const category = course.kategori || course.category || 'Pengembangan Kompetensi';
+  const jpl = course.jpl ?? 2;
+  const modulesCount = course.modules_count ?? course.modules ?? (course.modul ? course.modul.length : 0);
 
-      {/* Title */}
-      <h3 className="text-lg font-bold text-gray-900 mb-4 line-clamp-2 leading-tight flex-1">
-        {course.title || course.judul_pembelajaran || '-'}
-      </h3>
-
-      {/* Meta Info */}
-      <div className="flex items-center gap-4 text-sm text-gray-500 mb-6 mt-auto">
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-4 h-4" />
-          <span>{course.jpl} JPL</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <BookOpen className="w-4 h-4" />
-          <span>{course.modules} Modul</span>
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col h-full">
+      {/* Cover Image */}
+      <div className="h-40 bg-gray-100 relative w-full overflow-hidden shrink-0">
+        <img 
+          src={course.gambar_sampul_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60'} 
+          alt={courseTitle} 
+          className="w-full h-full object-cover" 
+        />
+        <div className="absolute top-3 right-3">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase shadow-sm ${
+            course.status === 'dipublikasikan' ? 'bg-emerald-100 text-emerald-800' :
+            course.status === 'menunggu_approval' ? 'bg-orange-100 text-orange-800' :
+            course.status === 'ditolak' ? 'bg-red-100 text-red-800' :
+            'bg-gray-100 text-gray-700'
+          }`}>
+            {(course.status || 'draft').replace('_', ' ')}
+          </span>
         </div>
       </div>
+      
+      <div className="p-5 flex flex-col flex-1">
+        {/* Category */}
+        <div className="mb-3">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
+            {category}
+          </span>
+        </div>
 
-      {/* Action Button */}
-      <button 
-        onClick={() => {
-          localStorage.setItem('adminKomunitasCourseId', course.id || course.pembelajaran_id);
-          onNavigate('detail-kursus');
-        }}
-        className="w-full py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors"
-      >
-        Lihat Detail
-      </button>
+        {/* Title */}
+        <h3 className="text-lg font-bold text-gray-900 mb-4 line-clamp-2 leading-tight flex-1">
+          {courseTitle}
+        </h3>
+
+        {/* Meta Info */}
+        <div className="flex items-center gap-4 text-sm text-gray-500 mb-6 mt-auto">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-gray-400" />
+            <span>{jpl} JPL</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <BookOpen className="w-4 h-4 text-gray-400" />
+            <span>{modulesCount} Modul</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-gray-400" />
+            <span>{course.total_peserta ?? course.peserta_count ?? 0} Peserta</span>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <button 
+          onClick={() => {
+            localStorage.setItem('adminKomunitasCourseId', courseId);
+            onNavigate('detail-kursus');
+          }}
+          className="w-full py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors"
+        >
+          Lihat Detail
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const KatalogKursus = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Semua Kategori');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('Terbaru');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const categories = [
     'Semua Kategori',
@@ -204,6 +257,43 @@ const KatalogKursus = ({ onNavigate }) => {
     fetchCourses();
   }, []);
 
+  // Filtering
+  const filteredCourses = courses.filter((c) => {
+    const title = (c.judul_pembelajaran || c.title || '').toLowerCase();
+    const cat = (c.kategori || c.category || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    const matchesCategory = selectedCategory === 'Semua Kategori' || cat === selectedCategory.toLowerCase();
+    const matchesSearch = !query || title.includes(query) || cat.includes(query);
+
+    return matchesCategory && matchesSearch;
+  });
+
+  // Sorting
+  const sortedCourses = [...filteredCourses].sort((a, b) => {
+    if (sortBy === 'A-Z') {
+      const titleA = (a.judul_pembelajaran || a.title || '').toLowerCase();
+      const titleB = (b.judul_pembelajaran || b.title || '').toLowerCase();
+      return titleA.localeCompare(titleB);
+    }
+    if (sortBy === 'Terpopuler') {
+      const pA = a.total_peserta ?? a.peserta_count ?? 0;
+      const pB = b.total_peserta ?? b.peserta_count ?? 0;
+      return pB - pA;
+    }
+    // Default: Terbaru
+    const idA = a.pembelajaran_id || a.id || 0;
+    const idB = b.pembelajaran_id || b.id || 0;
+    return idB - idA;
+  });
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(sortedCourses.length / itemsPerPage));
+  const displayedCourses = sortedCourses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans">
       <AdminSidebar 
@@ -214,7 +304,11 @@ const KatalogKursus = ({ onNavigate }) => {
       />
       
       <div className="lg:ml-64 flex flex-col min-h-screen">
-        <Header setIsOpen={setIsSidebarOpen} />
+        <Header 
+          setIsOpen={setIsSidebarOpen} 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
         
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
@@ -222,16 +316,15 @@ const KatalogKursus = ({ onNavigate }) => {
             <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">Katalog Kursus</h1>
-                <p className="text-sm text-gray-500">Pilih dan ikuti berbagai pelatihan untuk meningkatkan kompetensi Anda.</p>
+                <p className="text-sm text-gray-500">Kelola dan tinjau seluruh katalog pembelajaran di komunitas Anda.</p>
               </div>
               <button 
                 onClick={() => {
-                  localStorage.removeItem('adminKomunitasCourseId');
-                  onNavigate('detail-kursus');
+                  if (onNavigate) onNavigate('pelatihan-saya');
                 }}
                 className="bg-[#0F766E] hover:bg-teal-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 w-full sm:w-auto justify-center"
               >
-                <Plus className="w-4 h-4" /> Tambah Kursus
+                <Plus className="w-4 h-4" /> Tambah Kursus Baru
               </button>
             </div>
 
@@ -243,7 +336,14 @@ const KatalogKursus = ({ onNavigate }) => {
                   <h3 className="font-bold text-gray-900 mb-4">Kategori</h3>
                   <div className="space-y-3">
                     {categories.map((cat) => (
-                      <label key={cat} className="flex items-center gap-3 cursor-pointer group">
+                      <label 
+                        key={cat} 
+                        onClick={() => {
+                          setSelectedCategory(cat);
+                          setCurrentPage(1);
+                        }}
+                        className="flex items-center gap-3 cursor-pointer group"
+                      >
                         <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
                           selectedCategory === cat 
                             ? 'bg-[#0F766E] border-[#0F766E]' 
@@ -263,10 +363,14 @@ const KatalogKursus = ({ onNavigate }) => {
                 <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
                   <h3 className="font-bold text-gray-900 mb-4">Urutkan</h3>
                   <div className="relative">
-                    <select className="w-full appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 pr-10 text-gray-600">
-                      <option>Terbaru</option>
-                      <option>Terpopuler</option>
-                      <option>A-Z</option>
+                    <select 
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 pr-10 text-gray-600 cursor-pointer"
+                    >
+                      <option value="Terbaru">Terbaru</option>
+                      <option value="Terpopuler">Terpopuler</option>
+                      <option value="A-Z">A-Z</option>
                     </select>
                     <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
@@ -277,34 +381,55 @@ const KatalogKursus = ({ onNavigate }) => {
               <div className="flex-1 flex flex-col">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                   {loading ? (
-                    <div className="col-span-full text-center py-12 text-gray-500">Memuat data...</div>
-                  ) : courses.length === 0 ? (
-                    <div className="col-span-full text-center py-12 text-gray-500">Belum ada kursus.</div>
+                    <div className="col-span-full text-center py-16 text-gray-500 font-medium">Memuat katalog kursus...</div>
+                  ) : displayedCourses.length === 0 ? (
+                    <div className="col-span-full text-center py-16 text-gray-500 font-medium">
+                      Tidak ada kursus yang sesuai dengan filter atau pencarian Anda.
+                    </div>
                   ) : (
-                    courses.map((course) => (
-                      <CourseCard key={course.id || course.pembelajaran_id} course={course} onNavigate={onNavigate} />
+                    displayedCourses.map((course) => (
+                      <CourseCard key={course.pembelajaran_id || course.id} course={course} onNavigate={onNavigate} />
                     ))
                   )}
                 </div>
 
                 {/* Pagination */}
-                <div className="mt-auto bg-white p-4 sm:p-6 rounded-xl border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-gray-500">
-                    Menampilkan 1-5 dari 24 pembelajaran
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <button className="p-2 border border-gray-200 text-gray-400 hover:text-gray-600 rounded-md transition-colors">
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-md bg-[#0F766E] text-white text-sm font-medium">1</button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium">2</button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium">3</button>
-                    <span className="px-1 text-gray-400">...</span>
-                    <button className="p-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-md transition-colors">
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                {sortedCourses.length > 0 && (
+                  <div className="mt-auto bg-white p-4 sm:p-6 rounded-xl border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-sm text-gray-500">
+                      Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, sortedCourses.length)} - {Math.min(currentPage * itemsPerPage, sortedCourses.length)} dari {sortedCourses.length} pembelajaran
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="p-2 border border-gray-200 text-gray-400 hover:text-gray-600 disabled:opacity-40 rounded-md transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                        <button 
+                          key={num}
+                          onClick={() => setCurrentPage(num)}
+                          className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                            currentPage === num 
+                              ? 'bg-[#0F766E] text-white shadow-sm' 
+                              : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                      <button 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-2 border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 rounded-md transition-colors"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

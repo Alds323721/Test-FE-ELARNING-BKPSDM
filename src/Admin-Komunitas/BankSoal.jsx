@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
 import { 
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
   FileText, RotateCcw, ChevronDown, CheckCircle, CheckCircle2,
@@ -8,6 +9,24 @@ import {
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIsOpen }) => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [communityName, setCommunityName] = useState('Dinas Kesehatan');
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        setCurrentUser(u);
+      }
+      api.get('/admin-komunitas/komunitas-saya').then(res => {
+        if (res.data?.data?.length > 0) {
+          setCommunityName(res.data.data[0].nama_komunitas);
+        }
+      }).catch(() => {});
+    } catch (e) {}
+  }, []);
+
   const menuItems = [
     { id: 'admin-komunitas', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'pelatihan-saya', label: 'Pelatihan Saya', icon: GraduationCap },
@@ -39,11 +58,11 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
           
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center overflow-hidden shrink-0">
-              <img src="https://ui-avatars.com/api/?name=Admin+Komunitas&background=0D8ABC&color=fff" alt="Admin" className="w-full h-full object-cover" />
+              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.nama_lengkap || 'Admin Komunitas')}&background=0D8ABC&color=fff`} alt="Admin" className="w-full h-full object-cover" />
             </div>
             <div>
-              <h2 className="font-bold text-gray-900 text-sm truncate w-36">Admin Komunitas</h2>
-              <p className="text-xs text-gray-500">Dinas Kesehatan</p>
+              <h2 className="font-bold text-gray-900 text-sm truncate w-36">{currentUser?.nama_lengkap || 'Admin Komunitas'}</h2>
+              <p className="text-xs text-gray-500 truncate w-36">{communityName}</p>
             </div>
           </div>
         </div>
@@ -74,7 +93,10 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
         </div>
 
         <div className="p-4 space-y-2 mt-auto">
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-teal-600 text-teal-700 rounded-lg text-sm font-semibold hover:bg-teal-50 transition-colors">
+          <button 
+            onClick={() => onNavigate && onNavigate('pusat-bantuan')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-teal-600 text-teal-700 rounded-lg text-sm font-semibold hover:bg-teal-50 transition-colors"
+          >
             <HeadphonesIcon className="w-4 h-4" /> Bantuan Teknis
           </button>
           <button 
@@ -99,13 +121,13 @@ const Header = ({ setIsOpen }) => (
         onClick={() => setIsOpen(true)}
         className="lg:hidden p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
-        <Menu className="w-6 h-6" />
+        <Menu className="w-5 h-5" />
       </button>
       <div className="relative w-full max-w-md hidden sm:block">
         <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
         <input 
           type="text" 
-          placeholder="Cari modul atau peserta..." 
+          placeholder="Cari modul atau soal..." 
           className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
         />
       </div>
@@ -126,65 +148,19 @@ const Header = ({ setIsOpen }) => (
   </header>
 );
 
-const initialQuestions = [
-  {
-    id: 1,
-    type: 'pilihan_ganda',
-    pertanyaan: 'Apa prinsip utama integritas bagi seorang Aparatur Sipil Negara (ASN) menurut pedoman terbaru?',
-    jawabanBenar: 'A',
-    opsi: [
-      { key: 'A', text: 'Bertindak jujur, transparan, dan akuntabel dalam setiap pelaksanaan tugas.' },
-      { key: 'B', text: 'Menjaga rahasia jabatan meskipun diminta oleh pihak berwenang.' },
-      { key: 'C', text: 'Mengutamakan kepentingan golongan di atas kepentingan publik.' },
-      { key: 'D', text: 'Menyelesaikan tugas secepat mungkin tanpa memperhatikan SOP.' }
-    ]
-  },
-  {
-    id: 2,
-    type: 'pilihan_ganda',
-    pertanyaan: 'Dalam konteks pelayanan prima, tindakan mana yang paling mencerminkan nilai akuntabilitas?',
-    jawabanBenar: 'B',
-    opsi: [
-      { key: 'A', text: 'Memberikan pelayanan hanya pada jam kerja formal.' },
-      { key: 'B', text: 'Memberikan laporan kinerja secara berkala dan terbuka kepada publik.' },
-      { key: 'C', text: 'Menolak memberikan informasi kepada wartawan yang tidak dikenal.' },
-      { key: 'D', text: 'Mendelegasikan semua tanggung jawab kepada staf junior.' }
-    ]
-  },
-  {
-    id: 3,
-    type: 'benar_salah',
-    pertanyaan: 'Seorang ASN diperbolehkan menerima imbalan fasilitas khusus dari vendor pihak ketiga apabila proyek telah selesai dilaksanakan dengan sukses.',
-    jawabanBenar: 'B',
-    opsi: [
-      { key: 'A', text: 'Benar' },
-      { key: 'B', text: 'Salah, segala bentuk gratifikasi yang berhubungan dengan jabatan dilarang keras.' }
-    ]
-  },
-  {
-    id: 4,
-    type: 'pilihan_ganda',
-    pertanyaan: 'Bagaimana langkah pertama yang harus diambil ASN saat menghadapi benturan kepentingan (conflict of interest)?',
-    jawabanBenar: 'C',
-    opsi: [
-      { key: 'A', text: 'Melanjutkan proses pengambilan keputusan secara diam-diam.' },
-      { key: 'B', text: 'Meminta persetujuan lisan dari rekan sejawat satu divisi.' },
-      { key: 'C', text: 'Melaporkan potensi benturan kepentingan kepada atasan langsung secara tertulis.' },
-      { key: 'D', text: 'Mengabaikannya jika nominal transaksi di bawah ketentuan pelaporan.' }
-    ]
-  }
-];
-
 const BankSoal = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('semua'); // 'semua', 'pilihan_ganda', 'benar_salah'
   const [searchQuery, setSearchQuery] = useState('');
-  const [questions, setQuestions] = useState(initialQuestions);
+  const [questions, setQuestions] = useState([]);
+  const [course, setCourse] = useState(null);
+  const [postTest, setPostTest] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 2;
+  const itemsPerPage = 5;
 
-  // New question form state
+  // Form State
   const [newType, setNewType] = useState('pilihan_ganda');
   const [newQuestion, setNewQuestion] = useState('');
   const [newCorrectAnswer, setNewCorrectAnswer] = useState('A');
@@ -195,6 +171,75 @@ const BankSoal = ({ onNavigate }) => {
     D: ''
   });
 
+  const courseId = localStorage.getItem('adminKomunitasCourseId');
+
+  const fetchData = async () => {
+    if (!courseId) {
+      if (onNavigate) onNavigate('katalog-kursus');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const [resCourse, resPostTest] = await Promise.allSettled([
+        api.get(`/admin-komunitas/pembelajaran/${courseId}`),
+        api.get(`/admin-komunitas/pembelajaran/${courseId}/post-test`)
+      ]);
+
+      if (resCourse.status === 'fulfilled') {
+        setCourse(resCourse.value.data.data);
+      }
+
+      if (resPostTest.status === 'fulfilled' && resPostTest.value.data.data) {
+        const pt = resPostTest.value.data.data;
+        setPostTest(pt);
+
+        const rawList = pt.soal_post_test || [];
+        const formatted = rawList.map((item) => {
+          let opts = item.pilihan_jawaban_json;
+          if (typeof opts === 'string') {
+            try { opts = JSON.parse(opts); } catch (e) { opts = {}; }
+          }
+
+          let opsiArray = [];
+          if (Array.isArray(opts)) {
+            opsiArray = opts;
+          } else if (typeof opts === 'object' && opts !== null) {
+            opsiArray = Object.keys(opts).map(k => ({
+              key: k,
+              text: opts[k]
+            }));
+          }
+
+          const isBenarSalah = opsiArray.length === 2 && 
+            (opsiArray[0].text?.toLowerCase().includes('benar') || opsiArray[1].text?.toLowerCase().includes('salah'));
+
+          return {
+            id: item.soal_post_test_id,
+            type: isBenarSalah ? 'benar_salah' : 'pilihan_ganda',
+            pertanyaan: item.teks_soal,
+            jawabanBenar: item.kunci_jawaban,
+            bobotNilai: item.bobot_nilai || 1,
+            opsi: opsiArray
+          };
+        });
+
+        setQuestions(formatted);
+      } else {
+        setPostTest(null);
+        setQuestions([]);
+      }
+    } catch (error) {
+      console.error('Error fetching bank soal data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [courseId]);
+
   // Filter questions
   const filteredQuestions = questions.filter((q) => {
     const matchesFilter = 
@@ -204,7 +249,7 @@ const BankSoal = ({ onNavigate }) => {
     
     const matchesSearch = 
       q.pertanyaan.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.opsi.some(o => o.text.toLowerCase().includes(searchQuery.toLowerCase()));
+      q.opsi.some(o => o.text && o.text.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return matchesFilter && matchesSearch;
   });
@@ -224,43 +269,103 @@ const BankSoal = ({ onNavigate }) => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
-  const handleAddQuestionSubmit = (e) => {
+  const handleAddQuestionSubmit = async (e) => {
     e.preventDefault();
     if (!newQuestion.trim()) return;
 
-    let createdOptions = [];
+    let pilihanPayload = {};
     if (newType === 'pilihan_ganda') {
-      createdOptions = [
-        { key: 'A', text: newOptions.A || 'Pilihan A' },
-        { key: 'B', text: newOptions.B || 'Pilihan B' },
-        { key: 'C', text: newOptions.C || 'Pilihan C' },
-        { key: 'D', text: newOptions.D || 'Pilihan D' }
-      ];
+      pilihanPayload = {
+        A: newOptions.A || 'Pilihan A',
+        B: newOptions.B || 'Pilihan B',
+        C: newOptions.C || 'Pilihan C',
+        D: newOptions.D || 'Pilihan D'
+      };
     } else {
-      createdOptions = [
-        { key: 'A', text: 'Benar' },
-        { key: 'B', text: 'Salah' }
-      ];
+      pilihanPayload = {
+        A: 'Benar',
+        B: 'Salah'
+      };
     }
 
-    const newQ = {
-      id: Date.now(),
-      type: newType,
-      pertanyaan: newQuestion,
-      jawabanBenar: newCorrectAnswer,
-      opsi: createdOptions
+    const newQuestionPayload = {
+      teks_soal: newQuestion,
+      kunci_jawaban: newCorrectAnswer,
+      pilihan_jawaban_json: pilihanPayload,
+      bobot_nilai: 1
     };
 
-    setQuestions([newQ, ...questions]);
-    setIsAddModalOpen(false);
-    setNewQuestion('');
-    setNewOptions({ A: '', B: '', C: '', D: '' });
-    setNewCorrectAnswer('A');
+    try {
+      if (postTest && postTest.post_test_id) {
+        // Extract existing questions
+        const existingSoal = (postTest.soal_post_test || []).map(s => {
+          let opts = s.pilihan_jawaban_json;
+          if (typeof opts === 'string') {
+            try { opts = JSON.parse(opts); } catch (e) { opts = {}; }
+          }
+          return {
+            teks_soal: s.teks_soal,
+            kunci_jawaban: s.kunci_jawaban,
+            pilihan_jawaban_json: opts,
+            bobot_nilai: s.bobot_nilai || 1
+          };
+        });
+
+        await api.put(`/admin-komunitas/post-test/${postTest.post_test_id}`, {
+          soal: [...existingSoal, newQuestionPayload]
+        });
+      } else {
+        // Create post test first
+        await api.post(`/admin-komunitas/pembelajaran/${courseId}/post-test`, {
+          nilai_kelulusan: course?.nilai_kelulusan || 70,
+          maks_percobaan: 3,
+          durasi_menit: 45,
+          soal: [newQuestionPayload]
+        });
+      }
+
+      alert('Soal baru berhasil ditambahkan ke Bank Soal Post Test!');
+      setIsAddModalOpen(false);
+      setNewQuestion('');
+      setNewOptions({ A: '', B: '', C: '', D: '' });
+      setNewCorrectAnswer('A');
+      fetchData();
+    } catch (error) {
+      console.error('Error saving new question:', error);
+      alert(error.response?.data?.message || 'Gagal menyimpan butir soal.');
+    }
   };
 
-  const handleDeleteQuestion = (id) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus soal ini?')) {
-      setQuestions(questions.filter(q => q.id !== id));
+  const handleDeleteQuestion = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus butir soal ini dari Bank Soal?')) return;
+
+    try {
+      if (!postTest) return;
+
+      const remainingSoal = (postTest.soal_post_test || [])
+        .filter(s => s.soal_post_test_id !== id)
+        .map(s => {
+          let opts = s.pilihan_jawaban_json;
+          if (typeof opts === 'string') {
+            try { opts = JSON.parse(opts); } catch (e) { opts = {}; }
+          }
+          return {
+            teks_soal: s.teks_soal,
+            kunci_jawaban: s.kunci_jawaban,
+            pilihan_jawaban_json: opts,
+            bobot_nilai: s.bobot_nilai || 1
+          };
+        });
+
+      await api.put(`/admin-komunitas/post-test/${postTest.post_test_id}`, {
+        soal: remainingSoal
+      });
+
+      alert('Soal berhasil dihapus!');
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      alert(error.response?.data?.message || 'Gagal menghapus soal.');
     }
   };
 
@@ -290,9 +395,14 @@ const BankSoal = ({ onNavigate }) => {
 
             {/* Page Title & Action Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h1 className="text-xl sm:text-2xl lg:text-[26px] font-bold text-gray-900 tracking-tight">
-                Bank Soal: Etika Birokrasi Modern
-              </h1>
+              <div>
+                <h1 className="text-xl sm:text-2xl lg:text-[26px] font-bold text-gray-900 tracking-tight">
+                  Bank Soal: {course?.judul_pembelajaran || 'Memuat...'}
+                </h1>
+                <p className="text-xs text-gray-500 mt-1">
+                  Kelola daftar bank butir pertanyaan yang akan diujikan pada Post Test peserta.
+                </p>
+              </div>
               <button 
                 onClick={() => setIsAddModalOpen(true)}
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0F766E] hover:bg-[#0D655E] text-white font-semibold rounded-lg shadow-sm text-sm transition-all w-full sm:w-auto shrink-0"
@@ -308,17 +418,17 @@ const BankSoal = ({ onNavigate }) => {
               <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
                 <button
                   onClick={() => { setActiveFilter('semua'); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all shrink-0 ${
                     activeFilter === 'semua'
                       ? 'bg-[#0F766E] text-white shadow-sm'
                       : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
                   }`}
                 >
-                  Semua Soal
+                  Semua Soal ({questions.length})
                 </button>
                 <button
                   onClick={() => { setActiveFilter('pilihan_ganda'); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all shrink-0 ${
                     activeFilter === 'pilihan_ganda'
                       ? 'bg-[#0F766E] text-white shadow-sm'
                       : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
@@ -328,13 +438,13 @@ const BankSoal = ({ onNavigate }) => {
                 </button>
                 <button
                   onClick={() => { setActiveFilter('benar_salah'); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all shrink-0 ${
                     activeFilter === 'benar_salah'
                       ? 'bg-[#0F766E] text-white shadow-sm'
                       : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
                   }`}
                 >
-                  Benar/Salah
+                  Benar / Salah
                 </button>
               </div>
 
@@ -342,11 +452,11 @@ const BankSoal = ({ onNavigate }) => {
               <div className="relative w-full sm:w-64 shrink-0">
                 <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input 
-                  type="text"
+                  type="text" 
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  placeholder="Cari soal..."
-                  className="w-full pl-9 pr-4 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+                  placeholder="Cari butir soal..." 
+                  className="w-full pl-9 pr-4 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-xs"
                 />
               </div>
             </div>
@@ -354,23 +464,33 @@ const BankSoal = ({ onNavigate }) => {
             {/* Questions Card Container */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="p-5 sm:p-8 space-y-8">
-                {displayedQuestions.length === 0 ? (
+                {loading ? (
+                  <div className="py-12 text-center text-gray-500 text-sm">
+                    Memuat data Bank Soal...
+                  </div>
+                ) : displayedQuestions.length === 0 ? (
                   <div className="py-12 text-center">
                     <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600 font-medium">Tidak ada soal yang ditemukan.</p>
-                    <p className="text-xs text-gray-400 mt-1">Coba sesuaikan kata kunci pencarian atau filter kategori.</p>
+                    <p className="text-gray-700 font-semibold text-sm">Belum ada butir soal yang ditemukan.</p>
+                    <p className="text-xs text-gray-400 mt-1 mb-4">Tambahkan pertanyaan untuk melengkapi bank soal evaluasi akhir.</p>
+                    <button 
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="px-4 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800"
+                    >
+                      Tambah Soal Sekarang
+                    </button>
                   </div>
                 ) : (
                   displayedQuestions.map((question, index) => {
                     const globalIndex = (currentPage - 1) * itemsPerPage + index + 1;
                     return (
-                      <div key={question.id} className="group">
+                      <div key={question.id || index} className="group">
                         {/* Question Title & Actions */}
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                          <h3 className="text-base sm:text-[17px] font-bold text-gray-900 leading-snug">
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <h3 className="text-base font-bold text-gray-900 leading-snug">
                             {globalIndex}. {question.pertanyaan}
                           </h3>
-                          <div className="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <div className="flex items-center gap-1 shrink-0">
                             <button 
                               onClick={() => handleDeleteQuestion(question.id)}
                               title="Hapus Soal"
@@ -381,8 +501,8 @@ const BankSoal = ({ onNavigate }) => {
                           </div>
                         </div>
 
-                        {/* Options Stack with subtle vertical line */}
-                        <div className="border-l-2 border-gray-200 pl-3 sm:pl-5 space-y-2.5 my-3">
+                        {/* Options Stack */}
+                        <div className="border-l-2 border-gray-200 pl-3 sm:pl-5 space-y-2 my-3">
                           {question.opsi.map((opt) => {
                             const isCorrect = opt.key === question.jawabanBenar;
 
@@ -390,9 +510,9 @@ const BankSoal = ({ onNavigate }) => {
                               return (
                                 <div 
                                   key={opt.key}
-                                  className="bg-[#EAF7EE] border border-[#B9E8CA] rounded-lg px-3.5 sm:px-4 py-3 flex items-center justify-between gap-3 shadow-xs transition-all"
+                                  className="bg-[#EAF7EE] border border-[#B9E8CA] rounded-lg px-3.5 py-2.5 flex items-center justify-between gap-3 shadow-xs"
                                 >
-                                  <div className="flex items-start gap-2.5 sm:gap-3 text-sm min-w-0 flex-1">
+                                  <div className="flex items-start gap-2.5 text-sm min-w-0 flex-1">
                                     <span className="font-bold text-[#15803D] shrink-0">
                                       {opt.key}.
                                     </span>
@@ -410,7 +530,7 @@ const BankSoal = ({ onNavigate }) => {
                             return (
                               <div 
                                 key={opt.key}
-                                className="px-3.5 sm:px-4 py-2 flex items-start gap-2.5 sm:gap-3 text-sm text-gray-800"
+                                className="px-3.5 py-2 flex items-start gap-2.5 text-sm text-gray-800"
                               >
                                 <span className="font-bold text-gray-700 shrink-0">
                                   {opt.key}.
@@ -423,9 +543,8 @@ const BankSoal = ({ onNavigate }) => {
                           })}
                         </div>
 
-                        {/* Divider between questions if not the last on the page */}
                         {index < displayedQuestions.length - 1 && (
-                          <div className="h-px bg-gray-100 mt-8 mb-2"></div>
+                          <div className="h-px bg-gray-100 mt-6 mb-2"></div>
                         )}
                       </div>
                     );
@@ -437,7 +556,7 @@ const BankSoal = ({ onNavigate }) => {
               <div className="border-t border-gray-100 px-5 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
                 <span className="text-xs sm:text-sm text-gray-500">
                   Menampilkan {displayedQuestions.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
-                  {Math.min(currentPage * itemsPerPage, filteredQuestions.length)} dari 24 soal
+                  {Math.min(currentPage * itemsPerPage, filteredQuestions.length)} dari {filteredQuestions.length} butir soal
                 </span>
                 
                 <div className="flex items-center gap-1.5">
@@ -452,6 +571,9 @@ const BankSoal = ({ onNavigate }) => {
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
+                  <span className="text-xs font-semibold px-2 text-gray-600">
+                    Hal {currentPage} dari {totalPages}
+                  </span>
                   <button 
                     onClick={handleNextPage}
                     disabled={currentPage === totalPages}
@@ -472,12 +594,12 @@ const BankSoal = ({ onNavigate }) => {
 
       {/* Modal Tambah Soal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-gray-100 overflow-hidden space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Tambah Soal Baru</h3>
-                <p className="text-xs text-gray-500">Tambahkan butir pertanyaan untuk bank soal kursus</p>
+                <h3 className="text-lg font-bold text-gray-900">Tambah Soal Post Test</h3>
+                <p className="text-xs text-gray-500">Tambahkan butir pertanyaan ke bank soal evaluasi akhir</p>
               </div>
               <button 
                 onClick={() => setIsAddModalOpen(false)}
@@ -497,7 +619,7 @@ const BankSoal = ({ onNavigate }) => {
                   <button
                     type="button"
                     onClick={() => { setNewType('pilihan_ganda'); setNewCorrectAnswer('A'); }}
-                    className={`py-2 px-3 text-sm font-semibold rounded-lg border text-center transition-all ${
+                    className={`py-2 px-3 text-xs font-semibold rounded-lg border text-center transition-all ${
                       newType === 'pilihan_ganda'
                         ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
@@ -508,7 +630,7 @@ const BankSoal = ({ onNavigate }) => {
                   <button
                     type="button"
                     onClick={() => { setNewType('benar_salah'); setNewCorrectAnswer('A'); }}
-                    className={`py-2 px-3 text-sm font-semibold rounded-lg border text-center transition-all ${
+                    className={`py-2 px-3 text-xs font-semibold rounded-lg border text-center transition-all ${
                       newType === 'benar_salah'
                         ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
@@ -528,7 +650,7 @@ const BankSoal = ({ onNavigate }) => {
                   rows="3"
                   value={newQuestion}
                   onChange={(e) => setNewQuestion(e.target.value)}
-                  placeholder="Tuliskan butir pertanyaan di sini..."
+                  placeholder="Tuliskan butir soal pertanyaan di sini..."
                   required
                   className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                 />
@@ -569,7 +691,7 @@ const BankSoal = ({ onNavigate }) => {
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Kunci Jawaban Benar
                   </label>
-                  <div className="flex gap-4">
+                  <div className="flex gap-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
                       <input 
                         type="radio"
@@ -578,7 +700,7 @@ const BankSoal = ({ onNavigate }) => {
                         onChange={() => setNewCorrectAnswer('A')}
                         className="w-4 h-4 text-teal-600 focus:ring-teal-500 accent-[#0F766E]"
                       />
-                      Benar
+                      <span>A. Benar</span>
                     </label>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
                       <input 
@@ -588,7 +710,7 @@ const BankSoal = ({ onNavigate }) => {
                         onChange={() => setNewCorrectAnswer('B')}
                         className="w-4 h-4 text-teal-600 focus:ring-teal-500 accent-[#0F766E]"
                       />
-                      Salah
+                      <span>B. Salah</span>
                     </label>
                   </div>
                 </div>
@@ -599,15 +721,15 @@ const BankSoal = ({ onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 transition-colors text-center"
+                  className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg text-xs hover:bg-gray-50 transition-colors text-center"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-6 py-2.5 bg-[#0F766E] hover:bg-[#0D655E] text-white font-semibold rounded-lg text-sm transition-colors shadow-sm text-center"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-[#0F766E] hover:bg-[#0D655E] text-white font-semibold rounded-lg text-xs transition-colors shadow-sm text-center"
                 >
-                  Simpan Soal
+                  Simpan Soal ke Bank Soal
                 </button>
               </div>
             </form>

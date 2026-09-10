@@ -1,3 +1,4 @@
+import userImg from '../assets/user.png';
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { 
@@ -140,7 +141,7 @@ const AdminHeader = ({ setIsOpen }) => {
           <Settings className="w-5 h-5" />
         </button>
         <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-300 ml-1 sm:ml-2 shrink-0">
-          <img src="https://ui-avatars.com/api/?name=Admin+Komunitas&background=random" alt="Admin" className="w-full h-full object-cover" />
+          <img src={userImg} alt="Admin" className="w-full h-full object-cover" />
         </div>
       </div>
     </div>

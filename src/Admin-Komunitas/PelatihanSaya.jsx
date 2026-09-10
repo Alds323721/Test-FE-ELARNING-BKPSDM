@@ -1,3 +1,4 @@
+import userImg from '../assets/user.png';
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { 
@@ -134,12 +135,10 @@ const Header = ({ setIsOpen }) => (
         <Bell className="w-5 h-5" />
         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
       </button>
-      <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors hidden sm:block">
-        <Settings className="w-5 h-5" />
-      </button>
+      
       <div className="h-8 w-px bg-gray-200 mx-1 hidden sm:block"></div>
       <button className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded-full transition-colors">
-        <img src="https://ui-avatars.com/api/?name=Admin+Komunitas&background=0D8ABC&color=fff" alt="Profile" className="w-8 h-8 rounded-full border border-gray-200" />
+        <img src={userImg} alt="Profile" className="w-8 h-8 rounded-full border border-gray-200" />
       </button>
     </div>
   </header>
@@ -148,6 +147,7 @@ const Header = ({ setIsOpen }) => (
 const PelatihanSaya = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Aktif');
+  const [toastMessage, setToastMessage] = useState('');
 
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -200,11 +200,15 @@ const PelatihanSaya = ({ onNavigate }) => {
         deskripsi: '-'
       };
       const response = await api.post('/admin-komunitas/pembelajaran', payload);
-      alert('Draf pembelajaran berhasil dibuat!');
+      
+      setToastMessage('Draf pembelajaran berhasil dibuat!');
       setShowCreateModal(false);
       
-      localStorage.setItem('adminKomunitasCourseId', response.data.data.pembelajaran_id);
-      if (onNavigate) onNavigate('detail-kursus');
+      setTimeout(() => {
+        setToastMessage('');
+        localStorage.setItem('adminKomunitasCourseId', response.data.data.pembelajaran_id);
+        if (onNavigate) onNavigate('detail-kursus');
+      }, 1500);
     } catch (error) {
       console.error('Error creating course:', error);
       alert(error.response?.data?.message || 'Gagal membuat pembelajaran');
@@ -222,7 +226,14 @@ const PelatihanSaya = ({ onNavigate }) => {
   const filteredCourses = getFilteredCourses();
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] font-sans relative">
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-[100] bg-green-500 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 animate-fade-in-down border border-green-600">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="font-semibold text-sm">{toastMessage}</span>
+        </div>
+      )}
+      
       <AdminSidebar 
         activeMenu="pelatihan-saya" 
         onNavigate={onNavigate}

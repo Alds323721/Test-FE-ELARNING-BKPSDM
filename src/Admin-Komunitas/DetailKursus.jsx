@@ -1,3 +1,4 @@
+import userImg from '../assets/user.png';
 import React, { useState, useEffect } from 'react';
 import AdminKomunitasSkeleton from './AdminKomunitasSkeleton';
 import api from '../api/axios';
@@ -140,12 +141,10 @@ const Header = ({ setIsOpen }) => (
         <Bell className="w-5 h-5" />
         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
       </button>
-      <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors hidden sm:block">
-        <Settings className="w-5 h-5" />
-      </button>
+      
       <div className="h-8 w-px bg-gray-200 mx-1 hidden sm:block"></div>
       <button className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded-full transition-colors">
-        <img src="https://ui-avatars.com/api/?name=Admin+Komunitas&background=0D8ABC&color=fff" alt="Profile" className="w-8 h-8 rounded-full border border-gray-200" />
+        <img src={userImg} alt="Profile" className="w-8 h-8 rounded-full border border-gray-200" />
       </button>
     </div>
   </header>
@@ -602,14 +601,7 @@ const DetailKursus = ({ onNavigate }) => {
                   )}
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
-                <button onClick={handleUpdateBasicInfo} className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
-                  Simpan Draft
-                </button>
-                <button onClick={handleAjukanApproval} className="w-full sm:w-auto px-4 py-2 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm">
-                  Ajukan Approval Publikasi
-                </button>
-              </div>
+
             </div>
 
             {/* Rejection Alert Banner */}

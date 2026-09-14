@@ -145,6 +145,11 @@ const CatalogContent = ({ onNavigate }) => {
         sort: sort
       };
       if (searchQuery.trim()) params.search = searchQuery.trim();
+      
+      const komunitasId = localStorage.getItem('filterKomunitasId');
+      if (komunitasId) {
+        params.komunitas_id = komunitasId;
+      }
 
       const response = await api.get('/user/katalog', { params });
       if (response.data?.data) {

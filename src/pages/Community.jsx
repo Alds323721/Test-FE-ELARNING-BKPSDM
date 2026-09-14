@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -107,43 +108,48 @@ const CommunityCard = ({ id, image, category, title, description, members, cours
 
 /* ── Main Content ─────────────────────────────── */
 const CommunityContent = ({ onNavigate }) => {
-  const categories = ['Semua Kategori', 'Manajemen ASN', 'Teknologi Informasi', 'Pelayanan Publik', 'Kepemimpinan'];
+  const [categories, setCategories] = useState(['Semua Kategori', 'JPT', 'JA', 'JF', 'Pelaksana']);
   const [activeCategory, setActiveCategory] = useState('Semua Kategori');
-  const [joinedSet, setJoinedSet] = useState(new Set());
+  const [communities, setCommunities] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleJoin = (id) => {
-    setJoinedSet(prev => new Set([...prev, id]));
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      try {
+        const res = await api.get('/user/komunitas');
+        if (res.data?.data) {
+          setCommunities(res.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch communities:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCommunities();
+  }, []);
+
+  const handleJoin = async (id) => {
+    try {
+      await api.post(`/user/komunitas/${id}/join`);
+      setCommunities(prev => prev.map(c => 
+        c.id === id ? { ...c, is_joined: true, members: c.members + 1 } : c
+      ));
+      alert('Berhasil bergabung dengan komunitas!');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Gagal bergabung dengan komunitas');
+    }
   };
 
-  const communities = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop',
-      category: 'Teknologi Informasi',
-      title: 'Komunitas IT BKPSDM',
-      description: 'Forum diskusi bagi para pengembang, administrator sistem, dan analis data',
-      members: 1240,
-      courses: 15
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?q=80&w=2069&auto=format&fit=crop',
-      category: 'Pelayanan Publik',
-      title: 'Service Excellence Forum',
-      description: 'Wadah bagi aparatur pelayanan publik untuk berdiskusi mengenai teknik komunikasi prima, penanganan komplain, dan peningkatan kepuasan...',
-      members: 3500,
-      courses: 22
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2076&auto=format&fit=crop',
-      category: 'Manajemen ASN',
-      title: 'Pengembangan Kompetensi SDM',
-      description: 'Komunitas khusus untuk para pengelola kepegawaian dalam merancang, melaksanakan, dan...',
-      members: 890,
-      courses: 8
-    },
-  ];
+  const handleNavigateToCatalog = (komunitasId) => {
+    // Navigate ke catalog dengan mengirim ID komunitas
+    localStorage.setItem('filterKomunitasId', komunitasId);
+    onNavigate('catalog');
+  };
+
+  const filteredCommunities = communities.filter(c => 
+    activeCategory === 'Semua Kategori' || c.category === activeCategory
+  );
 
   return (
     <section className="bg-[#F9FBFC] min-h-screen">
@@ -152,7 +158,7 @@ const CommunityContent = ({ onNavigate }) => {
         {/* Sidebar */}
         <aside className="md:col-span-3">
           <div className="bg-white border border-[#BBC9C7] rounded-lg p-5">
-            <h3 className="font-bold text-[#1D315F] text-[17px] mb-5">Kategori Komunitas</h3>
+            <h3 className="font-bold text-[#1D315F] text-[17px] mb-5">Rumpun Jabatan</h3>
             <div className="space-y-4">
               {categories.map((cat) => (
                 <label
@@ -175,7 +181,7 @@ const CommunityContent = ({ onNavigate }) => {
           {/* Top bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
             <p className="text-[14px] font-medium text-gray-500 mb-3 sm:mb-0">
-              Menampilkan <span className="font-bold text-[#1D315F]">12</span> dari <span className="font-bold text-[#1D315F]">34</span> komunitas
+              Menampilkan <span className="font-bold text-[#1D315F]">{filteredCommunities.length}</span> dari <span className="font-bold text-[#1D315F]">{communities.length}</span> komunitas
             </p>
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[#1D315F]">
               Urutkan:
@@ -185,33 +191,24 @@ const CommunityContent = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {communities.map((c) => (
-              <CommunityCard
-                key={c.id}
-                {...c}
-                isJoined={joinedSet.has(c.id)}
-                onJoin={handleJoin}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </div>
-
-          {/* Pagination */}
-          <div className="flex justify-center items-center gap-2">
-            <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button className="w-9 h-9 flex items-center justify-center rounded bg-[#006A63] text-white font-semibold">1</button>
-            <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 font-semibold">2</button>
-            <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 font-semibold">3</button>
-            <span className="px-1 text-gray-400">...</span>
-            <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 font-semibold">5</button>
-            <button className="w-9 h-9 flex items-center justify-center rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          {loading ? (
+            <div className="text-center py-10 font-bold text-[#1D315F]">Memuat Komunitas...</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {filteredCommunities.map((c) => (
+                <CommunityCard
+                  key={c.id}
+                  {...c}
+                  isJoined={c.is_joined}
+                  onJoin={handleJoin}
+                  onNavigate={() => handleNavigateToCatalog(c.id)}
+                />
+              ))}
+              {filteredCommunities.length === 0 && (
+                 <div className="col-span-full text-center text-gray-500 py-10 font-semibold">Tidak ada komunitas di kategori ini.</div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -40,12 +40,12 @@ const Navbar = ({ onLoginClick }) => (
       onClick={onLoginClick}
       className="border border-gray-400 text-[#4B5563] font-semibold py-1.5 sm:py-2 px-3 sm:px-5 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer text-xs sm:text-sm shadow-sm"
     >
-      Masuk / NIP Login
+      Daftar / Login
     </button>
   </nav>
 );
 
-const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
+const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthClick }) => {
   const [nip, setNip] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -81,7 +81,7 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
     }
   };
 
-  if (!showLogin) {
+  if (!showAuth) {
     return (
       <div className="relative h-[650px] sm:h-[700px] flex flex-col justify-center text-left">
         <div className="absolute inset-0 z-0">
@@ -101,8 +101,8 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
               Badan Kepegawaian dan Pengembangan Sumber Daya Manusia Kabupaten Buleleng bertugas membantu Bupati melaksanakan fungsi penunjang urusan pemerintahan di bidang kepegawaian serta pendidikan dan pelatihan.
             </p>
             <div className="inline-block mt-4">
-              <button onClick={onLoginClick || (() => setShowLogin(true))} className="bg-[#10B981] text-white font-bold py-3 px-10 text-sm sm:text-base rounded-full hover:bg-[#0d9668] transition-all shadow-[0_4px_14px_0_rgba(16,185,129,0.39)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.23)] hover:-translate-y-1">
-                Masuk / NIP Login
+              <button onClick={onAuthClick || (() => setShowAuth(true))} className="bg-[#10B981] text-white font-bold py-3 px-10 text-sm sm:text-base rounded-full hover:bg-[#0d9668] transition-all shadow-[0_4px_14px_0_rgba(16,185,129,0.39)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.23)] hover:-translate-y-1">
+                Daftar / Login
               </button>
             </div>
           </div>
@@ -139,11 +139,11 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#E8EDF4] px-2 py-8 sm:px-4 sm:py-12 md:px-6 md:py-16 overflow-y-auto">
-      <div className="flex flex-col lg:flex-row w-full max-w-[900px] bg-white rounded-xl shadow-2xl overflow-hidden min-h-[auto] lg:min-h-[520px]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#E8EDF4]/80 backdrop-blur-sm p-4 sm:p-6 md:p-8 overflow-y-auto">
+      <div className="flex flex-col md:flex-row w-full max-w-[950px] bg-white rounded-2xl shadow-2xl overflow-hidden min-h-[auto] md:min-h-[520px] lg:min-h-[550px] m-auto">
 
         {/* Left Panel */}
-        <div className="w-full lg:w-[42%] bg-[#1D315F] p-6 sm:p-8 md:p-10 lg:p-10 flex flex-col justify-between text-white order-2 lg:order-1">
+        <div className="w-full md:w-[42%] bg-[#1D315F] p-6 sm:p-8 md:p-8 lg:p-10 flex flex-col justify-between text-white order-2 md:order-1">
           <div>
             <div className="flex items-center gap-3 mb-8">
               <img src={logoImg} alt="Logo BKPSDM" className="w-7 sm:w-8 object-contain" />
@@ -183,17 +183,101 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
         </div>
 
         {/* Right Panel */}
-        <div className="w-full lg:w-[58%] p-6 sm:p-8 md:p-10 lg:p-12 flex flex-col justify-center order-1 lg:order-2">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-2 text-[#1D315F]">Masuk ke Akun Anda</h2>
-          <p className="text-xs sm:text-sm mb-6 leading-relaxed font-semibold text-gray-500">
-            Gunakan Nomor Induk Pegawai (NIP) dan kata sandi yang telah terdaftar di sistem.
-          </p>
+        <div className="w-full md:w-[58%] p-6 sm:p-8 md:p-8 lg:p-12 flex flex-col justify-center order-1 md:order-2">
+          {authMode === 'register' ? (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="mb-6">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 text-[#1D315F]">Aktivasi & Registrasi Akun</h2>
+                <p className="text-xs sm:text-sm mb-6 leading-relaxed font-medium text-gray-500">
+                  Lengkapi data NIP dan Email Anda untuk menerima kode verifikasi OTP.
+                </p>
+              </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm mb-5">
-              {error}
+              <form onSubmit={(e) => e.preventDefault()}>
+                <div className="mb-4 sm:mb-5">
+                  <label className="block text-[#1D315F] text-[10px] sm:text-xs font-bold mb-1.5 sm:mb-2 uppercase tracking-wide">NIP (Nomor Induk Pegawai)</label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <User className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                    <input
+                      type="text"
+                      className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400 font-medium bg-gray-50/50"
+                      placeholder="Masukkan 18 digit NIP Anda"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4 sm:mb-5">
+                  <label className="block text-[#1D315F] text-[10px] sm:text-xs font-bold mb-1.5 sm:mb-2 uppercase tracking-wide">Email</label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                    <input
+                      type="email"
+                      className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400 font-medium bg-gray-50/50"
+                      placeholder="nama@gmail.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-5 sm:mb-6">
+                  <div className="flex justify-between items-center mb-1.5 sm:mb-2">
+                    <label className="block text-[#1D315F] text-[10px] sm:text-xs font-bold uppercase tracking-wide">Kode OTP Verifikasi</label>
+                    <span className="text-[10px] sm:text-xs text-gray-400 font-medium">Masa berlaku 5 menit</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <div className="relative flex-1">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </div>
+                      <input
+                        type="text"
+                        className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400 font-medium bg-gray-50/50"
+                        placeholder="6 digit kode OTP"
+                      />
+                    </div>
+                    <button type="button" className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 border border-[#3FCDC1] text-[#006A63] bg-[#E8F8F5] rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#3FCDC1] hover:text-white transition-colors whitespace-nowrap">
+                       Kirim OTP
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mb-6 sm:mb-8 flex items-start gap-3">
+                  <input type="checkbox" id="terms" className="mt-1 w-4 h-4 rounded border-gray-300 text-[#3FCDC1] focus:ring-[#3FCDC1]" />
+                  <label htmlFor="terms" className="text-xs sm:text-sm text-gray-500 font-medium cursor-pointer">
+                    Saya menyetujui Ketentuan Layanan BKPSDM
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  className="w-full bg-[#3FCDC1] text-white font-bold py-3 sm:py-3.5 rounded-lg hover:bg-[#35B5AA] transition-colors text-sm flex items-center justify-center gap-2 shadow-md mb-6"
+                >
+                  Daftar <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
+                <p className="text-xs sm:text-sm font-medium text-gray-500 text-center">
+                  Sudah memiliki akun aktif?{' '}
+                  <button type="button" onClick={() => setAuthMode('login')} className="text-[#3FCDC1] font-bold hover:underline">
+                    Masuk di sini
+                  </button>
+                </p>
+              </form>
             </div>
-          )}
+          ) : (
+            <div className="animate-in fade-in duration-300 w-full">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-2 text-[#1D315F]">Masuk ke Akun Anda</h2>
+              <p className="text-xs sm:text-sm mb-6 leading-relaxed font-semibold text-gray-500">
+                Gunakan Nomor Induk Pegawai (NIP) dan kata sandi yang telah terdaftar di sistem.
+              </p>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm mb-5">
+                  {error}
+                </div>
+              )}
 
           {loading ? (
             <div className="space-y-4 sm:space-y-5">
@@ -489,26 +573,30 @@ const Hero = ({ showLogin, setShowLogin, onLogin, onLoginClick }) => {
               </p>
             </form>
           )}
+            </div>
+          )}
 
-          <button
-            onClick={() => {
-              setShowLogin(false);
-              setError('');
-              setNip('');
-              setPassword('');
-              setShowForgotPassword(false);
-              setResetStep('email');
-              setResetError('');
-              setResetNip('');
-              setResetEmail('');
-              setResetOtp('');
-              setNewPassword('');
-              setResetConfirmPassword('');
-            }}
-            className="mt-3 sm:mt-4 text-xs font-semibold text-gray-400 hover:text-gray-600 text-center transition-colors"
-          >
-            ← Kembali ke beranda
-          </button>
+          {authMode === 'login' && (
+            <button
+              onClick={() => {
+                setShowAuth(false);
+                setError('');
+                setNip('');
+                setPassword('');
+                setShowForgotPassword(false);
+                setResetStep('email');
+                setResetError('');
+                setResetNip('');
+                setResetEmail('');
+                setResetOtp('');
+                setNewPassword('');
+                setResetConfirmPassword('');
+              }}
+              className="mt-3 sm:mt-4 text-xs font-semibold text-gray-400 hover:text-gray-600 text-center transition-colors"
+            >
+              ← Kembali ke beranda
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -806,26 +894,28 @@ const Footer = ({ onFooterLinkClick }) => (
 );
 
 export default function LandingPage({ onLogin, onNavigate }) {
-  const [showLogin, setShowLogin] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState('register');
   const [intendedRoute, setIntendedRoute] = useState('dashboard');
 
-  const handleLoginClick = (route = 'dashboard') => {
+  const handleAuthClick = (route = 'dashboard') => {
     setIntendedRoute(route);
-    setShowLogin(true);
+    setAuthMode('register');
+    setShowAuth(true);
   };
 
   return (
     <div className="min-h-screen flex flex-col font-['Inter'] bg-white">
-      <Navbar onLoginClick={() => handleLoginClick('dashboard')} />
+      <Navbar onLoginClick={() => handleAuthClick('dashboard')} />
       <main className="flex-grow pt-12 sm:pt-14">
-        <Hero showLogin={showLogin} setShowLogin={setShowLogin} onLogin={() => onLogin(intendedRoute)} onLoginClick={() => handleLoginClick('dashboard')} />
+        <Hero showAuth={showAuth} setShowAuth={setShowAuth} authMode={authMode} setAuthMode={setAuthMode} onLogin={() => onLogin(intendedRoute)} onAuthClick={() => handleAuthClick('dashboard')} />
         <FeaturesBanner />
         <Categories />
         <PopularCourses />
         <NewsSection />
         <HowItWorks />
       </main>
-      <Footer onFooterLinkClick={handleLoginClick} />
+      <Footer onFooterLinkClick={handleAuthClick} />
     </div>
   );
 }

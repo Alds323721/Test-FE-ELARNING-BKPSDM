@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import api from '../Admin-Komunitas/api/axios';
+import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
+import ProfileDropdown from '../components/ProfileDropdown';
 import {
   Search,
   Bell,
@@ -47,13 +48,12 @@ const CourseDetailNavbar = ({ onNavigate }) => {
           <button className="text-[#1D315F] hover:text-[#006A63]">
             <Search className="w-5 h-5" />
           </button>
-          <div className="w-8 h-8 rounded-full bg-gray-200 border border-gray-300 ml-2 overflow-hidden flex-shrink-0">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Budi" alt="User" />
-          </div>
+          <ProfileDropdown onLogout={() => onNavigate('landing')} />
         </div>
       </div>
 
-      <div className="md:hidden flex items-center">
+      <div className="md:hidden flex items-center gap-3">
+        <ProfileDropdown onLogout={() => onNavigate('landing')} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#1D315F] hover:text-[#006A63] focus:outline-none">
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -160,9 +160,13 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
                 title={modul.kuis.judul}
                 subtitle="Kuis Evaluasi Modul"
                 duration={modul.kuis.durasi}
-                status="pending"
+                status={modul.kuis.is_completed ? 'completed' : 'pending'}
                 isActive={false}
-                onClick={() => { /* Navigate to quiz if needed */ }}
+                onClick={() => {
+                  localStorage.setItem('userModulId', modul.modul_id);
+                  localStorage.setItem('userKuisId', modul.kuis.kuis_id);
+                  onNavigate('kuis');
+                }}
               />
             )}
           </div>
@@ -177,9 +181,9 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
             title={courseData.post_test.judul}
             subtitle="Syarat Kelulusan"
             duration={courseData.post_test.durasi}
-            status={courseData.progress === 100 ? 'active' : 'locked'}
+            status={parseFloat(courseData.progress) >= 100 ? 'active' : 'locked'}
             onClick={() => {
-               if (courseData.progress === 100) onNavigate('post-test');
+               if (parseFloat(courseData.progress) >= 100) onNavigate('post-test');
                else alert('Selesaikan semua materi terlebih dahulu.');
             }}
           />

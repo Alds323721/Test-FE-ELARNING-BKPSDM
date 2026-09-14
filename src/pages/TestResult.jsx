@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
+import ProfileDropdown from '../components/ProfileDropdown';
 import {
   Search,
   Bell,
@@ -43,13 +45,12 @@ const TestResultNavbar = ({ onNavigate }) => {
           <button className="text-[#1D315F] hover:text-[#006A63]">
             <Search className="w-5 h-5" />
           </button>
-          <div className="w-8 h-8 rounded-full bg-gray-200 border border-gray-300 ml-2 overflow-hidden flex-shrink-0">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Budi" alt="User" />
-          </div>
+          <ProfileDropdown onLogout={() => onNavigate('landing')} />
         </div>
       </div>
 
-      <div className="md:hidden flex items-center">
+      <div className="md:hidden flex items-center gap-3">
+        <ProfileDropdown onLogout={() => onNavigate('landing')} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#1D315F] hover:text-[#006A63] focus:outline-none">
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -68,7 +69,47 @@ const TestResultNavbar = ({ onNavigate }) => {
   );
 };
 
-const CertificatePreview = () => (
+const CertificatePreview = ({ sertifikat }) => {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    const courseId = localStorage.getItem('userCourseId');
+    if (!courseId) {
+      alert('ID Pelatihan tidak ditemukan.');
+      return;
+    }
+
+    try {
+      setDownloading(true);
+      const response = await api.get(`/user/courses/${courseId}/certificate/download`, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanTitle = (sertifikat?.judul_pembelajaran || 'Pelatihan').replace(/[^a-zA-Z0-9_-]/g, '_');
+      a.download = `Sertifikat_${cleanTitle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Gagal mengunduh sertifikat. Pastikan Anda telah menyelesaikan tes dan berhak mendapatkan sertifikat.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleShare = () => {
+    const title = sertifikat?.judul_pembelajaran || 'Pelatihan';
+    navigator.clipboard.writeText(`Saya telah menyelesaikan pelatihan "${title}" di Buleleng ASN Corpu!`);
+    alert('Pesan achievement telah disalin ke clipboard!');
+  };
+
+  return (
   <div className="bg-white border border-[#BBC9C7] rounded-lg p-8 md:p-12 flex flex-col items-center text-center shadow-sm">
     <div className="w-16 h-16 md:w-20 md:h-20 bg-[#3FCDC1]/10 rounded-full flex items-center justify-center mb-6">
       <Award className="w-8 h-8 md:w-10 md:h-10 text-[#006A63]" />
@@ -77,38 +118,43 @@ const CertificatePreview = () => (
     <p className="text-xs md:text-sm text-gray-500 uppercase tracking-wider font-semibold mb-2">SERTIFIKAT KELULUSAN</p>
     
     <h2 className="text-2xl md:text-3xl font-semibold text-[#1D315F] mb-6 md:mb-8">
-      Manajemen Kinerja Pegawai
+      {sertifikat?.judul_pembelajaran || 'Pelatihan'}
     </h2>
     
     <div className="mb-6 md:mb-8">
       <p className="text-sm md:text-base text-gray-600 font-semibold mb-2">Diberikan Kepada:</p>
-      <h3 className="text-xl md:text-2xl font-semibold text-[#1D315F] mb-1">Budi Prakoso, S.T.</h3>
-      <p className="text-sm text-gray-500 font-semibold">NIP: 198502102010121001</p>
+      <h3 className="text-xl md:text-2xl font-semibold text-[#1D315F] mb-1">{sertifikat?.nama_peserta || 'Peserta'}</h3>
+      <p className="text-sm text-gray-500 font-semibold">NIP: {sertifikat?.nip || '-'}</p>
     </div>
     
     <div className="grid grid-cols-2 gap-8 md:gap-16 mb-8 md:mb-10 w-full max-w-md">
       <div className="text-center">
         <p className="text-xs text-gray-500 font-semibold mb-1">JPL</p>
-        <p className="text-2xl md:text-3xl font-semibold text-[#1D315F]">40 Jam</p>
+        <p className="text-2xl md:text-3xl font-semibold text-[#1D315F]">{sertifikat?.jpl || 0} Jam</p>
       </div>
       <div className="text-center">
         <p className="text-xs text-gray-500 font-semibold mb-1">Tanggal</p>
-        <p className="text-base md:text-lg font-semibold text-[#1D315F]">24 Oktober 2023</p>
+        <p className="text-base md:text-lg font-semibold text-[#1D315F]">{sertifikat?.tanggal || 'Hari Ini'}</p>
       </div>
     </div>
     
     <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-      <button className="flex-1 px-6 py-3 bg-[#006A63] text-white font-semibold rounded-md hover:bg-[#00534D] transition-colors flex items-center justify-center gap-2">
+      <button 
+        onClick={handleDownload} 
+        disabled={downloading}
+        className="flex-1 px-6 py-3 bg-[#006A63] text-white font-semibold rounded-md hover:bg-[#00534D] transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
         <Download className="w-5 h-5" />
-        Unduh Sertifikat (PDF)
+        {downloading ? 'Mengunduh...' : 'Unduh Sertifikat (PDF)'}
       </button>
-      <button className="flex-1 px-6 py-3 border-2 border-[#006A63] text-[#006A63] font-semibold rounded-md hover:bg-[#EFF5F3] transition-colors flex items-center justify-center gap-2">
+      <button onClick={handleShare} className="flex-1 px-6 py-3 border-2 border-[#006A63] text-[#006A63] font-semibold rounded-md hover:bg-[#EFF5F3] transition-colors flex items-center justify-center gap-2">
         <Share2 className="w-5 h-5" />
         Bagikan Achievement
       </button>
     </div>
   </div>
-);
+  );
+};
 
 const ScoreSummary = ({ resultData }) => (
   <div className="bg-white border border-[#BBC9C7] rounded-lg p-6">
@@ -145,6 +191,28 @@ const ScoreSummary = ({ resultData }) => (
 const FeedbackSection = () => {
   const [rating, setRating] = useState(4);
   const [feedback, setFeedback] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const courseId = localStorage.getItem('userCourseId');
+
+  const handleSubmit = async () => {
+    if (!feedback.trim()) {
+      alert('Mohon isi pesan ulasan Anda terlebih dahulu.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await api.post(`/user/courses/${courseId}/ulasan`, {
+        rating: rating,
+        ulasan: feedback
+      });
+      alert('Ulasan berhasil dikirim! Terima kasih atas tanggapan Anda.');
+      setFeedback('');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Gagal mengirim ulasan');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="bg-white border border-[#BBC9C7] rounded-lg p-6 mt-6">
@@ -179,8 +247,12 @@ const FeedbackSection = () => {
         className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#006A63] focus:border-transparent resize-none font-semibold"
       />
       
-      <button className="mt-4 w-full px-6 py-2.5 bg-gray-100 text-[#1D315F] font-semibold rounded-md hover:bg-gray-200 transition-colors">
-        Kirim Ulasan
+      <button 
+        onClick={handleSubmit}
+        disabled={submitting}
+        className="mt-4 w-full px-6 py-2.5 bg-gray-100 text-[#1D315F] font-semibold rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50"
+      >
+        {submitting ? 'Mengirim...' : 'Kirim Ulasan'}
       </button>
     </div>
   );
@@ -227,7 +299,7 @@ export default function TestResult({ onNavigate }) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-8">
               {resultData.apakah_lulus ? (
-                 <CertificatePreview />
+                 <CertificatePreview sertifikat={resultData.sertifikat} />
               ) : (
                  <div className="bg-white border border-[#BBC9C7] rounded-lg p-8 md:p-12 flex flex-col items-center text-center shadow-sm">
                     <h2 className="text-2xl font-bold text-[#1D315F] mb-4">Belum Bisa Mengunduh Sertifikat</h2>

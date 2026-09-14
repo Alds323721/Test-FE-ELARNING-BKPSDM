@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../Admin-Komunitas/api/axios';
+import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import sertifikatImg from '../assets/Sertifikat.png';
@@ -86,7 +86,7 @@ const CertificatesHeader = () => (
   </div>
 );
 
-const CertificateCard = ({ id, image, title, institution, date, certificateId, isNew }) => (
+const CertificateCard = ({ id, image, title, institution, date, certificateId, isNew, onDownload, downloading }) => (
   <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all">
     <div className="relative">
       <img src={image} alt={title} className="w-full h-48 object-cover" />
@@ -113,9 +113,13 @@ const CertificateCard = ({ id, image, title, institution, date, certificateId, i
       <div className="text-xs text-gray-500 mb-4 font-mono bg-gray-50 px-2 py-1 rounded">
         ID: {certificateId}
       </div>
-      <button className="w-full py-2.5 bg-[#006A63] text-white text-sm font-bold rounded-md hover:bg-[#00534D] transition-colors flex items-center justify-center gap-2">
+      <button 
+        onClick={() => onDownload(id, title)}
+        disabled={downloading}
+        className="w-full py-2.5 bg-[#006A63] text-white text-sm font-bold rounded-md hover:bg-[#00534D] transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
         <Download className="w-4 h-4" />
-        Unduh PDF
+        {downloading ? 'Mengunduh...' : 'Unduh PDF'}
       </button>
     </div>
   </div>
@@ -124,6 +128,7 @@ const CertificateCard = ({ id, image, title, institution, date, certificateId, i
 const CertificatesContent = () => {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     const fetchCertificates = async () => {
@@ -140,6 +145,31 @@ const CertificatesContent = () => {
     };
     fetchCertificates();
   }, []);
+
+  const handleDownloadCertificate = async (certificateId, title) => {
+    try {
+      setDownloadingId(certificateId);
+      const response = await api.get(`/user/certificates/${certificateId}/download`, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanTitle = (title || 'Pelatihan').replace(/[^a-zA-Z0-9_-]/g, '_');
+      a.download = `Sertifikat_${cleanTitle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download certificate error:', error);
+      alert('Gagal mengunduh sertifikat. Silakan coba beberapa saat lagi.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   if (loading) {
     return <div className="text-center py-10 text-[#1D315F] font-bold">Memuat sertifikat...</div>;
@@ -164,6 +194,8 @@ const CertificatesContent = () => {
                date={new Date(cert.tanggal_terbit).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                certificateId={cert.nomor_sertifikat}
                isNew={false}
+               onDownload={handleDownloadCertificate}
+               downloading={downloadingId === cert.sertifikat_id}
             />
           ))}
         </div>

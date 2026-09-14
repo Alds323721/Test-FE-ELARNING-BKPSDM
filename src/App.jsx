@@ -8,6 +8,7 @@ import MyCourses from './pages/MyCourses'
 import Community from './pages/Community'
 import CourseDetail from './pages/CourseDetail'
 import PostTest from './pages/PostTest'
+import Kuis from './pages/Kuis'
 import TestResult from './pages/TestResult'
 import HelpCenter from './pages/HelpCenter'
 import Certificates from './pages/Certificates'
@@ -27,23 +28,26 @@ import KatalogKursus from './Admin-Komunitas/KatalogKursus'
 import DetailKursus from './Admin-Komunitas/DetailKursus'
 import BankSoal from './Admin-Komunitas/BankSoal'
 import PusatBantuan from './Admin-Komunitas/PusatBantuan'
+import { isAuthenticated, getUserRole, logout } from './utils/auth'
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState(() => {
     const path = window.location.pathname;
 
-    const hasToken = localStorage.getItem('access_token');
-    const userStr = localStorage.getItem('user');
-    let userRole = null;
-    try {
-      if (userStr) userRole = JSON.parse(userStr).peran;
-    } catch(e) {}
+    // Jika tidak ada token yang valid, langsung arahkan ke landing
+    if (!isAuthenticated()) {
+      if (path !== '/') {
+        window.history.replaceState({}, '', '/');
+      }
+      return 'landing';
+    }
+
+    const userRole = getUserRole();
 
     // Rute khusus Admin BKPSDM (path /admin/*)
     if (path.startsWith('/admin') && path !== '/admin-komunitas') {
-      if (!hasToken || userRole !== 'admin_bkpsdm') {
+      if (userRole !== 'admin_bkpsdm') {
         window.history.replaceState({}, '', '/');
-        if (!hasToken) return 'landing';
         return userRole === 'admin_komunitas' ? 'admin-komunitas' : 'dashboard';
       }
       if (path === '/admin/user-management') return 'user-management';
@@ -56,9 +60,8 @@ function App() {
 
     // Rute khusus Admin Komunitas (path /admin-komunitas)
     if (path === '/admin-komunitas') {
-      if (!hasToken || userRole !== 'admin_komunitas') {
+      if (userRole !== 'admin_komunitas') {
         window.history.replaceState({}, '', '/');
-        if (!hasToken) return 'landing';
         return userRole === 'admin_bkpsdm' ? 'admin' : 'dashboard';
       }
       return 'admin-komunitas';
@@ -77,12 +80,9 @@ function App() {
       if (!adminBkpsdmRoutes.includes(savedRoute) && !adminKomunitasRoutes.includes(savedRoute) && savedRoute !== 'landing' && userRole === 'peserta') return savedRoute;
     }
 
-    if (hasToken) {
-      if (userRole === 'admin_bkpsdm') return 'admin';
-      if (userRole === 'admin_komunitas') return 'admin-komunitas';
-      return 'dashboard';
-    }
-    return 'landing';
+    if (userRole === 'admin_bkpsdm') return 'admin';
+    if (userRole === 'admin_komunitas') return 'admin-komunitas';
+    return 'dashboard';
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -95,29 +95,36 @@ function App() {
     return () => clearTimeout(timer)
   }, [])
 
+  const handleLogout = () => {
+    logout();
+    setCurrentRoute('landing');
+  };
+
   const handleNavigate = (route) => {
+    if (route === 'landing') {
+      handleLogout();
+      setIsTransitioning(false);
+      window.scrollTo(0, 0);
+      return;
+    }
+
     setIsTransitioning(true)
     setCurrentRoute(route)
-    if (route === 'landing') {
-      localStorage.removeItem('current_route');
-      window.history.pushState({}, '', '/');
-    } else {
-      localStorage.setItem('current_route', route);
-      if (route === 'admin') {
-        window.history.pushState({}, '', '/admin');
-      } else if (route === 'user-management') {
-        window.history.pushState({}, '', '/admin/user-management');
-      } else if (route === 'community-management') {
-        window.history.pushState({}, '', '/admin/community-management');
-      } else if (route === 'course-validation') {
-        window.history.pushState({}, '', '/admin/course-validation');
-      } else if (route === 'course-review') {
-        window.history.pushState({}, '', '/admin/course-validation/review');
-      } else if (route === 'monitoring-reports') {
-        window.history.pushState({}, '', '/admin/monitoring-reports');
-      } else if (route === 'admin-komunitas') {
-        window.history.pushState({}, '', '/admin-komunitas');
-      }
+    localStorage.setItem('current_route', route);
+    if (route === 'admin') {
+      window.history.pushState({}, '', '/admin');
+    } else if (route === 'user-management') {
+      window.history.pushState({}, '', '/admin/user-management');
+    } else if (route === 'community-management') {
+      window.history.pushState({}, '', '/admin/community-management');
+    } else if (route === 'course-validation') {
+      window.history.pushState({}, '', '/admin/course-validation');
+    } else if (route === 'course-review') {
+      window.history.pushState({}, '', '/admin/course-validation/review');
+    } else if (route === 'monitoring-reports') {
+      window.history.pushState({}, '', '/admin/monitoring-reports');
+    } else if (route === 'admin-komunitas') {
+      window.history.pushState({}, '', '/admin-komunitas');
     }
     setIsTransitioning(false)
     window.scrollTo(0, 0)
@@ -187,7 +194,7 @@ function App() {
     }
 
     if (currentRoute === 'dashboard') {
-      return <UserDashboard onLogout={() => handleNavigate('landing')} onNavigate={handleNavigate} />
+      return <UserDashboard onLogout={handleLogout} onNavigate={handleNavigate} />
     }
     
     if (currentRoute === 'catalog') {
@@ -212,6 +219,10 @@ function App() {
 
     if (currentRoute === 'post-test') {
       return <PostTest onNavigate={handleNavigate} onBack={() => handleNavigate('course-detail')} />
+    }
+
+    if (currentRoute === 'kuis') {
+      return <Kuis onNavigate={handleNavigate} onBack={() => handleNavigate('course-detail')} />
     }
 
     if (currentRoute === 'test-result') {

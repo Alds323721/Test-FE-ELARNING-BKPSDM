@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 /* ── Navbar ─────────────────────────────────────────── */
-const PostTestNavbar = ({ onNavigate }) => {
+const KuisNavbar = ({ onNavigate }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -74,11 +74,11 @@ const PostTestNavbar = ({ onNavigate }) => {
   );
 };
 
-const PostTestHeader = ({ onBack, testData, currentQuestion }) => (
+const KuisHeader = ({ onBack, testData, currentQuestion }) => (
   <div className="bg-[#1D315F] py-6 md:py-8 px-6 md:px-12 relative overflow-hidden" style={{ backgroundImage: `url(${hiasanImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
     <div className="absolute inset-0 bg-[#1D315F] opacity-55"></div>
     <div className="max-w-7xl mx-auto relative z-10">
-      <h1 className="text-white text-2xl md:text-3xl font-semibold mb-4">Post Test Akhir</h1>
+      <h1 className="text-white text-2xl md:text-3xl font-semibold mb-4">{testData?.judul_kuis || 'Kuis Evaluasi'}</h1>
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-white text-xs sm:text-sm">
@@ -90,11 +90,11 @@ const PostTestHeader = ({ onBack, testData, currentQuestion }) => (
             <span>Kembali ke Pelatihan</span>
           </button>
           <span className="hidden sm:inline">•</span>
-          <span className="text-xs sm:text-sm font-semibold">{testData?.judul_pembelajaran || 'Pelatihan'}</span>
+          <span className="text-xs sm:text-sm font-semibold">{testData?.judul_modul || 'Modul'}</span>
         </div>
 
         <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">
-          <span className="text-white">Post Test</span>
+          <span className="text-white">Kuis</span>
           <span>•</span>
           <div className="flex items-center gap-1">
             <div className="w-16 sm:w-20 h-1.5 bg-[#3FCDC1] rounded-full"></div>
@@ -205,7 +205,7 @@ const QuestionCard = ({ questionNumber, questionData, onPrevious, onNext, onFlag
 
   const handleSelectAnswer = (value) => {
     if (onAnswer) {
-      onAnswer(questionData.soal_post_test_id, value);
+      onAnswer(questionData.soal_kuis_id, value);
     }
   };
 
@@ -241,7 +241,7 @@ const QuestionCard = ({ questionNumber, questionData, onPrevious, onNext, onFlag
           >
             <input
               type="radio"
-              name={`answer-${questionData.soal_post_test_id}`}
+              name={`answer-${questionData.soal_kuis_id}`}
               value={key}
               checked={savedAnswer === key}
               onChange={(e) => handleSelectAnswer(e.target.value)}
@@ -333,7 +333,7 @@ const Footer = () => (
   </footer>
 );
 
-export default function PostTest({ onNavigate, onBack }) {
+export default function Kuis({ onNavigate, onBack }) {
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [flaggedQuestions, setFlaggedQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
@@ -342,11 +342,13 @@ export default function PostTest({ onNavigate, onBack }) {
   const [submitting, setSubmitting] = useState(false);
 
   const courseId = localStorage.getItem('userCourseId');
+  const modulId = localStorage.getItem('userModulId');
+  const kuisId = localStorage.getItem('userKuisId');
 
   useEffect(() => {
-    const fetchPostTest = async () => {
+    const fetchKuis = async () => {
       try {
-        const res = await api.get(`/user/courses/${courseId}/post-test`);
+        const res = await api.get(`/user/courses/${courseId}/modul/${modulId}/kuis/${kuisId}`);
         if (res.data?.data) {
           setTestData(res.data.data);
         }
@@ -359,7 +361,7 @@ export default function PostTest({ onNavigate, onBack }) {
       }
     };
     if (courseId) {
-      fetchPostTest();
+      fetchKuis();
     } else {
       alert('Tidak ada course id');
       onNavigate('my-courses');
@@ -405,16 +407,16 @@ export default function PostTest({ onNavigate, onBack }) {
       setSubmitting(true);
       
       const formattedAnswers = Object.entries(answers).map(([id, val]) => ({
-        soal_post_test_id: parseInt(id),
+        soal_kuis_id: parseInt(id),
         jawaban: val
       }));
 
-      const res = await api.post(`/user/courses/${courseId}/post-test/submit`, {
+      const res = await api.post(`/user/courses/${courseId}/modul/${modulId}/kuis/${kuisId}/submit`, {
         jawaban: formattedAnswers
       });
       
-      localStorage.setItem('postTestResult', JSON.stringify(res.data.data));
-      onNavigate('test-result');
+      alert(`Kuis selesai! Anda ${res.data.data.apakah_lulus ? 'LULUS' : 'TIDAK LULUS'} dengan nilai ${res.data.data.nilai}.`);
+      onNavigate('course-detail');
     } catch (error) {
       alert(error.response?.data?.message || 'Gagal mengumpulkan soal');
     } finally {
@@ -432,7 +434,7 @@ export default function PostTest({ onNavigate, onBack }) {
 
   const answeredQuestionsSet = new Set(
     testData.soal
-      .map((s, idx) => (answers[s.soal_post_test_id] ? idx + 1 : null))
+      .map((s, idx) => (answers[s.soal_kuis_id] ? idx + 1 : null))
       .filter(Boolean)
   );
 
@@ -440,8 +442,8 @@ export default function PostTest({ onNavigate, onBack }) {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#F9FBFC]">
-      <PostTestNavbar onNavigate={onNavigate} />
-      <PostTestHeader onBack={onBack} testData={testData} currentQuestion={currentQuestion} />
+      <KuisNavbar onNavigate={onNavigate} />
+      <KuisHeader onBack={onBack} testData={testData} currentQuestion={currentQuestion} />
 
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-6 md:py-8">
@@ -461,7 +463,7 @@ export default function PostTest({ onNavigate, onBack }) {
               <QuestionCard
                 questionNumber={currentQuestion}
                 questionData={currentQuestionData}
-                savedAnswer={answers[currentQuestionData?.soal_post_test_id]}
+                savedAnswer={answers[currentQuestionData?.soal_kuis_id]}
                 onPrevious={handlePrevious}
                 onNext={handleNext}
                 onFlag={handleFlag}
@@ -490,7 +492,7 @@ export default function PostTest({ onNavigate, onBack }) {
                   className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <span className="text-lg">▶</span>
-                  {submitting ? 'Mengumpulkan...' : 'Submit Post Test'}
+                  {submitting ? 'Mengumpulkan...' : 'Submit Kuis'}
                 </button>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { User, LogOut, Camera, X, Lock, Eye, EyeOff } from 'lucide-react';
 import api from '../api/axios';
 import userImg from '../assets/user.png';
+import { logout } from '../utils/auth';
 
 const ProfileDropdown = ({ onLogout }) => {
    const [isOpen, setIsOpen] = useState(false);
@@ -101,10 +102,8 @@ const ProfileDropdown = ({ onLogout }) => {
             <div className="border-t border-gray-100 mt-1 pt-1">
               <button
                 onClick={() => {
-                  localStorage.removeItem('access_token');
-                  localStorage.removeItem('user');
                   setIsOpen(false);
-                  onLogout();
+                  logout(onLogout);
                 }}
                 className="w-full px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3"
               >

@@ -69,11 +69,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
             Bantuan Teknis
           </button>
           <button 
-            onClick={() => {
-              localStorage.removeItem('access_token');
-              localStorage.removeItem('user');
-              if (onNavigate) onNavigate('landing');
-            }}
+            onClick={() => onNavigate && onNavigate('landing')}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut className="w-5 h-5 text-gray-400 shrink-0" />

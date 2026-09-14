@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import api from '../api/axios';
+import { setAuth } from '../utils/auth';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import heroImg from '../assets/BG_BKPSDM.jpg';
 import {
@@ -70,9 +71,7 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
     setLoading(true);
     try {
       const response = await api.post('/login', { nip, password });
-      const token = response.data.access_token;
-      localStorage.setItem('access_token', token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setAuth(response.data.access_token, response.data.user);
       onLogin();
     } catch (err) {
       setError(err.response?.data?.message || 'Login gagal, periksa kredensial Anda');

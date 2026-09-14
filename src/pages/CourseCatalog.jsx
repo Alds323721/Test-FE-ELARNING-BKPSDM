@@ -3,6 +3,8 @@ import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
+import LanguageDropdown from '../components/LanguageDropdown';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Search,
   Bell,
@@ -22,6 +24,7 @@ import {
 /* ── Navbar ─────────────────────────────────────────── */
 const CatalogNavbar = ({ onNavigate }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <nav className="flex justify-between items-center py-4 px-6 md:px-12 bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -32,18 +35,16 @@ const CatalogNavbar = ({ onNavigate }) => {
 
       {/* Desktop Menu */}
       <div className="hidden md:flex items-center gap-8 text-[#1D315F] font-semibold text-sm">
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors pb-1">Dashboard</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors pb-1">Komunitas</a>
-        <a href="#" className="text-[#006A63] border-b-2 border-[#006A63] pb-1">Katalog</a>
-         <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('my-courses'); }} className="hover:text-[#006A63] transition-colors pb-1">Pelatihanku</a>
-         <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('certificates'); }} className="hover:text-[#006A63] transition-colors pb-1">Sertifikat</a>
-         <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors pb-1">Bantuan</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.dashboard')}</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.community')}</a>
+        <a href="#" className="text-[#006A63] border-b-2 border-[#006A63] pb-1">{t('nav.catalog')}</a>
+         <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('my-courses'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.myCourses')}</a>
+         <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('certificates'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.certificates')}</a>
+         <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.helpCenter')}</a>
 
          {/* Right icons */}
          <div className="flex items-center gap-4 ml-4 border-l border-gray-200 pl-6">
-          <button className="flex items-center gap-1 text-[#1D315F] hover:text-[#006A63] text-xs font-semibold">
-            EN <ChevronDown className="w-3 h-3" />
-          </button>
+          <LanguageDropdown />
           <button className="relative text-[#1D315F] hover:text-[#006A63]">
             <Bell className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">10+</span>
@@ -57,6 +58,7 @@ const CatalogNavbar = ({ onNavigate }) => {
 
       {/* Mobile toggle */}
       <div className="md:hidden flex items-center gap-3">
+        <LanguageDropdown />
         <ProfileDropdown onLogout={() => onNavigate('landing')} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#1D315F] hover:text-[#006A63] focus:outline-none">
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -65,12 +67,12 @@ const CatalogNavbar = ({ onNavigate }) => {
 
       {mobileOpen && (
         <div className="absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-md md:hidden flex flex-col py-4 px-6 gap-4 text-[#1D315F] font-semibold text-sm z-50">
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors">Dashboard</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors">Komunitas</a>
-          <a href="#" className="text-[#006A63]">Katalog</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('my-courses'); }} className="hover:text-[#006A63] transition-colors">Pelatihanku</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('certificates'); }} className="hover:text-[#006A63] transition-colors">Sertifikat</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors">Bantuan</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors">{t('nav.dashboard')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors">{t('nav.community')}</a>
+          <a href="#" className="text-[#006A63]">{t('nav.catalog')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('my-courses'); }} className="hover:text-[#006A63] transition-colors">{t('nav.myCourses')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('certificates'); }} className="hover:text-[#006A63] transition-colors">{t('nav.certificates')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors">{t('nav.helpCenter')}</a>
         </div>
       )}
     </nav>
@@ -78,54 +80,61 @@ const CatalogNavbar = ({ onNavigate }) => {
 };
 
 /* ── Dashboard Header Banner ────────────────────────── */
-const CatalogHeader = () => (
-  <div className="bg-[#1D315F] py-8 px-6 md:px-12 relative overflow-hidden" style={{ backgroundImage: `url(${hiasanImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-    <div className="absolute inset-0 bg-[#1D315F] opacity-55"></div>
-    <div className="max-w-7xl mx-auto relative z-10">
-      <h1 className="text-white text-3xl md:text-4xl font-semibold">Katalog</h1>
+const CatalogHeader = () => {
+  const { t } = useLanguage();
+  return (
+    <div className="bg-[#1D315F] py-8 px-6 md:px-12 relative overflow-hidden" style={{ backgroundImage: `url(${hiasanImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="absolute inset-0 bg-[#1D315F] opacity-55"></div>
+      <div className="max-w-7xl mx-auto relative z-10">
+        <h1 className="text-white text-3xl md:text-4xl font-semibold">{t('nav.catalog')}</h1>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ── Catalog Course Card ────────────────────────── */
-const CatalogCard = ({ id, image, category, title, description, jpl, modules, isEnrolled, onEnroll, onNavigate }) => (
-  <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all">
-    <div className="h-44 relative">
-      <img src={image} alt={title} className="w-full h-full object-cover" />
-      <div className="absolute bottom-3 left-3 bg-white px-3 py-1 text-[11px] font-bold text-[#1D315F] shadow-sm rounded-sm">
-        {category}
+const CatalogCard = ({ id, image, category, title, description, jpl, modules, isEnrolled, onEnroll, onNavigate }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all">
+      <div className="h-44 relative">
+        <img src={image} alt={title} className="w-full h-full object-cover" />
+        <div className="absolute bottom-3 left-3 bg-white px-3 py-1 text-[11px] font-bold text-[#1D315F] shadow-sm rounded-sm">
+          {category}
+        </div>
+      </div>
+      <div className="p-6 flex-1 flex flex-col">
+        <h3 className="font-bold text-[#1D315F] text-[17px] leading-snug mb-3">{title}</h3>
+        <p className="text-[12px] text-gray-500 line-clamp-3 mb-5 flex-1">{description}</p>
+        
+        <div className="flex items-center gap-5 text-[12px] text-[#1D315F] mb-6">
+          <span className="flex items-center gap-1 font-semibold"><Clock className="w-4 h-4 text-gray-500" /> {jpl} {t('common.hours')}</span>
+          <span className="flex items-center gap-1 font-semibold"><BookOpen className="w-4 h-4 text-gray-500" /> {modules} {t('common.modules')}</span>
+        </div>
+        
+        {isEnrolled ? (
+          <button
+            onClick={() => onNavigate('my-courses')}
+            className="w-full py-2.5 border-2 border-[#006A63] text-[#006A63] bg-white rounded-md text-[13px] font-bold hover:bg-[#EFF5F3] transition-colors"
+          >
+            {t('catalog.viewCurriculum')}
+          </button>
+        ) : (
+          <button
+            onClick={() => onEnroll(id)}
+            className="w-full py-2.5 bg-[#006A63] text-white rounded-md text-[13px] font-bold hover:bg-[#00534D] transition-colors"
+          >
+            {t('catalog.enrollNow')}
+          </button>
+        )}
       </div>
     </div>
-    <div className="p-6 flex-1 flex flex-col">
-      <h3 className="font-bold text-[#1D315F] text-[17px] leading-snug mb-3">{title}</h3>
-      <p className="text-[12px] text-gray-500 line-clamp-3 mb-5 flex-1">{description}</p>
-      
-      <div className="flex items-center gap-5 text-[12px] text-[#1D315F] mb-6">
-        <span className="flex items-center gap-1 font-semibold"><Clock className="w-4 h-4 text-gray-500" /> {jpl} JPL</span>
-        <span className="flex items-center gap-1 font-semibold"><BookOpen className="w-4 h-4 text-gray-500" /> {modules} Modul</span>
-      </div>
-      
-      {isEnrolled ? (
-        <button
-          onClick={() => onNavigate('my-courses')}
-          className="w-full py-2.5 border-2 border-[#006A63] text-[#006A63] bg-white rounded-md text-[13px] font-bold hover:bg-[#EFF5F3] transition-colors"
-        >
-          Lihat Kurikulum
-        </button>
-      ) : (
-        <button
-          onClick={() => onEnroll(id)}
-          className="w-full py-2.5 bg-[#006A63] text-white rounded-md text-[13px] font-bold hover:bg-[#00534D] transition-colors"
-        >
-          Daftar Sekarang
-        </button>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 /* ── Main Catalog Section ────────────────────────────── */
 const CatalogContent = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
@@ -182,7 +191,13 @@ const CatalogContent = ({ onNavigate }) => {
     }
   };
 
-  const categories = ['Semua Kategori', 'Manajemen ASN', 'Teknologi Informasi', 'Pelayanan Publik', 'Kepemimpinan'];
+  const categories = [
+    { value: 'Semua Kategori', label: t('catalog.allCategories') },
+    { value: 'Manajemen ASN', label: t('catalog.catAsn') },
+    { value: 'Teknologi Informasi', label: t('catalog.catIt') },
+    { value: 'Pelayanan Publik', label: t('catalog.catPublic') },
+    { value: 'Kepemimpinan', label: t('catalog.catLeadership') }
+  ];
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-12 gap-8">
@@ -193,20 +208,20 @@ const CatalogContent = ({ onNavigate }) => {
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
-              placeholder="Cari pelatihan..." 
+              placeholder={t('catalog.searchPlaceholder')} 
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-[#006A63]"
             />
           </div>
-          <h3 className="font-bold text-xl text-[#1D315F] mb-4 pb-4 border-b border-gray-100">Kategori</h3>
+          <h3 className="font-bold text-xl text-[#1D315F] mb-4 pb-4 border-b border-gray-100">{t('catalog.category')}</h3>
           <div className="space-y-4">
             {categories.map((c, idx) => (
-              <label key={idx} className="flex items-center gap-3 cursor-pointer" onClick={() => { setCategory(c); setCurrentPage(1); }}>
-                <div className={`w-5 h-5 rounded flex items-center justify-center border ${category === c ? 'bg-[#006A63] border-[#006A63]' : 'bg-white border-gray-300'}`}>
-                  {category === c && <Check className="w-3.5 h-3.5 text-white" />}
+              <label key={idx} className="flex items-center gap-3 cursor-pointer" onClick={() => { setCategory(c.value); setCurrentPage(1); }}>
+                <div className={`w-5 h-5 rounded flex items-center justify-center border ${category === c.value ? 'bg-[#006A63] border-[#006A63]' : 'bg-white border-gray-300'}`}>
+                  {category === c.value && <Check className="w-3.5 h-3.5 text-white" />}
                 </div>
-                <span className="text-[14px] font-semibold text-[#1D315F]">{c}</span>
+                <span className="text-[14px] font-semibold text-[#1D315F]">{c.label}</span>
               </label>
             ))}
           </div>
@@ -217,25 +232,25 @@ const CatalogContent = ({ onNavigate }) => {
       <div className="md:col-span-9">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-[#BBC9C7]">
           <p className="text-[14px] font-medium text-gray-500 mb-4 sm:mb-0">
-            Menampilkan <span className="font-bold text-[#1D315F]">{courses.length}</span> dari <span className="font-bold text-[#1D315F]">{totalItems}</span> pelatihan
+            {t('catalog.showing')} <span className="font-bold text-[#1D315F]">{courses.length}</span> {t('catalog.of')} <span className="font-bold text-[#1D315F]">{totalItems}</span> {t('catalog.courses')}
           </p>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-[#1D315F]">
-            Urutkan:
+            {t('catalog.sortBy')}
             <select 
               className="border border-gray-300 px-3 py-1.5 rounded bg-white cursor-pointer ml-1 outline-none"
               value={sort}
               onChange={(e) => { setSort(e.target.value); setCurrentPage(1); }}
             >
-              <option value="terbaru">Terbaru</option>
-              <option value="abjad">A-Z</option>
+              <option value="terbaru">{t('catalog.newest')}</option>
+              <option value="abjad">{t('catalog.alphabetical')}</option>
             </select>
           </div>
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-gray-500 font-bold">Memuat Katalog...</div>
+          <div className="py-20 text-center text-gray-500 font-bold">{t('catalog.loading')}</div>
         ) : courses.length === 0 ? (
-          <div className="py-20 text-center text-gray-500 font-bold">Tidak ada pelatihan ditemukan.</div>
+          <div className="py-20 text-center text-gray-500 font-bold">{t('catalog.empty')}</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             {courses.map((c) => (
@@ -259,7 +274,7 @@ const CatalogContent = ({ onNavigate }) => {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-sm font-semibold text-gray-600">Hal {currentPage} dari {totalPages}</span>
+            <span className="text-sm font-semibold text-gray-600">{t('catalog.page')} {currentPage} {t('catalog.of')} {totalPages}</span>
             <button 
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
@@ -275,7 +290,9 @@ const CatalogContent = ({ onNavigate }) => {
 };
 
 /* ── Footer ─────────────────────────────────────────── */
-const Footer = () => (
+const Footer = ({ onNavigate }) => {
+  const { t } = useLanguage();
+  return (
   <footer className="bg-[#EAEFF4] pt-16 pb-8 border-t border-[#BBC9C7]">
     <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
       <div className="md:col-span-5 pr-8">
@@ -284,22 +301,22 @@ const Footer = () => (
           <span className="font-semibold text-xl text-[#1D315F]">Buleleng ASN Corpu</span>
         </div>
         <p className="text-[13px] text-gray-600 leading-relaxed mb-6 font-medium">
-          Platform Digital ASN untuk pengembangan kompetensi<br/>dan peningkatan kapasitas secara berkelanjutan.
+          {t('footer.tagline')}
         </p>
         <p className="text-[11px] text-gray-500 font-semibold">
-          © 2026 BKPSDM. Hak Cipta Dilindungi Undang-Undang. Platform Digital ASN.
+          {t('footer.copyright')}
         </p>
       </div>
       <div className="md:col-span-3">
-        <h4 className="font-bold text-[#1D315F] text-[15px] mb-6">Tautan Cepat</h4>
-        <ul className="text-[13px] text-[#1D315F] space-y-3 font-semibold underline decoration-transparent hover:decoration-current transition-colors">
-          <li><a href="#">Tentang</a></li>
-          <li><a href="#">Komunitas</a></li>
-          <li><a href="#">Bantuan</a></li>
+        <h4 className="font-bold text-[#1D315F] text-[15px] mb-6">{t('footer.quickLinks')}</h4>
+        <ul className="text-[13px] text-[#1D315F] space-y-3 font-semibold">
+          <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('catalog'); }} className="hover:text-[#006A63] transition-colors">{t('footer.courses')}</a></li>
+          <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('community'); }} className="hover:text-[#006A63] transition-colors">{t('footer.community')}</a></li>
+          <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('help-center'); }} className="hover:text-[#006A63] transition-colors">{t('footer.help')}</a></li>
         </ul>
       </div>
       <div className="md:col-span-4">
-        <h4 className="font-bold text-[#1D315F] text-[15px] mb-6">Kontak Kami</h4>
+        <h4 className="font-bold text-[#1D315F] text-[15px] mb-6">{t('footer.contactUs')}</h4>
         <ul className="text-[13px] text-gray-600 space-y-4">
           <li className="flex items-start gap-3">
             <Mail className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
@@ -317,7 +334,8 @@ const Footer = () => (
       </div>
     </div>
   </footer>
-);
+  );
+};
 
 /* ── Main Export ───────────────────────────────────── */
 export default function CourseCatalog({ onNavigate }) {
@@ -328,7 +346,7 @@ export default function CourseCatalog({ onNavigate }) {
         <CatalogHeader />
         <CatalogContent onNavigate={onNavigate} />
       </main>
-      <Footer />
+      <Footer onNavigate={onNavigate} />
     </div>
   );
 }

@@ -3,8 +3,10 @@ import { User, LogOut, Camera, X, Lock, Eye, EyeOff } from 'lucide-react';
 import api from '../api/axios';
 import userImg from '../assets/user.png';
 import { logout } from '../utils/auth';
+import { useLanguage } from '../context/LanguageContext';
 
 const ProfileDropdown = ({ onLogout }) => {
+   const { t } = useLanguage();
    const [isOpen, setIsOpen] = useState(false);
    const [profileImage, setProfileImage] = useState(userImg);
    const [showImageModal, setShowImageModal] = useState(false);
@@ -83,7 +85,7 @@ const ProfileDropdown = ({ onLogout }) => {
               className="w-full px-4 py-2.5 text-left text-sm font-semibold text-[#1D315F] hover:bg-gray-50 transition-colors flex items-center gap-3"
             >
               <Camera className="w-4 h-4 text-[#006A63]" />
-              Ganti Foto Profil
+              {t('profile.changePhoto')}
             </button>
             
             <button
@@ -93,10 +95,10 @@ const ProfileDropdown = ({ onLogout }) => {
                 setEmail(JSON.parse(localStorage.getItem('user') || '{}').email || '');
                 setIsOpen(false);
               }}
-              className="w-full px-4 py-2.5 text-left text-sm font-semibold text-[#1D315F] hover:bg-gray-50 transition-colors flex items-center gap-3"
+              className="w-full px-4 py-2.5 text-left text-sm font-semibold text-[#1D315F] hover:bg-gray-50 transition-colors flex items-center gap-3 cursor-pointer"
             >
               <Lock className="w-4 h-4 text-[#006A63]" />
-              Ubah Password
+              {t('profile.changePassword')}
             </button>
             
             <div className="border-t border-gray-100 mt-1 pt-1">
@@ -105,10 +107,10 @@ const ProfileDropdown = ({ onLogout }) => {
                   setIsOpen(false);
                   logout(onLogout);
                 }}
-                className="w-full px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3"
+                className="w-full px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
-                Logout
+                {t('profile.logout')}
               </button>
             </div>
           </div>

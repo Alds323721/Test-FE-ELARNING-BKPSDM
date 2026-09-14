@@ -3,6 +3,8 @@ import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
+import LanguageDropdown from '../components/LanguageDropdown';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Search,
   Bell,
@@ -22,6 +24,7 @@ import {
 
 const CourseDetailNavbar = ({ onNavigate }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <nav className="flex justify-between items-center py-4 px-6 md:px-12 bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -31,16 +34,14 @@ const CourseDetailNavbar = ({ onNavigate }) => {
       </div>
 
       <div className="hidden md:flex items-center gap-8 text-[#1D315F] font-semibold text-sm">
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors pb-1">Dashboard</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors pb-1">Komunitas</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors pb-1">Katalog</a>
-        <a href="#" className="text-[#006A63] border-b-2 border-[#006A63] pb-1">Pelatihanku</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors pb-1">Bantuan</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.dashboard')}</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.community')}</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.catalog')}</a>
+        <a href="#" className="text-[#006A63] border-b-2 border-[#006A63] pb-1">{t('nav.myCourses')}</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.helpCenter')}</a>
 
         <div className="flex items-center gap-4 ml-4 border-l border-gray-200 pl-6">
-          <button className="flex items-center gap-1 text-[#1D315F] hover:text-[#006A63] text-xs font-semibold">
-            EN <ChevronDown className="w-3 h-3" />
-          </button>
+          <LanguageDropdown />
           <button className="relative text-[#1D315F] hover:text-[#006A63]">
             <Bell className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">10+</span>
@@ -53,6 +54,7 @@ const CourseDetailNavbar = ({ onNavigate }) => {
       </div>
 
       <div className="md:hidden flex items-center gap-3">
+        <LanguageDropdown />
         <ProfileDropdown onLogout={() => onNavigate('landing')} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#1D315F] hover:text-[#006A63] focus:outline-none">
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -61,11 +63,11 @@ const CourseDetailNavbar = ({ onNavigate }) => {
 
       {mobileOpen && (
         <div className="absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-md md:hidden flex flex-col py-4 px-6 gap-4 text-[#1D315F] font-semibold text-sm z-50">
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors">Dashboard</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors">Komunitas</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors">Katalog</a>
-          <a href="#" className="text-[#006A63]">Pelatihanku</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors">Bantuan</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors">{t('nav.dashboard')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors">{t('nav.community')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors">{t('nav.catalog')}</a>
+          <a href="#" className="text-[#006A63]">{t('nav.myCourses')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('help-center'); }} className="hover:text-[#006A63] transition-colors">{t('nav.helpCenter')}</a>
         </div>
       )}
     </nav>
@@ -265,49 +267,52 @@ const MainContent = ({ activeMateri, onMarkAsRead }) => {
   );
 };
 
-const Footer = () => (
-  <footer className="bg-[#EAEFF4] pt-16 pb-8 border-t border-[#BBC9C7]">
-    <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
-      <div className="md:col-span-5 pr-8">
-        <div className="flex items-center gap-3 mb-6">
-          <img src={logoImg} alt="Logo BKPSDM" className="w-8 object-contain" />
-          <span className="font-semibold text-xl text-[#1D315F]">Buleleng ASN Corpu</span>
+const Footer = ({ onNavigate }) => {
+  const { t } = useLanguage();
+  return (
+    <footer className="bg-[#EAEFF4] pt-16 pb-8 border-t border-[#BBC9C7]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
+        <div className="md:col-span-5 pr-8">
+          <div className="flex items-center gap-3 mb-6">
+            <img src={logoImg} alt="Logo BKPSDM" className="w-8 object-contain" />
+            <span className="font-semibold text-xl text-[#1D315F]">Buleleng ASN Corpu</span>
+          </div>
+          <p className="text-[13px] text-gray-600 leading-relaxed mb-6 font-semibold">
+            {t('footer.tagline')}
+          </p>
+          <p className="text-[11px] text-gray-500 font-semibold">
+            {t('footer.copyright')}
+          </p>
         </div>
-        <p className="text-[13px] text-gray-600 leading-relaxed mb-6 font-semibold">
-          Platform Digital ASN untuk pengembangan kompetensi<br/>dan peningkatan kapasitas secara berkelanjutan.
-        </p>
-        <p className="text-[11px] text-gray-500 font-semibold">
-          © 2026 BKPSDM. Hak Cipta Dilindungi Undang-Undang. Platform Digital ASN.
-        </p>
+        <div className="md:col-span-3">
+          <h4 className="font-semibold text-[#1D315F] text-[15px] mb-6">{t('footer.quickLinks')}</h4>
+          <ul className="text-[13px] text-[#1D315F] space-y-3 font-semibold">
+            <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('catalog'); }} className="hover:text-[#006A63] transition-colors">{t('footer.courses')}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('community'); }} className="hover:text-[#006A63] transition-colors">{t('footer.community')}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('help-center'); }} className="hover:text-[#006A63] transition-colors">{t('footer.help')}</a></li>
+          </ul>
+        </div>
+        <div className="md:col-span-4">
+          <h4 className="font-semibold text-[#1D315F] text-[15px] mb-6">{t('footer.contactUs')}</h4>
+          <ul className="text-[13px] text-gray-600 space-y-4">
+            <li className="flex items-start gap-3">
+              <Mail className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
+              <span className="font-semibold">support@bkpsdm-pintar.go.id</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <Phone className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
+              <span className="font-semibold">(021) 123-4567 (Jam Kerja)</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <MapPin className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
+              <span className="font-semibold leading-relaxed">Gedung Kepegawaian Lt. 3, Jl. Protokol<br/>No. 1, Jakarta</span>
+            </li>
+          </ul>
+        </div>
       </div>
-      <div className="md:col-span-3">
-        <h4 className="font-semibold text-[#1D315F] text-[15px] mb-6">Tautan Cepat</h4>
-        <ul className="text-[13px] text-[#1D315F] space-y-3 font-semibold underline decoration-transparent hover:decoration-current transition-colors">
-          <li><a href="#">Tentang</a></li>
-          <li><a href="#">Komunitas</a></li>
-          <li><a href="#">Bantuan</a></li>
-        </ul>
-      </div>
-      <div className="md:col-span-4">
-        <h4 className="font-semibold text-[#1D315F] text-[15px] mb-6">Kontak Kami</h4>
-        <ul className="text-[13px] text-gray-600 space-y-4">
-          <li className="flex items-start gap-3">
-            <Mail className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
-            <span className="font-semibold">support@bkpsdm-pintar.go.id</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <Phone className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
-            <span className="font-semibold">(021) 123-4567 (Jam Kerja)</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <MapPin className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
-            <span className="font-semibold leading-relaxed">Gedung Kepegawaian Lt. 3, Jl. Protokol<br/>No. 1, Jakarta</span>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 export default function CourseDetail({ onNavigate, onBack }) {
   const [courseData, setCourseData] = useState(null);
@@ -390,7 +395,7 @@ export default function CourseDetail({ onNavigate, onBack }) {
         </div>
       </main>
       
-      <Footer />
+      <Footer onNavigate={onNavigate} />
     </div>
   );
 }

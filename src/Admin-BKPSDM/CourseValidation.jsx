@@ -101,18 +101,6 @@ const AdminHeader = ({ setIsOpen, searchTerm, setSearchTerm }) => {
           />
         </div>
       </div>
-      <div className="flex items-center gap-2 sm:gap-4">
-        <button className="relative p-2 text-gray-400 hover:text-gray-500 transition-colors hidden sm:block">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-        </button>
-        <button className="p-2 text-gray-400 hover:text-gray-500 transition-colors hidden sm:block">
-          <Settings className="w-5 h-5" />
-        </button>
-        <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-300 ml-1 sm:ml-2 shrink-0">
-          <img src="https://ui-avatars.com/api/?name=Admin&background=random" alt="Admin" className="w-full h-full object-cover" />
-        </div>
-      </div>
     </div>
   );
 };

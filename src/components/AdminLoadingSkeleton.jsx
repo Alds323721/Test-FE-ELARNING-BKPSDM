@@ -30,11 +30,6 @@ const AdminLoadingSkeleton = () => {
             <div className="w-8 h-8 rounded bg-gray-200 animate-pulse lg:hidden"></div>
             <div className="w-40 sm:w-64 md:w-96 h-10 bg-gray-100 rounded-full animate-pulse"></div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse hidden sm:block"></div>
-            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse hidden sm:block"></div>
-            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0"></div>
-          </div>
         </div>
 
         {/* Dashboard Content Skeleton */}

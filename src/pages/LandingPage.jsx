@@ -252,7 +252,7 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
 
                 <button
                   type="button"
-                  className="w-full bg-[#3FCDC1] text-white font-bold py-3 sm:py-3.5 rounded-lg hover:bg-[#35B5AA] transition-colors text-sm flex items-center justify-center gap-2 shadow-md mb-6"
+                  className="w-full bg-[#36B1A0] text-white font-bold py-3 sm:py-3.5 rounded-lg hover:bg-[#2A8F81] transition-colors text-sm flex items-center justify-center gap-2 shadow-md mb-6"
                 >
                   Daftar <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
@@ -480,7 +480,7 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
                   <button
                     type="submit"
                     disabled={resetLoading}
-                    className="w-full bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-[#0d9668] transition-colors text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md mb-3 disabled:opacity-50"
+                    className="w-full bg-[#36B1A0] text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-[#2A8F81] transition-colors text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md mb-3 disabled:opacity-50"
                   >
                     {resetLoading ? 'Menyimpan...' : 'Reset Kata Sandi'} <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
@@ -561,7 +561,7 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#10B981] text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-[#0d9668] transition-colors text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
+                className="w-full bg-[#36B1A0] text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-[#2A8F81] transition-colors text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
               >
                 Masuk ke Platform <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -865,7 +865,7 @@ const Footer = ({ onFooterLinkClick }) => (
       <div className="md:col-span-3">
         <h4 className="font-bold text-[#1D315F] text-[14px] mb-6">Tautan Cepat</h4>
         <ul className="text-[13px] text-gray-600 space-y-3 font-medium">
-          <li><a href="#" onClick={(e) => { e.preventDefault(); onFooterLinkClick('about'); }} className="hover:text-[#006A63] transition-colors">Tentang</a></li>
+          <li><a href="#" onClick={(e) => { e.preventDefault(); onFooterLinkClick('courses'); }} className="hover:text-[#006A63] transition-colors">Pelatihan</a></li>
           <li><a href="#" onClick={(e) => { e.preventDefault(); onFooterLinkClick('community'); }} className="hover:text-[#006A63] transition-colors">Komunitas</a></li>
           <li><a href="#" onClick={(e) => { e.preventDefault(); onFooterLinkClick('help-center'); }} className="hover:text-[#006A63] transition-colors">Bantuan</a></li>
         </ul>

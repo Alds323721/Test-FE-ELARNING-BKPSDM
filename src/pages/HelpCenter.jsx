@@ -3,6 +3,8 @@ import api from '../Admin-Komunitas/api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
+import LanguageDropdown from '../components/LanguageDropdown';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Search,
   Bell,
@@ -22,6 +24,7 @@ import {
 
 const HelpCenterNavbar = ({ onNavigate }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <nav className="flex justify-between items-center py-4 px-6 md:px-12 bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -31,17 +34,15 @@ const HelpCenterNavbar = ({ onNavigate }) => {
       </div>
 
       <div className="hidden md:flex items-center gap-8 text-[#1D315F] font-semibold text-sm">
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors pb-1">Dashboard</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors pb-1">Komunitas</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors pb-1">Katalog</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('my-courses'); }} className="hover:text-[#006A63] transition-colors pb-1">Pelatihanku</a>
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('certificates'); }} className="hover:text-[#006A63] transition-colors pb-1">Sertifikat</a>
-        <a href="#" className="text-[#006A63] border-b-2 border-[#006A63] pb-1">Bantuan</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.dashboard')}</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.community')}</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.catalog')}</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('my-courses'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.myCourses')}</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('certificates'); }} className="hover:text-[#006A63] transition-colors pb-1">{t('nav.certificates')}</a>
+        <a href="#" className="text-[#006A63] border-b-2 border-[#006A63] pb-1">{t('nav.helpCenter')}</a>
 
         <div className="flex items-center gap-4 ml-4 border-l border-gray-200 pl-6">
-          <button className="flex items-center gap-1 text-[#1D315F] hover:text-[#006A63] text-xs font-semibold">
-            EN <ChevronDown className="w-3 h-3" />
-          </button>
+          <LanguageDropdown />
           <button className="relative text-[#1D315F] hover:text-[#006A63]">
             <Bell className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">10+</span>
@@ -54,6 +55,7 @@ const HelpCenterNavbar = ({ onNavigate }) => {
       </div>
 
       <div className="md:hidden flex items-center gap-3">
+        <LanguageDropdown />
         <ProfileDropdown onLogout={() => onNavigate('landing')} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#1D315F] hover:text-[#006A63] focus:outline-none">
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -62,39 +64,42 @@ const HelpCenterNavbar = ({ onNavigate }) => {
 
       {mobileOpen && (
         <div className="absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-md md:hidden flex flex-col py-4 px-6 gap-4 text-[#1D315F] font-semibold text-sm z-50">
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors">Dashboard</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors">Komunitas</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors">Katalog</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('my-courses'); }} className="hover:text-[#006A63] transition-colors">Pelatihanku</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('certificates'); }} className="hover:text-[#006A63] transition-colors">Sertifikat</a>
-          <a href="#" className="text-[#006A63]">Bantuan</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('dashboard'); }} className="hover:text-[#006A63] transition-colors">{t('nav.dashboard')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="hover:text-[#006A63] transition-colors">{t('nav.community')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('catalog'); }} className="hover:text-[#006A63] transition-colors">{t('nav.catalog')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('my-courses'); }} className="hover:text-[#006A63] transition-colors">{t('nav.myCourses')}</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('certificates'); }} className="hover:text-[#006A63] transition-colors">{t('nav.certificates')}</a>
+          <a href="#" className="text-[#006A63]">{t('nav.helpCenter')}</a>
         </div>
       )}
     </nav>
   );
 };
 
-const HeroSection = () => (
-  <div className="relative bg-[#1D315F] py-16 md:py-20 px-6 overflow-hidden" style={{ backgroundImage: `url(${hiasanImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-    <div className="absolute inset-0 bg-[#1D315F] opacity-55"></div>
-    
-    <div className="max-w-4xl mx-auto text-center relative z-10">
-      <h1 className="text-3xl md:text-4xl font-semibold text-white mb-4">Pusat Bantuan</h1>
-      <p className="text-sm md:text-base text-white/90 font-semibold mb-8 max-w-2xl mx-auto">
-        Temukan jawaban atas pertanyaan Anda atau hubungi tim dukungan kami untuk bantuan lebih lanjut terkait platform pembelajaran BKPSDM Pintar.
-      </p>
+const HeroSection = () => {
+  const { t } = useLanguage();
+  return (
+    <div className="relative bg-[#1D315F] py-16 md:py-20 px-6 overflow-hidden" style={{ backgroundImage: `url(${hiasanImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="absolute inset-0 bg-[#1D315F] opacity-55"></div>
       
-      <div className="max-w-2xl mx-auto relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
-        <input
-          type="text"
-          placeholder="Cari topik bantuan atau keluhan Anda di sini..."
-          className="w-full py-3 md:py-4 pl-12 pr-4 rounded-lg border-none focus:ring-2 focus:ring-[#3FCDC1] outline-none text-sm md:text-base font-semibold bg-[#FFFFFF] text-[#6B7280] placeholder-[#6B7280]"
-        />
+      <div className="max-w-4xl mx-auto text-center relative z-10">
+        <h1 className="text-3xl md:text-4xl font-semibold text-white mb-4">{t('helpCenter.heroTitle')}</h1>
+        <p className="text-sm md:text-base text-white/90 font-semibold mb-8 max-w-2xl mx-auto">
+          {t('helpCenter.heroSubtitle')}
+        </p>
+        
+        <div className="max-w-2xl mx-auto relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
+          <input
+            type="text"
+            placeholder={t('helpCenter.searchPlaceholder')}
+            className="w-full py-3 md:py-4 pl-12 pr-4 rounded-lg border-none focus:ring-2 focus:ring-[#3FCDC1] outline-none text-sm md:text-base font-semibold bg-[#FFFFFF] text-[#6B7280] placeholder-[#6B7280]"
+          />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const CategoryCard = ({ icon: Icon, title, description }) => (
   <div className="bg-white border border-[#BBC9C7] rounded-lg p-6 hover:shadow-lg hover:border-[#3FCDC1] transition-all cursor-pointer">
@@ -132,6 +137,7 @@ const FAQItem = ({ question, answer }) => {
 };
 
 const ContactForm = () => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     type: '',
     description: '',
@@ -169,9 +175,9 @@ const ContactForm = () => {
       <div className="flex items-start gap-3 mb-6">
         <MessageSquare className="w-6 h-6 text-[#F59E0B] flex-shrink-0 mt-1" />
         <div>
-          <h3 className="font-semibold text-[#1D315F] text-lg mb-2">Formulir Keluhan</h3>
+          <h3 className="font-semibold text-[#1D315F] text-lg mb-2">{t('helpCenter.formTitle')}</h3>
           <p className="text-sm text-gray-600 font-semibold">
-            Mengalami masalah atau memiliki saran untuk layanan kami? Sampaikan melalui form di bawah ini agar kami dapat memperbaikinya.
+            {t('helpCenter.formDesc')}
           </p>
         </div>
       </div>
@@ -179,36 +185,36 @@ const ContactForm = () => {
       {success && (
         <div className="mb-6 p-4 bg-[#10B981]/10 border border-[#10B981]/20 rounded-lg flex items-center gap-3">
           <Award className="w-5 h-5 text-[#10B981] flex-shrink-0" />
-          <p className="text-sm text-[#10B981] font-semibold">Keluhan Anda berhasil dikirim. Tim kami akan segera merespons melalui email.</p>
+          <p className="text-sm text-[#10B981] font-semibold">{t('helpCenter.formSuccess')}</p>
         </div>
       )}
 
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div>
           <label className="block text-sm font-semibold text-[#1D315F] mb-2">
-            Jenis Keluhan <span className="text-red-500">*</span>
+            {t('helpCenter.complaintType')} <span className="text-red-500">*</span>
           </label>
           <select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] focus:border-transparent text-sm font-semibold"
           >
-            <option value="">Pilih jenis keluhan...</option>
-            <option value="akun">Akun & Profil</option>
-            <option value="kelas">Kelas & Pelatihan</option>
-            <option value="sertifikat">Sertifikat & JPL</option>
-            <option value="teknis">Kendala Teknis</option>
+            <option value="">{t('helpCenter.complaintTypePlaceholder')}</option>
+            <option value="akun">{t('helpCenter.cat1Title')}</option>
+            <option value="kelas">{t('helpCenter.cat2Title')}</option>
+            <option value="sertifikat">{t('helpCenter.cat3Title')}</option>
+            <option value="teknis">{t('helpCenter.cat4Title')}</option>
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-semibold text-[#1D315F] mb-2">
-            Deskripsi Keluhan <span className="text-red-500">*</span>
+            {t('helpCenter.complaintDesc')} <span className="text-red-500">*</span>
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Jelaskan secara detail masalah yang Anda alami..."
+            placeholder={t('helpCenter.complaintDescPlaceholder')}
             rows={5}
             className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] focus:border-transparent text-sm font-semibold resize-none"
           />
@@ -216,7 +222,7 @@ const ContactForm = () => {
 
         <div>
           <label className="block text-sm font-semibold text-[#1D315F] mb-3">
-            Tingkat Kepuasan Layanan Bantuan (Opsional)
+            {t('helpCenter.satisfaction')}
           </label>
           <div className="flex items-center gap-2">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -241,97 +247,102 @@ const ContactForm = () => {
           disabled={loading}
           className="w-full px-6 py-3 bg-[#006A63] text-white font-semibold rounded-md hover:bg-[#00534D] transition-colors disabled:opacity-50"
         >
-          {loading ? 'Mengirim...' : 'Kirim Keluhan ▶'}
+          {loading ? t('helpCenter.sending') : t('helpCenter.sendComplaint')}
         </button>
 
         <p className="text-xs text-gray-500 font-semibold text-center">
-          Tim kami akan merespons melalui email akun Anda dalam waktu maksimal 2×24 jam.
+          {t('helpCenter.formNote')}
         </p>
       </form>
     </div>
   );
 };
 
-const Footer = () => (
-  <footer className="bg-[#EAEFF4] pt-16 pb-8 border-t border-[#BBC9C7]">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
-      <div className="md:col-span-5 pr-8">
-        <div className="flex items-center gap-3 mb-6">
-          <img src={logoImg} alt="Logo BKPSDM" className="w-8 object-contain" />
-          <span className="font-semibold text-xl text-[#1D315F]">Buleleng ASN Corpu</span>
+const Footer = ({ onNavigate }) => {
+  const { t } = useLanguage();
+  return (
+    <footer className="bg-[#EAEFF4] pt-16 pb-8 border-t border-[#BBC9C7]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
+        <div className="md:col-span-5 pr-8">
+          <div className="flex items-center gap-3 mb-6">
+            <img src={logoImg} alt="Logo BKPSDM" className="w-8 object-contain" />
+            <span className="font-semibold text-xl text-[#1D315F]">Buleleng ASN Corpu</span>
+          </div>
+          <p className="text-[13px] text-gray-600 leading-relaxed mb-6 font-semibold">
+            {t('footer.tagline')}
+          </p>
+          <p className="text-[11px] text-gray-500 font-semibold">
+            {t('footer.copyright')}
+          </p>
         </div>
-        <p className="text-[13px] text-gray-600 leading-relaxed mb-6 font-semibold">
-          Platform Digital ASN untuk pengembangan kompetensi dan peningkatan kapasitas secara berkelanjutan.
-        </p>
-        <p className="text-[11px] text-gray-500 font-semibold">
-          © 2024 BKPSDM. Hak Cipta Dilindungi Undang-Undang. Platform Digital ASN.
-        </p>
+        <div className="md:col-span-3">
+          <h4 className="font-semibold text-[#1D315F] text-[15px] mb-6">{t('footer.quickLinks')}</h4>
+          <ul className="text-[13px] text-[#1D315F] space-y-3 font-semibold">
+            <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('catalog'); }} className="hover:text-[#006A63] transition-colors">{t('footer.courses')}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('community'); }} className="hover:text-[#006A63] transition-colors">{t('footer.community')}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('help-center'); }} className="hover:text-[#006A63] transition-colors">{t('footer.help')}</a></li>
+          </ul>
+        </div>
+        <div className="md:col-span-4">
+          <h4 className="font-semibold text-[#1D315F] text-[15px] mb-6">{t('footer.contactUs')}</h4>
+          <ul className="text-[13px] text-gray-600 space-y-4">
+            <li className="flex items-start gap-3">
+              <Mail className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
+              <span className="font-semibold">support@bkpsdm-pintar.go.id</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <Phone className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
+              <span className="font-semibold">(021) 123-4567 (Jam Kerja)</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <MapPin className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
+              <span className="font-semibold leading-relaxed">Gedung Kepegawaian Lt. 3, Jl. Protokol<br/>No. 1, Jakarta</span>
+            </li>
+          </ul>
+        </div>
       </div>
-      <div className="md:col-span-3">
-        <h4 className="font-semibold text-[#1D315F] text-[15px] mb-6">Tautan Cepat</h4>
-        <ul className="text-[13px] text-[#1D315F] space-y-3 font-semibold">
-          <li><a href="#" className="hover:text-[#006A63] transition-colors">Tentang</a></li>
-          <li><a href="#" className="hover:text-[#006A63] transition-colors">Komunitas</a></li>
-          <li><a href="#" className="hover:text-[#006A63] transition-colors">Bantuan</a></li>
-        </ul>
-      </div>
-      <div className="md:col-span-4">
-        <h4 className="font-semibold text-[#1D315F] text-[15px] mb-6">Kontak Kami</h4>
-        <ul className="text-[13px] text-gray-600 space-y-4">
-          <li className="flex items-start gap-3">
-            <Mail className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
-            <span className="font-semibold">support@bkpsdm-pintar.go.id</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <Phone className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
-            <span className="font-semibold">(021) 123-4567 (Jam Kerja)</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <MapPin className="w-4 h-4 text-[#006A63] mt-0.5 flex-shrink-0" />
-            <span className="font-semibold leading-relaxed">Gedung Kepegawaian Lt. 3, Jl. Protokol<br/>No. 1, Jakarta</span>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 export default function HelpCenter({ onNavigate }) {
+  const { t } = useLanguage();
+
   const categories = [
     {
       icon: User,
-      title: 'Akun & Profil',
-      description: 'Pengaturan NIP, lupa kata sandi, pembaruan data diri, dan masalah login.'
+      title: t('helpCenter.cat1Title'),
+      description: t('helpCenter.cat1Desc')
     },
     {
       icon: BookOpen,
-      title: 'Kelas & Pelatihan',
-      description: 'Pendaftaran kursus, akses materi, jadwal pelatihan, dan penilaian modul.'
+      title: t('helpCenter.cat2Title'),
+      description: t('helpCenter.cat2Desc')
     },
     {
       icon: Award,
-      title: 'Sertifikat & JPL',
-      description: 'Pengunduhan sertifikat, perhitungan Jam Pelajaran (JPL), dan verifikasi kelulusan.'
+      title: t('helpCenter.cat3Title'),
+      description: t('helpCenter.cat3Desc')
     },
     {
       icon: Wrench,
-      title: 'Kendala Teknis',
-      description: 'Sistem error, halaman tidak dapat dimuat, masalah pemutaran video, dan bug aplikasi.'
+      title: t('helpCenter.cat4Title'),
+      description: t('helpCenter.cat4Desc')
     }
   ];
 
   const faqs = [
     {
-      question: 'Bagaimana cara mereset kata sandi akun NIP saya?',
-      answer: 'Anda dapat mereset kata sandi dengan mengklik "Lupa Password" pada halaman login. Masukkan NIP Anda dan ikuti instruksi yang dikirimkan ke email terdaftar.'
+      question: t('helpCenter.faq1Q'),
+      answer: t('helpCenter.faq1A')
     },
     {
-      question: 'Berapa lama sertifikat pelatihan akan diterbitkan setelah menyelesaikan kursus?',
-      answer: 'Sertifikat akan diterbitkan secara otomatis segera setelah Anda lulus post test dengan nilai di atas passing grade. Sertifikat dapat diunduh langsung dari dashboard Anda.'
+      question: t('helpCenter.faq2Q'),
+      answer: t('helpCenter.faq2A')
     },
     {
-      question: 'Apakah saya dikenakan biaya untuk mengikuti pelatihan di platform ini?',
-      answer: 'Tidak, semua pelatihan di platform BKPSDM Pintar adalah gratis untuk seluruh ASN. Anda hanya perlu login menggunakan NIP yang terdaftar.'
+      question: t('helpCenter.faq3Q'),
+      answer: t('helpCenter.faq3A')
     }
   ];
 
@@ -345,7 +356,7 @@ export default function HelpCenter({ onNavigate }) {
           {/* Categories */}
           <section className="mb-16">
             <h2 className="text-2xl md:text-3xl font-semibold text-[#1D315F] mb-8 text-center">
-              Kategori Bantuan
+              {t('helpCenter.categoriesTitle')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {categories.map((cat, idx) => (
@@ -358,7 +369,7 @@ export default function HelpCenter({ onNavigate }) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7">
               <h2 className="text-2xl md:text-3xl font-semibold text-[#1D315F] mb-6">
-                Pertanyaan yang Sering Diajukan
+                {t('helpCenter.faqTitle')}
               </h2>
               <div className="space-y-4">
                 {faqs.map((faq, idx) => (
@@ -374,7 +385,7 @@ export default function HelpCenter({ onNavigate }) {
         </div>
       </main>
       
-      <Footer />
+      <Footer onNavigate={onNavigate} />
     </div>
   );
 }

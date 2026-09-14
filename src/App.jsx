@@ -197,7 +197,7 @@ function App() {
       return <UserDashboard onLogout={handleLogout} onNavigate={handleNavigate} />
     }
     
-    if (currentRoute === 'catalog') {
+    if (currentRoute === 'catalog' || currentRoute === 'pelatihan') {
       return <CourseCatalog onNavigate={handleNavigate} />
     }
 

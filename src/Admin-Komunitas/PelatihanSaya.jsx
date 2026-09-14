@@ -1,4 +1,3 @@
-import userImg from '../assets/user.png';
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { 
@@ -127,17 +126,6 @@ const Header = ({ setIsOpen }) => (
           className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
         />
       </div>
-    </div>
-    <div className="flex items-center gap-2 sm:gap-4">
-      <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors relative hidden sm:block">
-        <Bell className="w-5 h-5" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
-      </button>
-      
-      <div className="h-8 w-px bg-gray-200 mx-1 hidden sm:block"></div>
-      <button className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded-full transition-colors">
-        <img src={userImg} alt="Profile" className="w-8 h-8 rounded-full border border-gray-200" />
-      </button>
     </div>
   </header>
 );

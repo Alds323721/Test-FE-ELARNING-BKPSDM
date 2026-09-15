@@ -121,33 +121,71 @@ const MonitoringReports = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [komunitasList, setKomunitasList] = useState([]);
+  const [selectedKomunitas, setSelectedKomunitas] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchKomunitas = async () => {
+    try {
+      const res = await api.get('/admin-bkpsdm/komunitas');
+      setKomunitasList(res.data.data || []);
+    } catch (e) {
+      console.error('Failed to fetch communities:', e);
+    }
+  };
+
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (selectedKomunitas) params.komunitas_id = selectedKomunitas;
+      if (searchTerm) params.search = searchTerm;
+
+      const response = await api.get('/admin-bkpsdm/laporan/peserta', { params });
+      const rawData = response.data.data || [];
+
+      setReports(rawData.map((user, idx) => ({
+        id: user.pendaftaran_id || user.pengguna_id || idx,
+        name: user.nama_lengkap,
+        nip: user.nip || '-',
+        course: user.judul_pembelajaran || 'Belum terdaftar',
+        community: user.nama_komunitas || 'BKPSDM',
+        progress: user.progres ?? 0,
+        status: user.status_pendaftaran === 'lulus' ? 'Lulus' : (user.progres > 0 ? 'Sedang Berjalan' : 'Belum Mulai'),
+        hasCertificate: !!user.has_sertifikat,
+        certificateId: user.sertifikat?.sertifikat_id,
+        certificateUrl: user.sertifikat?.download_url
+      })));
+    } catch (error) {
+      console.error('Failed to fetch reports:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        const response = await api.get('/admin-bkpsdm/laporan/peserta');
-        setReports(response.data.data.map((user, idx) => ({
-          id: user.pengguna_id,
-          name: user.nama_lengkap,
-          nip: user.nip || '-',
-          course: 'Belum terdaftar', // Fake data as backend does not provide
-          community: 'BKPSDM',
-          progress: 0,
-          status: 'Belum Mulai',
-          hasCertificate: false
-        })));
-      } catch (error) {
-        console.error('Failed to fetch reports:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchReports();
+    fetchKomunitas();
   }, []);
+
+  useEffect(() => {
+    fetchReports();
+  }, [selectedKomunitas]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchReports();
+  };
 
   const handleExport = async () => {
     try {
-      const response = await api.get('/admin-bkpsdm/laporan/peserta/export', { responseType: 'blob' });
+      const params = {};
+      if (selectedKomunitas) params.komunitas_id = selectedKomunitas;
+      if (searchTerm) params.search = searchTerm;
+
+      const response = await api.get('/admin-bkpsdm/laporan/peserta/export', { 
+        params,
+        responseType: 'blob' 
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -157,6 +195,20 @@ const MonitoringReports = ({ onNavigate }) => {
     } catch (e) {
       console.error(e);
       alert('Gagal mengekspor laporan');
+    }
+  };
+
+  const handleViewCertificate = async (report) => {
+    if (!report.certificateId) return;
+    try {
+      const response = await api.get(`/user/certificates/${report.certificateId}/download`, {
+        responseType: 'blob'
+      });
+      const fileUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      window.open(fileUrl, '_blank');
+    } catch (err) {
+      console.error('Failed to download certificate:', err);
+      alert('Gagal mengunduh sertifikat.');
     }
   };
 
@@ -179,7 +231,17 @@ const MonitoringReports = ({ onNavigate }) => {
     return 'bg-red-500';
   };
 
-  if (loading) return <AdminLoadingSkeleton />;
+  // Dynamic calculations
+  const totalPesertaAktif = reports.length;
+  const avgProgres = reports.length > 0
+    ? `${Math.round(reports.reduce((acc, r) => acc + (r.progress || 0), 0) / reports.length)}%`
+    : '0%';
+  const sertifikatTerbitCount = reports.filter(r => r.hasCertificate).length;
+  const tingkatKelulusan = reports.length > 0
+    ? `${Math.round((reports.filter(r => r.status === 'Lulus').length / reports.length) * 100)}%`
+    : '0%';
+
+  if (loading && reports.length === 0) return <AdminLoadingSkeleton />;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
@@ -198,28 +260,28 @@ const MonitoringReports = ({ onNavigate }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <StatCard 
               title="TOTAL PESERTA AKTIF" 
-              value={reports.length} 
+              value={totalPesertaAktif} 
               icon={Users}
               colorClass="bg-blue-50"
               iconColorClass="text-blue-500"
             />
             <StatCard 
               title="PROGRES RATA-RATA" 
-              value="0%" 
+              value={avgProgres} 
               icon={TrendingUp}
               colorClass="bg-orange-50"
               iconColorClass="text-orange-500"
             />
             <StatCard 
               title="SERTIFIKAT TERBIT" 
-              value="0" 
+              value={sertifikatTerbitCount} 
               icon={Award}
               colorClass="bg-green-50"
               iconColorClass="text-green-500"
             />
             <StatCard 
               title="TINGKAT KELULUSAN (%)" 
-              value="0%" 
+              value={tingkatKelulusan} 
               icon={CheckCircle}
               colorClass="bg-teal-50"
               iconColorClass="text-teal-600"
@@ -228,14 +290,33 @@ const MonitoringReports = ({ onNavigate }) => {
 
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
             <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                <select className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full sm:w-auto">
-                  <option>Semua Komunitas</option>
+              <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                <select 
+                  value={selectedKomunitas}
+                  onChange={(e) => setSelectedKomunitas(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full sm:w-auto"
+                >
+                  <option value="">Semua Komunitas</option>
+                  {komunitasList.map(k => (
+                    <option key={k.komunitas_id} value={k.komunitas_id}>{k.nama_komunitas}</option>
+                  ))}
                 </select>
-                <select className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full sm:w-auto">
-                  <option>Semua Pembelajaran</option>
-                </select>
-              </div>
+                <div className="relative w-full sm:w-64">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Cari Nama / NIP..."
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="bg-teal-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors shrink-0 w-full sm:w-auto"
+                >
+                  Cari
+                </button>
+              </form>
               <button onClick={handleExport} className="bg-white border-2 border-teal-600 text-teal-700 hover:bg-teal-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shrink-0 w-full lg:w-auto justify-center">
                 <Download className="w-4 h-4" />
                 Ekspor Laporan
@@ -280,7 +361,10 @@ const MonitoringReports = ({ onNavigate }) => {
                       </td>
                       <td className="px-6 py-4">
                         {report.hasCertificate ? (
-                          <button className="text-teal-700 hover:text-teal-800 font-bold text-sm flex items-center gap-1.5 transition-colors">
+                          <button 
+                            onClick={() => handleViewCertificate(report)}
+                            className="text-teal-700 hover:text-teal-800 font-bold text-sm flex items-center gap-1.5 transition-colors"
+                          >
                             <Award className="w-4 h-4" />
                             Lihat Sertifikat
                           </button>

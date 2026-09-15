@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import api from '../Admin-Komunitas/api/axios';
+import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';

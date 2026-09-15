@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../Admin-Komunitas/api/axios';
+import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -114,7 +114,10 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
         
         {isEnrolled ? (
           <button
-            onClick={() => onNavigate('my-courses')}
+            onClick={() => {
+              if (id) localStorage.setItem('userCourseId', id);
+              onNavigate('course-detail');
+            }}
             className="w-full py-2.5 border-2 border-[#006A63] text-[#006A63] bg-white rounded-md text-[13px] font-bold hover:bg-[#EFF5F3] transition-colors"
           >
             {t('catalog.viewCurriculum')}

@@ -1,6 +1,6 @@
 import api from '../api/axios';
 
-const AUTH_KEYS = [
+export const AUTH_KEYS = [
   'access_token',
   'token',
   'user',

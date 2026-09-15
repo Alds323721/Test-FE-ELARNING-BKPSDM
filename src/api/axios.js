@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuth } from '../utils/auth';
 
 // 1. Buat Instance Axios
 const api = axios.create({
@@ -12,7 +13,7 @@ const api = axios.create({
 // 2. Buat Interceptor untuk menyisipkan Token otomatis
 api.interceptors.request.use((config) => {
     // Ambil token yang tersimpan di localStorage (hasil dari login)
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -29,10 +30,9 @@ api.interceptors.response.use((response) => {
 }, (error) => {
     if (error.response && error.response.status === 401) {
         // Jangan redirect jika error 401 berasal dari percobaan login
-        if (error.config.url !== '/login') {
-            // Token tidak valid atau kadaluarsa -> paksa user logout
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
+        if (error.config?.url !== '/login' && !error.config?.url?.endsWith('/login')) {
+            // Token tidak valid atau kadaluarsa -> paksa user logout menyeluruh
+            clearAuth();
             window.location.href = '/'; // Ke Landing Page (Login)
         }
     }

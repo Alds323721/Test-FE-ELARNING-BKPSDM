@@ -88,6 +88,9 @@ function App() {
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [showLoginSuccess, setShowLoginSuccess] = useState(false)
 
+  const adminKomunitasRoutes = ['admin-komunitas', 'pelatihan-saya', 'laporan-progress', 'katalog-kursus', 'detail-kursus', 'bank-soal', 'pusat-bantuan'];
+  const adminBkpsdmRoutes = ['admin', 'user-management', 'community-management', 'course-validation', 'course-review', 'monitoring-reports'];
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false)
@@ -108,22 +111,48 @@ function App() {
       return;
     }
 
+    // Proteksi: jika belum login, cegah navigasi ke halaman terproteksi
+    if (!isAuthenticated()) {
+      handleLogout();
+      setIsTransitioning(false);
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    const userRole = getUserRole();
+    let targetRoute = route;
+
+    // Proteksi rute berbasis peran (Role-Based Access Control)
+    if (userRole === 'peserta') {
+      if (adminBkpsdmRoutes.includes(route) || adminKomunitasRoutes.includes(route)) {
+        targetRoute = 'dashboard';
+      }
+    } else if (userRole === 'admin_komunitas') {
+      if (adminBkpsdmRoutes.includes(route)) {
+        targetRoute = 'admin-komunitas';
+      }
+    } else if (userRole === 'admin_bkpsdm') {
+      if (adminKomunitasRoutes.includes(route)) {
+        targetRoute = 'admin';
+      }
+    }
+
     setIsTransitioning(true)
-    setCurrentRoute(route)
-    localStorage.setItem('current_route', route);
-    if (route === 'admin') {
+    setCurrentRoute(targetRoute)
+    localStorage.setItem('current_route', targetRoute);
+    if (targetRoute === 'admin') {
       window.history.pushState({}, '', '/admin');
-    } else if (route === 'user-management') {
+    } else if (targetRoute === 'user-management') {
       window.history.pushState({}, '', '/admin/user-management');
-    } else if (route === 'community-management') {
+    } else if (targetRoute === 'community-management') {
       window.history.pushState({}, '', '/admin/community-management');
-    } else if (route === 'course-validation') {
+    } else if (targetRoute === 'course-validation') {
       window.history.pushState({}, '', '/admin/course-validation');
-    } else if (route === 'course-review') {
+    } else if (targetRoute === 'course-review') {
       window.history.pushState({}, '', '/admin/course-validation/review');
-    } else if (route === 'monitoring-reports') {
+    } else if (targetRoute === 'monitoring-reports') {
       window.history.pushState({}, '', '/admin/monitoring-reports');
-    } else if (route === 'admin-komunitas') {
+    } else if (targetRoute === 'admin-komunitas') {
       window.history.pushState({}, '', '/admin-komunitas');
     }
     setIsTransitioning(false)
@@ -141,6 +170,35 @@ function App() {
   }
 
   const renderRoute = () => {
+    // Jika tidak terautentikasi dan mencoba render selain landing, arahkan ke LandingPage
+    if (!isAuthenticated() && currentRoute !== 'landing') {
+      return <LandingPage onLogin={() => {
+        setShowLoginSuccess(true);
+        setTimeout(() => setShowLoginSuccess(false), 3000);
+        const role = getUserRole();
+        if (role === 'admin_bkpsdm') handleNavigate('admin');
+        else if (role === 'admin_komunitas') handleNavigate('admin-komunitas');
+        else handleNavigate('dashboard');
+      }} onNavigate={handleNavigate} />;
+    }
+
+    const userRole = getUserRole();
+
+    // Guard: Peserta mencoba render rute admin
+    if (userRole === 'peserta' && (adminBkpsdmRoutes.includes(currentRoute) || adminKomunitasRoutes.includes(currentRoute))) {
+      return <UserDashboard onLogout={handleLogout} onNavigate={handleNavigate} />;
+    }
+
+    // Guard: Admin Komunitas mencoba render rute BKPSDM
+    if (userRole === 'admin_komunitas' && adminBkpsdmRoutes.includes(currentRoute)) {
+      return <AdminKomunitasDashboard onNavigate={handleNavigate} />;
+    }
+
+    // Guard: Admin BKPSDM mencoba render rute Komunitas
+    if (userRole === 'admin_bkpsdm' && adminKomunitasRoutes.includes(currentRoute)) {
+      return <AdminDashboard onNavigate={handleNavigate} />;
+    }
+
     if (currentRoute === 'admin-komunitas') {
       return <AdminKomunitasDashboard onNavigate={handleNavigate} />
     }

@@ -261,8 +261,8 @@ const CourseValidation = ({ onNavigate }) => {
                       <td className="px-6 py-4">
                         <p className="font-bold text-gray-800 mb-1">{course.judul_pembelajaran}</p>
                         <div className="flex items-center gap-2">
-                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                            {course.kategori || 'Tanpa Kategori'}
+                          <span className="bg-teal-50 text-teal-700 border border-teal-200 px-2.5 py-0.5 rounded text-xs font-semibold">
+                            {course.kategori || 'Pengembangan Kompetensi'}
                           </span>
                         </div>
                       </td>

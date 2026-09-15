@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
   FileText, RotateCcw, ChevronDown, CheckCircle2,
   PlayCircle, Edit, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Clock,
-  BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Plus, MoreVertical
+  BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Plus, MoreVertical, Trash2
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'pelatihan-saya', onNavigate, isOpen, setIsOpen }) => {
@@ -201,6 +202,41 @@ const PelatihanSaya = ({ onNavigate }) => {
     }
   };
 
+  const handleDeleteCourse = async (courseId, title) => {
+    const result = await Swal.fire({
+      title: 'Hapus Pelatihan?',
+      text: `Apakah Anda yakin ingin menghapus "${title}"? Seluruh modul, materi, kuis, dan data terkait akan dihapus secara permanen.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Ya, Hapus Permanen',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await api.delete(`/admin-komunitas/pembelajaran/${courseId}`);
+      setCourses(prev => prev.filter(c => c.pembelajaran_id !== courseId));
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil Dihapus',
+        text: 'Pelatihan beserta seluruh kontennya berhasil dihapus.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menghapus',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat menghapus pelatihan.'
+      });
+    }
+  };
+
   const getFilteredCourses = () => {
     if (activeTab === 'Aktif') return courses.filter(c => c.status === 'dipublikasikan');
     if (activeTab === 'Draft') return courses.filter(c => c.status === 'draft');
@@ -283,8 +319,18 @@ const PelatihanSaya = ({ onNavigate }) => {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
-                          {course.kategori || 'Tanpa Kategori'}
+                          {course.kategori || 'Pengembangan Kompetensi'}
                         </span>
+                        {course.status === 'dipublikasikan' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase">
+                            Aktif
+                          </span>
+                        )}
+                        {course.status === 'draft' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700 uppercase">
+                            Draft
+                          </span>
+                        )}
                         {course.status === 'ditolak' && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 uppercase">
                             Ditolak
@@ -296,8 +342,12 @@ const PelatihanSaya = ({ onNavigate }) => {
                           </span>
                         )}
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <MoreVertical className="w-5 h-5" />
+                      <button 
+                        onClick={() => handleDeleteCourse(course.pembelajaran_id, course.judul_pembelajaran)}
+                        title="Hapus Pelatihan"
+                        className="text-gray-400 hover:text-red-600 p-1 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
@@ -342,15 +392,24 @@ const PelatihanSaya = ({ onNavigate }) => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex items-center gap-2">
                       <button 
                         onClick={() => {
                           localStorage.setItem('adminKomunitasCourseId', course.pembelajaran_id);
                           if (onNavigate) onNavigate('detail-kursus');
                         }}
-                        className="flex-1 px-4 py-2.5 border border-[#0F766E] text-[#0F766E] hover:bg-teal-50 rounded-lg text-sm font-semibold transition-colors w-full text-center"
+                        className="flex-1 px-3 py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors text-center flex items-center justify-center gap-2 shadow-xs"
                       >
-                        {course.status === 'draft' || course.status === 'ditolak' ? 'Edit Konten' : 'Lihat Detail'}
+                        <Edit className="w-4 h-4" />
+                        <span>{course.status === 'dipublikasikan' ? 'Kelola / Edit' : course.status === 'draft' || course.status === 'ditolak' ? 'Edit Konten' : 'Lihat Detail'}</span>
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteCourse(course.pembelajaran_id, course.judul_pembelajaran)}
+                        title="Hapus Pelatihan"
+                        className="px-3 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg text-sm font-semibold transition-colors shrink-0 flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Hapus</span>
                       </button>
                     </div>
                   </div>

@@ -217,8 +217,8 @@ const CourseReview = ({ onNavigate }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Kategori</p>
-                    <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm font-medium">
-                      {course.kategori || 'Tanpa Kategori'}
+                    <span className="inline-block bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1 rounded text-sm font-semibold">
+                      {course.kategori || 'Pengembangan Kompetensi'}
                     </span>
                   </div>
                   <div>

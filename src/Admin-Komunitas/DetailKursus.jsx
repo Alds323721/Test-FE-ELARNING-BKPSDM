@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminKomunitasSkeleton from './AdminKomunitasSkeleton';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
@@ -144,9 +145,11 @@ const DetailKursus = ({ onNavigate }) => {
   const [openModuleIds, setOpenModuleIds] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Modal State: Tambah Modul
+  // Modal State: Tambah & Edit Modul
   const [showAddModuleModal, setShowAddModuleModal] = useState(false);
-  const [moduleForm, setModuleForm] = useState({ judul_modul: '', gambaran_umum: '' });
+  const [isEditingModule, setIsEditingModule] = useState(false);
+  const [editingModuleId, setEditingModuleId] = useState(null);
+  const [moduleForm, setModuleForm] = useState({ judul_modul: '', deskripsi: '' });
 
   // Modal State: Tambah Materi
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
@@ -196,7 +199,11 @@ const DetailKursus = ({ onNavigate }) => {
       ]);
 
       if (resCourse.status === 'fulfilled') {
-        setCourse(resCourse.value.data.data);
+        const cData = resCourse.value.data.data;
+        if (cData && !cData.kategori) {
+          cData.kategori = 'Pengembangan Kompetensi';
+        }
+        setCourse(cData);
       }
       if (resModul.status === 'fulfilled') {
         const modData = resModul.value.data.data || [];
@@ -226,58 +233,184 @@ const DetailKursus = ({ onNavigate }) => {
     }));
   };
 
-  // --- Informasi Dasar ---
+  // --- Informasi Dasar & Aksi Kursus ---
   const handleUpdateBasicInfo = async () => {
     if (!course) return;
+    const wasPublished = course.status === 'dipublikasikan';
     try {
       const payload = {
         judul_pembelajaran: course.judul_pembelajaran,
         deskripsi: course.deskripsi,
-        kategori: course.kategori,
+        kategori: course.kategori || 'Pengembangan Kompetensi',
         capaian_pembelajaran: course.capaian_pembelajaran || '-',
         nilai_kelulusan: course.nilai_kelulusan,
         komunitas_id: course.komunitas_id
       };
       await api.put(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, payload);
-      alert('Perubahan informasi dasar berhasil disimpan!');
+      
+      if (wasPublished) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Status Berubah ke Draft',
+          text: 'Perubahan informasi dasar berhasil disimpan! Karena pelatihan sebelumnya aktif dipublikasikan, statusnya otomatis dikembalikan ke Draft. Silakan ajukan approval kembali jika sudah siap.',
+          confirmButtonColor: '#0F766E'
+        });
+      } else {
+        Swal.fire({
+          icon: 'success',
+          title: 'Tersimpan!',
+          text: 'Perubahan informasi dasar berhasil disimpan.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      }
       fetchCourseData();
     } catch (error) {
       console.error('Error updating course:', error);
-      alert(error.response?.data?.message || 'Gagal menyimpan perubahan.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: error.response?.data?.message || 'Gagal menyimpan perubahan.'
+      });
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!course) return;
+    const result = await Swal.fire({
+      title: 'Hapus Pelatihan?',
+      text: `Apakah Anda yakin ingin menghapus pelatihan "${course.judul_pembelajaran}"? Seluruh modul, materi, kuis, dan data terkait akan dihapus secara total dan permanen.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Ya, Hapus Permanen',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await api.delete(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`);
+      await Swal.fire({
+        icon: 'success',
+        title: 'Berhasil Dihapus',
+        text: 'Pelatihan telah dihapus secara total.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      localStorage.removeItem('adminKomunitasCourseId');
+      if (onNavigate) onNavigate('pelatihan-saya');
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menghapus',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat menghapus pelatihan.'
+      });
     }
   };
 
   // --- Modul Handlers ---
-  const handleCreateModule = async (e) => {
+  const handleOpenAddModuleModal = () => {
+    setIsEditingModule(false);
+    setEditingModuleId(null);
+    setModuleForm({ judul_modul: '', deskripsi: '' });
+    setShowAddModuleModal(true);
+  };
+
+  const handleOpenEditModuleModal = (modul) => {
+    setIsEditingModule(true);
+    setEditingModuleId(modul.modul_id);
+    setModuleForm({ 
+      judul_modul: modul.judul_modul || '', 
+      deskripsi: modul.deskripsi || modul.gambaran_umum || '' 
+    });
+    setShowAddModuleModal(true);
+  };
+
+  const handleSaveModule = async (e) => {
     e.preventDefault();
     if (!moduleForm.judul_modul.trim()) return;
 
+    const desc = moduleForm.deskripsi?.trim() || `Gambaran umum modul ${moduleForm.judul_modul}`;
+    const payload = {
+      judul_modul: moduleForm.judul_modul,
+      gambaran_umum: desc,
+      deskripsi: desc,
+      evaluasi_deskripsi: 'Evaluasi pemahaman materi modul'
+    };
+
     try {
-      await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/modul`, {
-        judul_modul: moduleForm.judul_modul,
-        gambaran_umum: moduleForm.gambaran_umum || `Gambaran umum modul ${moduleForm.judul_modul}`,
-        evaluasi_deskripsi: 'Evaluasi pemahaman materi modul'
-      });
-      alert('Modul baru berhasil ditambahkan!');
+      if (isEditingModule && editingModuleId) {
+        await api.put(`/admin-komunitas/modul/${editingModuleId}`, payload);
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Diperbarui',
+          text: 'Modul berhasil diperbarui!',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } else {
+        const res = await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/modul`, payload);
+        const newId = res.data?.data?.modul_id;
+        if (newId) {
+          setOpenModuleIds(prev => ({ ...prev, [newId]: true }));
+        }
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Ditambahkan',
+          text: 'Modul baru berhasil ditambahkan!',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      }
       setShowAddModuleModal(false);
-      setModuleForm({ judul_modul: '', gambaran_umum: '' });
+      setModuleForm({ judul_modul: '', deskripsi: '' });
       fetchCourseData();
     } catch (error) {
-      console.error('Error creating module:', error);
-      alert(error.response?.data?.message || 'Gagal menambahkan modul.');
+      console.error('Error saving module:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: error.response?.data?.message || 'Gagal menyimpan modul.'
+      });
     }
   };
 
   const handleDeleteModule = async (modulId, judulModul) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus modul "${judulModul}" beserta seluruh materi dan kuisnya?`)) return;
+    const result = await Swal.fire({
+      title: 'Hapus Modul?',
+      text: `Apakah Anda yakin ingin menghapus modul "${judulModul}" beserta seluruh materi dan kuisnya?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       await api.delete(`/admin-komunitas/modul/${modulId}`);
-      alert('Modul berhasil dihapus!');
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil Dihapus',
+        text: 'Modul berhasil dihapus!',
+        timer: 1500,
+        showConfirmButton: false
+      });
       fetchCourseData();
     } catch (error) {
       console.error('Error deleting module:', error);
-      alert(error.response?.data?.message || 'Gagal menghapus modul.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menghapus',
+        text: error.response?.data?.message || 'Gagal menghapus modul.'
+      });
     }
   };
 
@@ -530,6 +663,16 @@ const DetailKursus = ({ onNavigate }) => {
     if (!confirmSubmit) return;
 
     try {
+      // Pastikan informasi dasar dan kategori terbaru tersimpan sebelum diajukan
+      await api.put(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, {
+        judul_pembelajaran: course.judul_pembelajaran,
+        deskripsi: course.deskripsi,
+        kategori: course.kategori || 'Pengembangan Kompetensi',
+        capaian_pembelajaran: course.capaian_pembelajaran || '-',
+        nilai_kelulusan: course.nilai_kelulusan,
+        komunitas_id: course.komunitas_id
+      });
+
       const payload = {
         ringkasan_materi: course.deskripsi || 'Ringkasan materi kursus'
       };
@@ -563,10 +706,10 @@ const DetailKursus = ({ onNavigate }) => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
               <div>
                 <button 
-                  onClick={() => onNavigate('katalog-kursus')}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#0F766E] mb-3 transition-colors"
+                  onClick={() => onNavigate('pelatihan-saya')}
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#0F766E] mb-3 transition-colors font-medium"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Kembali ke Katalog
+                  <ArrowLeft className="w-4 h-4" /> Kembali ke Manajemen Pelatihan
                 </button>
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-bold text-gray-900">
@@ -588,7 +731,33 @@ const DetailKursus = ({ onNavigate }) => {
                 </div>
               </div>
 
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleDeleteCourse}
+                  className="flex items-center gap-1.5 px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg text-xs font-bold transition-colors shadow-xs"
+                >
+                  <Trash2 className="w-4 h-4" /> Hapus Pelatihan
+                </button>
+              </div>
             </div>
+
+            {/* Published Alert Banner */}
+            {course.status === 'dipublikasikan' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5 flex items-start gap-3.5 shadow-sm">
+                <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-bold text-amber-900 mb-1">Pelatihan Sedang Aktif Dipublikasikan</h3>
+                  <p className="text-xs text-amber-800 leading-relaxed mb-2">
+                    Pelatihan ini saat ini berstatus aktif di katalog umum. Jika Anda melakukan perubahan (edit informasi dasar, modul, materi, kuis, atau post-test), status pelatihan akan <b>otomatis kembali menjadi Draft</b> dan ditarik dari katalog publik sampai diajukan dan disetujui kembali oleh Admin BKPSDM.
+                  </p>
+                  <p className="text-[11px] text-amber-700 font-medium">
+                    💡 Anda juga dapat menghapus pelatihan ini secara permanen jika sudah tidak dibutuhkan lagi.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Rejection Alert Banner */}
             {course.status === 'ditolak' && (
@@ -685,7 +854,7 @@ const DetailKursus = ({ onNavigate }) => {
                   <p className="text-xs text-gray-500">Kelola bab, dokumen bacaan PDF, dan video pendukung.</p>
                 </div>
                 <button 
-                  onClick={() => setShowAddModuleModal(true)}
+                  onClick={handleOpenAddModuleModal}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 border border-[#0F766E]/30 text-[#0F766E] text-sm font-semibold rounded-lg hover:bg-teal-100 transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Tambah Modul
@@ -699,7 +868,7 @@ const DetailKursus = ({ onNavigate }) => {
                     <p className="text-sm font-semibold text-gray-700">Belum ada modul pada kursus ini</p>
                     <p className="text-xs text-gray-400 mt-1 mb-4">Mulai dengan menambahkan modul pembelajaran pertama.</p>
                     <button 
-                      onClick={() => setShowAddModuleModal(true)}
+                      onClick={handleOpenAddModuleModal}
                       className="px-4 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800"
                     >
                       Tambah Modul Sekarang
@@ -740,9 +909,16 @@ const DetailKursus = ({ onNavigate }) => {
                               <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Materi</span>
                             </button>
                             <button 
+                              onClick={() => handleOpenEditModuleModal(modul)}
+                              title="Edit Modul"
+                              className="p-1 text-gray-400 hover:text-teal-600 rounded hover:bg-teal-50 transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button 
                               onClick={() => handleDeleteModule(modul.modul_id, modul.judul_modul)}
                               title="Hapus Modul"
-                              className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50"
+                              className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -758,10 +934,11 @@ const DetailKursus = ({ onNavigate }) => {
                         {/* Accordion Body */}
                         {isOpen && (
                           <div className="p-4 sm:p-5 bg-white space-y-4">
-                            {modul.gambaran_umum && (
-                              <p className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                <span className="font-semibold text-gray-700">Gambaran Umum:</span> {modul.gambaran_umum}
-                              </p>
+                            {(modul.deskripsi || modul.gambaran_umum) && (
+                              <div className="text-xs text-gray-700 bg-gray-50/80 p-3 rounded-lg border border-gray-100 flex items-start gap-2">
+                                <span className="font-semibold text-gray-900 shrink-0">Deskripsi:</span>
+                                <span className="leading-relaxed text-gray-600">{modul.deskripsi || modul.gambaran_umum}</span>
+                              </div>
                             )}
 
                             {/* Materi List */}
@@ -1043,26 +1220,36 @@ const DetailKursus = ({ onNavigate }) => {
       </div>
 
       {/* Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 p-4 px-6 z-20 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <button onClick={handleUpdateBasicInfo} className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
-          Simpan Perubahan
+      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 p-4 px-6 z-20 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button 
+          onClick={handleDeleteCourse}
+          className="w-full sm:w-auto px-4 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+        >
+          <Trash2 className="w-4 h-4" /> Hapus Pelatihan
         </button>
-        <button onClick={handleAjukanApproval} className="w-full sm:w-auto px-6 py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm">
-          Ajukan Approval Publikasi ke BKPSDM
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <button onClick={handleUpdateBasicInfo} className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
+            Simpan Perubahan
+          </button>
+          <button onClick={handleAjukanApproval} className="w-full sm:w-auto px-6 py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm">
+            Ajukan Approval Publikasi ke BKPSDM
+          </button>
+        </div>
       </div>
 
-      {/* MODAL: Tambah Modul */}
+      {/* MODAL: Tambah & Edit Modul */}
       {showAddModuleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-gray-100 space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-              <h3 className="font-bold text-gray-900 text-base">Tambah Modul Pembelajaran</h3>
+              <h3 className="font-bold text-gray-900 text-base">
+                {isEditingModule ? 'Edit Modul Pembelajaran' : 'Tambah Modul Pembelajaran'}
+              </h3>
               <button onClick={() => setShowAddModuleModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleCreateModule} className="space-y-4">
+            <form onSubmit={handleSaveModule} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Judul Modul</label>
                 <input 
@@ -1075,12 +1262,12 @@ const DetailKursus = ({ onNavigate }) => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Gambaran Umum Modul</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Deskripsi / Gambaran Umum Modul</label>
                 <textarea 
                   rows="3"
-                  value={moduleForm.gambaran_umum}
-                  onChange={(e) => setModuleForm({ ...moduleForm, gambaran_umum: e.target.value })}
-                  placeholder="Penjelasan singkat mengenai materi yang dicakup pada modul ini..."
+                  value={moduleForm.deskripsi}
+                  onChange={(e) => setModuleForm({ ...moduleForm, deskripsi: e.target.value })}
+                  placeholder="Tuliskan deskripsi atau gambaran umum mengenai materi pada modul ini..."
                   className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
                 ></textarea>
               </div>
@@ -1096,7 +1283,7 @@ const DetailKursus = ({ onNavigate }) => {
                   type="submit"
                   className="px-5 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800"
                 >
-                  Simpan Modul
+                  {isEditingModule ? 'Simpan Perubahan' : 'Simpan Modul'}
                 </button>
               </div>
             </form>

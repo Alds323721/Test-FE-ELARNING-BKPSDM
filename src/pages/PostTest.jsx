@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -356,7 +357,12 @@ export default function PostTest({ onNavigate, onBack }) {
           setTestData(res.data.data);
         }
       } catch (error) {
-        alert(error.response?.data?.message || 'Gagal mengambil soal');
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Memuat Soal',
+          text: error.response?.data?.message || 'Gagal mengambil soal post test.',
+          confirmButtonColor: '#006A63'
+        });
         if (onBack) onBack();
         else onNavigate('my-courses');
       } finally {
@@ -366,7 +372,12 @@ export default function PostTest({ onNavigate, onBack }) {
     if (courseId) {
       fetchPostTest();
     } else {
-      alert('Tidak ada course id');
+      Swal.fire({
+        icon: 'warning',
+        title: 'ID Tidak Ditemukan',
+        text: 'Data sesi pelatihan tidak ditemukan.',
+        confirmButtonColor: '#006A63'
+      });
       onNavigate('my-courses');
     }
   }, [courseId]);
@@ -404,8 +415,41 @@ export default function PostTest({ onNavigate, onBack }) {
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!testData) return;
+  const handleSubmit = async (isTimeUp = false) => {
+    if (!testData || submitting) return;
+
+    const totalSoal = testData.soal?.length || 0;
+    const answeredCount = Object.keys(answers).length;
+    const unansweredCount = totalSoal - answeredCount;
+
+    if (!isTimeUp) {
+      const confirmResult = await Swal.fire({
+        title: 'Kumpulkan Post Test?',
+        html: unansweredCount > 0 ? `
+          <div class="text-left text-sm text-gray-600 space-y-2 pt-1">
+            <p>Masih ada <b class="text-red-500">${unansweredCount} dari ${totalSoal} butir soal</b> yang belum Anda jawab.</p>
+            <p class="text-xs text-amber-800 bg-amber-50 p-2.5 rounded border border-amber-200">
+              ⚠️ Post Test merupakan evaluasi akhir penentu kelulusan Anda. Soal yang tidak terjawab akan bernilai 0.
+            </p>
+          </div>
+        ` : `
+          <div class="text-left text-sm text-gray-600 space-y-2 pt-1">
+            <p>Anda telah menjawab seluruh <b>${totalSoal} butir soal</b>.</p>
+            <p>Apakah Anda yakin ingin menyelesaikan dan mengumpulkan Post Test ini?</p>
+          </div>
+        `,
+        icon: unansweredCount > 0 ? 'warning' : 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#006A63',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: unansweredCount > 0 ? 'Tetap Kumpulkan' : 'Ya, Kumpulkan',
+        cancelButtonText: 'Periksa Kembali',
+        reverseButtons: true
+      });
+
+      if (!confirmResult.isConfirmed) return;
+    }
+
     try {
       setSubmitting(true);
       
@@ -419,9 +463,28 @@ export default function PostTest({ onNavigate, onBack }) {
       });
       
       localStorage.setItem('postTestResult', JSON.stringify(res.data.data));
+
+      // Alert Post Test Berhasil di Submit
+      await Swal.fire({
+        icon: 'success',
+        title: 'Post Test Berhasil Dikumpulkan!',
+        text: 'Jawaban Post Test Anda telah berhasil tersimpan dan diproses oleh sistem.',
+        confirmButtonColor: '#006A63',
+        confirmButtonText: 'Lihat Hasil Evaluasi',
+        timer: 3000,
+        timerProgressBar: true,
+        allowOutsideClick: false
+      });
+
       onNavigate('test-result');
     } catch (error) {
-      alert(error.response?.data?.message || 'Gagal mengumpulkan soal');
+      console.error('Error submitting post test:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Mengumpulkan Post Test',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat mengumpulkan Post Test. Silakan coba kembali.',
+        confirmButtonColor: '#006A63'
+      });
     } finally {
       setSubmitting(false);
     }
@@ -490,7 +553,7 @@ export default function PostTest({ onNavigate, onBack }) {
               {/* Submit Button - Desktop (di samping navigasi) */}
               <div>
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit(false)}
                   disabled={submitting}
                   className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                 >
@@ -535,7 +598,7 @@ export default function PostTest({ onNavigate, onBack }) {
             {/* Submit Button - Bottom hanya untuk Tablet & Mobile */}
             <div className="mt-6">
               <button
-                onClick={handleSubmit}
+                onClick={() => handleSubmit(false)}
                 disabled={submitting}
                 className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
               >

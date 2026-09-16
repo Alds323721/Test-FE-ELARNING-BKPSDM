@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -353,7 +354,12 @@ export default function Kuis({ onNavigate, onBack }) {
           setTestData(res.data.data);
         }
       } catch (error) {
-        alert(error.response?.data?.message || 'Gagal mengambil soal');
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Memuat Kuis',
+          text: error.response?.data?.message || 'Gagal mengambil soal kuis.',
+          confirmButtonColor: '#006A63'
+        });
         if (onBack) onBack();
         else onNavigate('my-courses');
       } finally {
@@ -363,7 +369,12 @@ export default function Kuis({ onNavigate, onBack }) {
     if (courseId) {
       fetchKuis();
     } else {
-      alert('Tidak ada course id');
+      Swal.fire({
+        icon: 'warning',
+        title: 'ID Tidak Ditemukan',
+        text: 'Data sesi pelatihan tidak ditemukan.',
+        confirmButtonColor: '#006A63'
+      });
       onNavigate('my-courses');
     }
   }, [courseId]);
@@ -401,8 +412,41 @@ export default function Kuis({ onNavigate, onBack }) {
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!testData) return;
+  const handleSubmit = async (isTimeUp = false) => {
+    if (!testData || submitting) return;
+
+    const totalSoal = testData.soal?.length || 0;
+    const answeredCount = Object.keys(answers).length;
+    const unansweredCount = totalSoal - answeredCount;
+
+    if (!isTimeUp) {
+      const confirmResult = await Swal.fire({
+        title: 'Kumpulkan Kuis?',
+        html: unansweredCount > 0 ? `
+          <div class="text-left text-sm text-gray-600 space-y-2 pt-1">
+            <p>Masih ada <b class="text-red-500">${unansweredCount} dari ${totalSoal} butir soal</b> yang belum Anda jawab.</p>
+            <p class="text-xs text-amber-800 bg-amber-50 p-2.5 rounded border border-amber-200">
+              ⚠️ Soal yang tidak dijawab akan bernilai 0. Apakah Anda yakin ingin mengumpulkan kuis sekarang?
+            </p>
+          </div>
+        ` : `
+          <div class="text-left text-sm text-gray-600 space-y-2 pt-1">
+            <p>Anda telah menjawab seluruh <b>${totalSoal} butir soal</b>.</p>
+            <p>Apakah Anda yakin ingin menyelesaikan dan mengumpulkan kuis ini?</p>
+          </div>
+        `,
+        icon: unansweredCount > 0 ? 'warning' : 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#006A63',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: unansweredCount > 0 ? 'Ya, Tetap Kumpulkan' : 'Ya, Kumpulkan',
+        cancelButtonText: 'Periksa Kembali',
+        reverseButtons: true
+      });
+
+      if (!confirmResult.isConfirmed) return;
+    }
+
     try {
       setSubmitting(true);
       
@@ -414,11 +458,50 @@ export default function Kuis({ onNavigate, onBack }) {
       const res = await api.post(`/user/courses/${courseId}/modul/${modulId}/kuis/${kuisId}/submit`, {
         jawaban: formattedAnswers
       });
+
+      const result = res.data?.data;
+      const isPassed = !!result?.apakah_lulus;
+      const score = result?.nilai ?? 0;
+      const passingGrade = testData?.nilai_kelulusan ?? 70;
+
+      // Pop-up keterangan kelulusan kuis
+      await Swal.fire({
+        title: isPassed ? '🎉 Selamat, Anda Lulus Kuis!' : 'Belum Memenuhi Kelulusan',
+        html: `
+          <div class="text-center space-y-4 pt-2">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full ${isPassed ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-600'} text-3xl font-bold mx-auto">
+              ${isPassed ? '✓' : '✕'}
+            </div>
+            <div>
+              <div class="text-4xl font-extrabold ${isPassed ? 'text-[#006A63]' : 'text-red-600'}">
+                ${score}
+              </div>
+              <div class="text-xs text-gray-500 font-semibold mt-1">
+                Batas Kelulusan (KKM): ${passingGrade}
+              </div>
+            </div>
+            <div class="p-3.5 rounded-lg text-xs md:text-sm text-left leading-relaxed ${isPassed ? 'bg-teal-50 text-teal-900 border border-teal-200' : 'bg-amber-50 text-amber-900 border border-amber-200'}">
+              ${isPassed 
+                ? '<b>Hebat!</b> Anda telah memahami materi modul ini dengan baik dan berhak melanjutkan ke modul berikutnya.' 
+                : 'Nilai Anda belum mencapai batas minimal kelulusan. Silakan pelajari kembali materi pada modul ini dan ulangi kuis evaluasi.'}
+            </div>
+          </div>
+        `,
+        icon: isPassed ? 'success' : 'warning',
+        confirmButtonColor: isPassed ? '#006A63' : '#1D315F',
+        confirmButtonText: isPassed ? 'Lanjutkan Pelatihan' : 'Kembali ke Materi',
+        allowOutsideClick: false
+      });
       
-      alert(`Kuis selesai! Anda ${res.data.data.apakah_lulus ? 'LULUS' : 'TIDAK LULUS'} dengan nilai ${res.data.data.nilai}.`);
       onNavigate('course-detail');
     } catch (error) {
-      alert(error.response?.data?.message || 'Gagal mengumpulkan soal');
+      console.error('Error submitting quiz:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Mengumpulkan Kuis',
+        text: error.response?.data?.message || 'Terjadi gangguan saat mengumpulkan kuis. Silakan coba kembali.',
+        confirmButtonColor: '#006A63'
+      });
     } finally {
       setSubmitting(false);
     }
@@ -487,7 +570,7 @@ export default function Kuis({ onNavigate, onBack }) {
               {/* Submit Button - Desktop (di samping navigasi) */}
               <div>
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit(false)}
                   disabled={submitting}
                   className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                 >
@@ -506,7 +589,7 @@ export default function Kuis({ onNavigate, onBack }) {
                 <QuestionCard
                   questionNumber={currentQuestion}
                   questionData={currentQuestionData}
-                  savedAnswer={answers[currentQuestionData?.soal_post_test_id]}
+                  savedAnswer={answers[currentQuestionData?.soal_kuis_id]}
                   onPrevious={handlePrevious}
                   onNext={handleNext}
                   onFlag={handleFlag}
@@ -532,12 +615,12 @@ export default function Kuis({ onNavigate, onBack }) {
             {/* Submit Button - Bottom hanya untuk Tablet & Mobile */}
             <div className="mt-6">
               <button
-                onClick={handleSubmit}
+                onClick={() => handleSubmit(false)}
                 disabled={submitting}
                 className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <span className="text-lg">▶</span>
-                {submitting ? 'Mengumpulkan...' : 'Submit Post Test'}
+                {submitting ? 'Mengumpulkan...' : 'Submit Kuis'}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import { 
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
   FileText, RotateCcw, ChevronDown, CheckCircle, CheckCircle2,
@@ -256,7 +257,25 @@ const BankSoal = ({ onNavigate }) => {
 
   const handleAddQuestionSubmit = async (e) => {
     e.preventDefault();
-    if (!newQuestion.trim()) return;
+    if (!newQuestion.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Pertanyaan Diperlukan',
+        text: 'Silakan isi pertanyaan terlebih dahulu.',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
+
+    if (newType === 'pilihan_ganda' && (!newOptions.A?.trim() || !newOptions.B?.trim())) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Pilihan Belum Lengkap',
+        text: 'Pilihan Ganda memerlukan minimal Opsi A dan Opsi B.',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
 
     let pilihanPayload = {};
     if (newType === 'pilihan_ganda') {
@@ -309,7 +328,14 @@ const BankSoal = ({ onNavigate }) => {
         });
       }
 
-      alert('Soal baru berhasil ditambahkan ke Bank Soal Post Test!');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Soal Berhasil Ditambahkan!',
+        text: 'Butir soal baru berhasil disimpan ke Bank Soal Post Test.',
+        confirmButtonColor: '#0F766E',
+        timer: 2000,
+        showConfirmButton: true
+      });
       setIsAddModalOpen(false);
       setNewQuestion('');
       setNewOptions({ A: '', B: '', C: '', D: '' });
@@ -317,12 +343,29 @@ const BankSoal = ({ onNavigate }) => {
       fetchData();
     } catch (error) {
       console.error('Error saving new question:', error);
-      alert(error.response?.data?.message || 'Gagal menyimpan butir soal.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan Soal',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat menyimpan butir soal.',
+        confirmButtonColor: '#0F766E'
+      });
     }
   };
 
   const handleDeleteQuestion = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus butir soal ini dari Bank Soal?')) return;
+    const result = await Swal.fire({
+      title: 'Hapus Butir Soal?',
+      text: 'Apakah Anda yakin ingin menghapus butir soal ini dari Bank Soal?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       if (!postTest) return;
@@ -346,11 +389,22 @@ const BankSoal = ({ onNavigate }) => {
         soal: remainingSoal
       });
 
-      alert('Soal berhasil dihapus!');
+      Swal.fire({
+        icon: 'success',
+        title: 'Soal Berhasil Dihapus',
+        text: 'Butir pertanyaan telah dihapus dari Bank Soal.',
+        timer: 1500,
+        showConfirmButton: false
+      });
       fetchData();
     } catch (error) {
       console.error('Error deleting question:', error);
-      alert(error.response?.data?.message || 'Gagal menghapus soal.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menghapus Soal',
+        text: error.response?.data?.message || 'Gagal menghapus butir soal.',
+        confirmButtonColor: '#0F766E'
+      });
     }
   };
 

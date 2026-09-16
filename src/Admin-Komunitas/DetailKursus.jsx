@@ -429,7 +429,15 @@ const DetailKursus = ({ onNavigate }) => {
 
   const handleCreateMaterial = async (e) => {
     e.preventDefault();
-    if (!materialForm.judul_materi.trim()) return;
+    if (!materialForm.judul_materi.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Judul Diperlukan',
+        text: 'Silakan isi judul materi terlebih dahulu.',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -439,13 +447,23 @@ const DetailKursus = ({ onNavigate }) => {
 
       if (materialForm.tipe_materi === 'pdf') {
         if (!materialForm.file_pdf) {
-          alert('Silakan pilih file PDF yang ingin diunggah.');
+          Swal.fire({
+            icon: 'warning',
+            title: 'File PDF Belum Dipilih',
+            text: 'Silakan pilih file PDF yang ingin diunggah.',
+            confirmButtonColor: '#0F766E'
+          });
           return;
         }
         formData.append('file_pdf', materialForm.file_pdf);
       } else {
         if (!materialForm.tautan_atau_berkas_embed.trim()) {
-          alert('Silakan masukkan tautan video YouTube.');
+          Swal.fire({
+            icon: 'warning',
+            title: 'Tautan Video Diperlukan',
+            text: 'Silakan masukkan tautan video YouTube.',
+            confirmButtonColor: '#0F766E'
+          });
           return;
         }
         formData.append('tautan_atau_berkas_embed', materialForm.tautan_atau_berkas_embed);
@@ -455,25 +473,60 @@ const DetailKursus = ({ onNavigate }) => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      alert('Materi berhasil diunggah!');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Materi Berhasil Diunggah!',
+        text: 'Materi pembelajaran baru berhasil ditambahkan ke modul.',
+        confirmButtonColor: '#0F766E',
+        timer: 2000,
+        showConfirmButton: true
+      });
       setShowAddMaterialModal(false);
       fetchCourseData();
     } catch (error) {
       console.error('Error creating material:', error);
-      alert(error.response?.data?.message || 'Gagal menambahkan materi.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Mengunggah Materi',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat mengunggah materi.',
+        confirmButtonColor: '#0F766E'
+      });
     }
   };
 
   const handleDeleteMaterial = async (materiId, judulMateri) => {
-    if (!window.confirm(`Hapus materi "${judulMateri}"?`)) return;
+    const result = await Swal.fire({
+      title: 'Hapus Materi?',
+      text: `Apakah Anda yakin ingin menghapus materi "${judulMateri}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       await api.delete(`/admin-komunitas/materi/${materiId}`);
-      alert('Materi berhasil dihapus!');
+      Swal.fire({
+        icon: 'success',
+        title: 'Materi Berhasil Dihapus',
+        text: 'Materi telah dihapus dari modul.',
+        timer: 1500,
+        showConfirmButton: false
+      });
       fetchCourseData();
     } catch (error) {
       console.error('Error deleting material:', error);
-      alert(error.response?.data?.message || 'Gagal menghapus materi.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menghapus Materi',
+        text: error.response?.data?.message || 'Gagal menghapus materi.',
+        confirmButtonColor: '#0F766E'
+      });
     }
   };
 
@@ -529,7 +582,12 @@ const DetailKursus = ({ onNavigate }) => {
   const handleAddQuestionToQuiz = (e) => {
     e.preventDefault();
     if (!newQuizItem.teks_soal.trim() || !newQuizItem.opsiA.trim() || !newQuizItem.opsiB.trim()) {
-      alert('Pertanyaan dan minimal opsi A & B wajib diisi!');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Butir Soal Belum Lengkap',
+        text: 'Teks pertanyaan dan minimal pilihan opsi A & B wajib diisi!',
+        confirmButtonColor: '#0F766E'
+      });
       return;
     }
 
@@ -570,7 +628,12 @@ const DetailKursus = ({ onNavigate }) => {
   const handleSaveQuiz = async () => {
     if (!targetQuizModule) return;
     if (quizForm.soal.length === 0) {
-      alert('Kuis harus memiliki minimal 1 butir pertanyaan.');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Kuis Masih Kosong',
+        text: 'Kuis harus memiliki minimal 1 butir pertanyaan sebelum disimpan.',
+        confirmButtonColor: '#0F766E'
+      });
       return;
     }
 
@@ -589,12 +652,24 @@ const DetailKursus = ({ onNavigate }) => {
         await api.post(`/admin-komunitas/modul/${targetQuizModule.modul_id}/kuis`, payload);
       }
 
-      alert('Kuis berhasil disimpan!');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Kuis Berhasil Disimpan!',
+        text: 'Kuis evaluasi modul berhasil disimpan dan diperbarui.',
+        confirmButtonColor: '#0F766E',
+        timer: 2000,
+        showConfirmButton: true
+      });
       setShowQuizModal(false);
       fetchCourseData();
     } catch (error) {
       console.error('Error saving quiz:', error);
-      alert(error.response?.data?.message || 'Gagal menyimpan kuis.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan Kuis',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat menyimpan kuis.',
+        confirmButtonColor: '#0F766E'
+      });
     }
   };
 
@@ -614,18 +689,35 @@ const DetailKursus = ({ onNavigate }) => {
       } else {
         await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/post-test`, payload);
       }
-      alert('Konfigurasi Post Test berhasil disimpan!');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Konfigurasi Tersimpan!',
+        text: 'Pengaturan Post Test berhasil diperbarui.',
+        confirmButtonColor: '#0F766E',
+        timer: 2000,
+        showConfirmButton: true
+      });
       fetchCourseData();
     } catch (error) {
       console.error('Error saving post test config:', error);
-      alert(error.response?.data?.message || 'Gagal menyimpan post test.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan Post Test',
+        text: error.response?.data?.message || 'Gagal menyimpan konfigurasi post test.',
+        confirmButtonColor: '#0F766E'
+      });
     }
   };
 
   // --- Surat Pernyataan Handlers ---
   const handleUploadSuratPernyataan = async () => {
     if (!suratFile) {
-      alert('Silakan pilih berkas PDF terlebih dahulu.');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Berkas Belum Dipilih',
+        text: 'Silakan pilih berkas PDF surat pernyataan terlebih dahulu.',
+        confirmButtonColor: '#0F766E'
+      });
       return;
     }
     try {
@@ -637,12 +729,24 @@ const DetailKursus = ({ onNavigate }) => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      alert('Surat pernyataan berhasil diunggah!');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Surat Berhasil Diunggah!',
+        text: 'Surat pernyataan komitmen telah berhasil disimpan.',
+        confirmButtonColor: '#0F766E',
+        timer: 2000,
+        showConfirmButton: true
+      });
       setSuratFile(null);
       fetchCourseData();
     } catch (error) {
       console.error('Error uploading surat pernyataan:', error);
-      alert(error.response?.data?.message || 'Gagal mengunggah surat pernyataan.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Mengunggah Surat',
+        text: error.response?.data?.message || 'Gagal mengunggah surat pernyataan.',
+        confirmButtonColor: '#0F766E'
+      });
     } finally {
       setIsUploadingSurat(false);
     }
@@ -653,14 +757,52 @@ const DetailKursus = ({ onNavigate }) => {
     if (!course) return;
 
     if (modules.length === 0) {
-      alert('Pelatihan belum memiliki modul. Harap tambahkan minimal 1 modul beserta materi dan kuisnya.');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Pelatihan Belum Lengkap',
+        text: 'Pelatihan belum memiliki modul. Harap tambahkan minimal 1 modul beserta materi dan kuisnya sebelum mengajukan approval.',
+        confirmButtonColor: '#0F766E'
+      });
       return;
     }
 
-    const confirmSubmit = window.confirm(
-      'Apakah Anda yakin ingin mengajukan kursus ini untuk direview oleh BKPSDM? Pastikan seluruh modul, materi, dan evaluasi sudah lengkap.'
-    );
-    if (!confirmSubmit) return;
+    const totalMateri = modules.reduce((acc, m) => acc + (m.materi?.length || 0), 0);
+    if (totalMateri === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Materi Belum Tersedia',
+        text: 'Modul pelatihan belum memiliki materi pembelajaran. Harap unggah materi terlebih dahulu sebelum mengajukan approval.',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
+
+    const confirmSubmit = await Swal.fire({
+      title: 'Ajukan Approval Publikasi?',
+      html: `
+        <div class="text-left text-sm text-gray-600 space-y-3 pt-2">
+          <p>Kursus <b>"${course.judul_pembelajaran}"</b> akan diajukan ke tim <b>BKPSDM</b> untuk proses review dan persetujuan publikasi.</p>
+          <div class="bg-teal-50 border border-teal-200 rounded-lg p-3 text-xs text-teal-800 space-y-1">
+            <div class="font-semibold">Kelengkapan Kursus Saat Ini:</div>
+            <div>• Jumlah Modul: <b>${modules.length}</b> modul</div>
+            <div>• Total Materi: <b>${totalMateri}</b> materi</div>
+            <div>• Bank Soal Post Test: <b>${postTest?.soal_post_test?.length || 0}</b> butir soal</div>
+          </div>
+          <p class="text-xs text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
+            ⚠️ Pastikan seluruh konten pelatihan sudah final dan sesuai standar kompetensi.
+          </p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#0F766E',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Ya, Ajukan Sekarang',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    });
+
+    if (!confirmSubmit.isConfirmed) return;
 
     try {
       // Pastikan informasi dasar dan kategori terbaru tersimpan sebelum diajukan
@@ -688,11 +830,21 @@ const DetailKursus = ({ onNavigate }) => {
         await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/ajukan-approval`, payload);
       }
 
-      alert('Pengajuan approval berhasil dikirim ke Admin BKPSDM!');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Pengajuan Approval Berhasil!',
+        html: 'Pengajuan approval kursus berhasil dikirimkan ke <b>Admin BKPSDM</b>.<br/><span class="text-sm text-gray-500">Status pelatihan kini sedang dalam peninjauan verifikator.</span>',
+        confirmButtonColor: '#0F766E'
+      });
       fetchCourseData();
     } catch (error) {
       console.error('Error submitting for approval:', error);
-      alert(error.response?.data?.message || 'Gagal mengajukan approval.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Mengajukan Approval',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat mengajukan approval.',
+        confirmButtonColor: '#0F766E'
+      });
     }
   };
 

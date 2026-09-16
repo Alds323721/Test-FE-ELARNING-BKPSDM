@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -186,7 +187,12 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
             status={parseFloat(courseData.progress) >= 100 ? 'active' : 'locked'}
             onClick={() => {
                if (parseFloat(courseData.progress) >= 100) onNavigate('post-test');
-               else alert('Selesaikan semua materi terlebih dahulu.');
+               else Swal.fire({
+                 icon: 'info',
+                 title: 'Post Test Masih Terkunci',
+                 text: 'Selesaikan seluruh materi dan kuis modul terlebih dahulu sebelum mengikuti Post Test.',
+                 confirmButtonColor: '#006A63'
+               });
             }}
           />
         </div>
@@ -355,8 +361,20 @@ export default function CourseDetail({ onNavigate, onBack }) {
       // Update local state to reflect UI change instantly without full reload
       setActiveMateri(prev => ({ ...prev, is_read: true }));
       fetchCourse(); // refresh stats
+      Swal.fire({
+        icon: 'success',
+        title: 'Materi Selesai!',
+        text: 'Progres belajar Anda telah tersimpan.',
+        timer: 1500,
+        showConfirmButton: false
+      });
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan progres.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan Progres',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat menyimpan progres.',
+        confirmButtonColor: '#006A63'
+      });
     }
   };
 

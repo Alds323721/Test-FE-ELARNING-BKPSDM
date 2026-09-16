@@ -78,7 +78,7 @@ const PageHeader = () => {
 };
 
 /* ── Community Card ───────────────────────────── */
-const CommunityCard = ({ id, image, category, title, description, members, courses, isJoined, canJoin = true, onJoin, onNavigate }) => {
+const CommunityCard = ({ id, image, thumbnail_url, category, title, description, members, courses, isJoined, canJoin = true, onJoin, onNavigate }) => {
   const { t, language } = useLanguage();
   const isRestricted = !isJoined && !canJoin;
 
@@ -90,7 +90,7 @@ const CommunityCard = ({ id, image, category, title, description, members, cours
     }`}>
       <div className="h-44 relative overflow-hidden">
         <img 
-          src={image} 
+          src={thumbnail_url || image || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop'} 
           alt={title} 
           className={`w-full h-full object-cover transition-transform duration-300 ${isRestricted ? 'opacity-80 grayscale-[25%]' : 'hover:scale-105'}`} 
         />

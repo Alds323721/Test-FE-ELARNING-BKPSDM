@@ -17,7 +17,7 @@ import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, Plus, CheckCircle, ClipboardList, 
-  Filter, ChevronLeft, Edit, Trash2
+  Filter, ChevronLeft, Edit, Trash2, Upload, Image as ImageIcon
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'community-management', onNavigate, isOpen, setIsOpen }) => {
@@ -144,6 +144,10 @@ const CommunityManagement = ({ onNavigate }) => {
   const [formData, setFormData] = useState({
     nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif'
   });
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState('');
+  const [editThumbnailFile, setEditThumbnailFile] = useState(null);
+  const [editThumbnailPreview, setEditThumbnailPreview] = useState('');
 
   const fetchCommunities = async () => {
     try {
@@ -160,12 +164,65 @@ const CommunityManagement = ({ onNavigate }) => {
     fetchCommunities();
   }, []);
 
+  const handleThumbnailChange = (e, isEdit = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi ukuran max 2MB (2048 KB)
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'File Terlalu Besar',
+        text: 'Ukuran file thumbnail maksimal 2MB.',
+        confirmButtonColor: '#0f766e'
+      });
+      e.target.value = '';
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    if (isEdit) {
+      setEditThumbnailFile(file);
+      setEditThumbnailPreview(previewUrl);
+    } else {
+      setThumbnailFile(file);
+      setThumbnailPreview(previewUrl);
+    }
+  };
+
+  const handleOpenAddModal = () => {
+    setFormData({ nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif' });
+    setThumbnailFile(null);
+    setThumbnailPreview('');
+    setShowAddModal(true);
+  };
+
+  const handleOpenEditModal = (community) => {
+    setSelectedCommunity({ ...community });
+    setEditThumbnailFile(null);
+    setEditThumbnailPreview(community.thumbnail_url || '');
+    setShowEditModal(true);
+  };
+
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/admin-bkpsdm/komunitas', formData);
+      const data = new FormData();
+      data.append('nama_komunitas', formData.nama_komunitas);
+      data.append('deskripsi', formData.deskripsi || '');
+      data.append('rumpun_jabatan', formData.rumpun_jabatan);
+      data.append('status', formData.status);
+      if (thumbnailFile) {
+        data.append('thumbnail', thumbnailFile);
+      }
+
+      await api.post('/admin-bkpsdm/komunitas', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       setShowAddModal(false);
       setFormData({ nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif' });
+      setThumbnailFile(null);
+      setThumbnailPreview('');
       fetchCommunities();
       Toast.fire({
         icon: 'success',
@@ -175,7 +232,7 @@ const CommunityManagement = ({ onNavigate }) => {
       console.error('Failed to add community:', error);
       Toast.fire({
         icon: 'error',
-        title: 'Gagal menambahkan komunitas.'
+        title: error.response?.data?.message || 'Gagal menambahkan komunitas.'
       });
     }
   };
@@ -183,14 +240,22 @@ const CommunityManagement = ({ onNavigate }) => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/admin-bkpsdm/komunitas/${selectedCommunity.komunitas_id}`, {
-        nama_komunitas: selectedCommunity.nama_komunitas,
-        deskripsi: selectedCommunity.deskripsi,
-        rumpun_jabatan: selectedCommunity.rumpun_jabatan,
-        status: selectedCommunity.status
+      const data = new FormData();
+      data.append('nama_komunitas', selectedCommunity.nama_komunitas);
+      data.append('deskripsi', selectedCommunity.deskripsi || '');
+      data.append('rumpun_jabatan', selectedCommunity.rumpun_jabatan);
+      data.append('status', selectedCommunity.status);
+      if (editThumbnailFile) {
+        data.append('thumbnail', editThumbnailFile);
+      }
+
+      await api.post(`/admin-bkpsdm/komunitas/${selectedCommunity.komunitas_id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       setShowEditModal(false);
       setSelectedCommunity(null);
+      setEditThumbnailFile(null);
+      setEditThumbnailPreview('');
       fetchCommunities();
       Toast.fire({
         icon: 'success',
@@ -200,7 +265,7 @@ const CommunityManagement = ({ onNavigate }) => {
       console.error('Failed to update community:', error);
       Toast.fire({
         icon: 'error',
-        title: 'Gagal memperbarui komunitas.'
+        title: error.response?.data?.message || 'Gagal memperbarui komunitas.'
       });
     }
   };
@@ -268,7 +333,7 @@ const CommunityManagement = ({ onNavigate }) => {
               <p className="text-sm text-gray-500">Kelola daftar komunitas belajar dan penetapan admin komunitas.</p>
             </div>
             <button 
-              onClick={() => setShowAddModal(true)}
+              onClick={handleOpenAddModal}
               className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center shrink-0"
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -320,7 +385,7 @@ const CommunityManagement = ({ onNavigate }) => {
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
                   <tr className="bg-white border-b border-gray-100">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">NAMA KOMUNITAS</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">KOMUNITAS</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">DESKRIPSI SINGKAT</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">RUMPUN JABATAN</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">STATUS</th>
@@ -331,7 +396,16 @@ const CommunityManagement = ({ onNavigate }) => {
                   {filteredCommunities.map((community) => (
                     <tr key={community.komunitas_id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-bold text-gray-800">{community.nama_komunitas}</p>
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={community.thumbnail_url || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop'} 
+                            alt={community.nama_komunitas} 
+                            className="w-10 h-10 rounded-lg object-cover border border-gray-200 shrink-0" 
+                          />
+                          <div>
+                            <p className="font-bold text-gray-800 leading-snug">{community.nama_komunitas}</p>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-600">{community.deskripsi}</p>
@@ -344,7 +418,7 @@ const CommunityManagement = ({ onNavigate }) => {
                       </td>
                       <td className="px-6 py-4 text-right flex justify-end gap-2">
                         <button 
-                          onClick={() => { setSelectedCommunity({...community}); setShowEditModal(true); }}
+                          onClick={() => handleOpenEditModal(community)}
                           className="p-1.5 text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
                         >
                           <Edit className="w-4 h-4" />
@@ -382,6 +456,44 @@ const CommunityManagement = ({ onNavigate }) => {
                 </div>
                 <form onSubmit={handleAddSubmit} className="space-y-4">
                   <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Thumbnail / Gambar Sampul</label>
+                    <div className="flex items-center gap-4">
+                      {thumbnailPreview ? (
+                        <div className="relative w-20 h-20 rounded-lg border border-gray-200 overflow-hidden shrink-0 group">
+                          <img src={thumbnailPreview} alt="Preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => { setThumbnailFile(null); setThumbnailPreview(''); }}
+                            className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold cursor-pointer"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 shrink-0 bg-gray-50">
+                          <ImageIcon className="w-6 h-6 mb-1 text-gray-400" />
+                          <span className="text-[10px]">No Image</span>
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          id="thumbnail-add"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          onChange={(e) => handleThumbnailChange(e, false)}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="thumbnail-add"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                        >
+                          <Upload className="w-3.5 h-3.5" /> Pilih File Gambar
+                        </label>
+                        <p className="text-[11px] text-gray-400 mt-1">Format: JPG, PNG, WEBP. Maksimal 2MB.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Komunitas</label>
                     <input required type="text" value={formData.nama_komunitas} onChange={e => setFormData({...formData, nama_komunitas: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="Masukkan nama komunitas" />
                   </div>
@@ -418,6 +530,49 @@ const CommunityManagement = ({ onNavigate }) => {
                   </button>
                 </div>
                 <form onSubmit={handleEditSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Thumbnail / Gambar Sampul</label>
+                    <div className="flex items-center gap-4">
+                      {editThumbnailPreview ? (
+                        <div className="relative w-20 h-20 rounded-lg border border-gray-200 overflow-hidden shrink-0 group">
+                          <img src={editThumbnailPreview} alt="Preview" className="w-full h-full object-cover" />
+                          {editThumbnailFile && (
+                            <button
+                              type="button"
+                              onClick={() => { 
+                                setEditThumbnailFile(null); 
+                                setEditThumbnailPreview(selectedCommunity.thumbnail_url || ''); 
+                              }}
+                              className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold cursor-pointer"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 shrink-0 bg-gray-50">
+                          <ImageIcon className="w-6 h-6 mb-1 text-gray-400" />
+                          <span className="text-[10px]">No Image</span>
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          id="thumbnail-edit"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          onChange={(e) => handleThumbnailChange(e, true)}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="thumbnail-edit"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                        >
+                          <Upload className="w-3.5 h-3.5" /> Ganti Gambar
+                        </label>
+                        <p className="text-[11px] text-gray-400 mt-1">Format: JPG, PNG, WEBP. Maksimal 2MB.</p>
+                      </div>
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Komunitas</label>
                     <input required type="text" value={selectedCommunity.nama_komunitas} onChange={e => setSelectedCommunity({...selectedCommunity, nama_komunitas: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none" />

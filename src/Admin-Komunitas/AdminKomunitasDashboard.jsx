@@ -399,10 +399,21 @@ const AdminKomunitasDashboard = ({ onNavigate }) => {
                       return (
                         <tr key={course.pembelajaran_id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4">
-                            <p className="font-bold text-gray-900">{course.judul_pembelajaran}</p>
-                            <div className="flex gap-3 mt-1 text-xs text-gray-500 font-medium">
-                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Min. {course.nilai_kelulusan}%</span>
-                              <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> ID: #{course.pembelajaran_id}</span>
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-200 shadow-2xs">
+                                <img 
+                                  src={course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=200&auto=format&fit=crop'} 
+                                  alt={course.judul_pembelajaran} 
+                                  className="w-full h-full object-cover" 
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-gray-900 truncate max-w-xs">{course.judul_pembelajaran}</p>
+                                <div className="flex gap-3 mt-1 text-xs text-gray-500 font-medium">
+                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Min. {course.nilai_kelulusan}%</span>
+                                  <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> ID: #{course.pembelajaran_id}</span>
+                                </div>
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4">

@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import AdminKomunitasSkeleton from './AdminKomunitasSkeleton';
 import api from '../api/axios';
 import Swal from 'sweetalert2';
-import { 
+import {
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
   FileText, RotateCcw, ChevronDown, CheckCircle2,
   PlayCircle, Edit, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Clock,
   BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon,
   ArrowLeft, Upload, Plus, AlertCircle, File, Eye, Trash2, Edit2, Download,
-  ExternalLink, Video, Check
+  ExternalLink, Video, Check, Image as ImageIcon
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIsOpen }) => {
@@ -27,8 +27,8 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
         if (res.data?.data?.length > 0) {
           setCommunityName(res.data.data[0].nama_komunitas);
         }
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
   }, []);
 
   const menuItems = [
@@ -42,7 +42,7 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
   return (
     <>
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
@@ -59,7 +59,7 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
               <p className="text-[10px] text-gray-500 font-medium">E-Learning System</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center overflow-hidden shrink-0">
               <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.nama_lengkap || 'Admin Komunitas')}&background=0D8ABC&color=fff`} alt="Admin" className="w-full h-full object-cover" />
@@ -70,12 +70,12 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
             </div>
           </div>
         </div>
-        
+
         <div className="flex-1 py-2 px-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeMenu === item.id;
-            
+
             return (
               <button
                 key={item.id}
@@ -83,11 +83,10 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
                   if (onNavigate) onNavigate(item.id);
                   if (window.innerWidth < 1024) setIsOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  isActive 
-                    ? 'bg-[#0F766E] text-white shadow-sm' 
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
+                    ? 'bg-[#0F766E] text-white shadow-sm'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
                 <span className="text-left truncate leading-tight">{item.label}</span>
@@ -97,13 +96,13 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
         </div>
 
         <div className="p-4 space-y-2 mt-auto">
-          <button 
+          <button
             onClick={() => onNavigate && onNavigate('pusat-bantuan')}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-teal-600 text-teal-700 rounded-lg text-sm font-semibold hover:bg-teal-50 transition-colors"
           >
             <HeadphonesIcon className="w-4 h-4" /> Bantuan Teknis
           </button>
-          <button 
+          <button
             onClick={() => onNavigate && onNavigate('landing')}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
           >
@@ -119,7 +118,7 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
 const Header = ({ setIsOpen }) => (
   <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
     <div className="flex items-center gap-4 flex-1">
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="lg:hidden p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
@@ -127,9 +126,9 @@ const Header = ({ setIsOpen }) => (
       </button>
       <div className="relative w-full max-w-md hidden sm:block">
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input 
-          type="text" 
-          placeholder="Cari modul atau materi..." 
+        <input
+          type="text"
+          placeholder="Cari modul atau materi..."
           className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
         />
       </div>
@@ -145,11 +144,17 @@ const DetailKursus = ({ onNavigate }) => {
   const [openModuleIds, setOpenModuleIds] = useState({});
   const [loading, setLoading] = useState(true);
 
+  // Course Thumbnail State
+  const [courseThumbnailFile, setCourseThumbnailFile] = useState(null);
+  const [courseThumbnailPreview, setCourseThumbnailPreview] = useState('');
+
   // Modal State: Tambah & Edit Modul
   const [showAddModuleModal, setShowAddModuleModal] = useState(false);
   const [isEditingModule, setIsEditingModule] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState(null);
   const [moduleForm, setModuleForm] = useState({ judul_modul: '', deskripsi: '' });
+  const [moduleThumbnailFile, setModuleThumbnailFile] = useState(null);
+  const [moduleThumbnailPreview, setModuleThumbnailPreview] = useState('');
 
   // Modal State: Tambah Materi
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
@@ -204,6 +209,8 @@ const DetailKursus = ({ onNavigate }) => {
           cData.kategori = 'Pengembangan Kompetensi';
         }
         setCourse(cData);
+        setCourseThumbnailPreview(cData?.thumbnail_url || '');
+        setCourseThumbnailFile(null);
       }
       if (resModul.status === 'fulfilled') {
         const modData = resModul.value.data.data || [];
@@ -233,21 +240,50 @@ const DetailKursus = ({ onNavigate }) => {
     }));
   };
 
+  const handleCourseThumbnailChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'File Terlalu Besar',
+        text: 'Ukuran file thumbnail maksimal 2MB.',
+        confirmButtonColor: '#0F766E'
+      });
+      e.target.value = '';
+      return;
+    }
+
+    setCourseThumbnailFile(file);
+    setCourseThumbnailPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveCourseThumbnail = () => {
+    setCourseThumbnailFile(null);
+    setCourseThumbnailPreview(course?.thumbnail_url || '');
+  };
+
   // --- Informasi Dasar & Aksi Kursus ---
   const handleUpdateBasicInfo = async () => {
     if (!course) return;
     const wasPublished = course.status === 'dipublikasikan';
     try {
-      const payload = {
-        judul_pembelajaran: course.judul_pembelajaran,
-        deskripsi: course.deskripsi,
-        kategori: course.kategori || 'Pengembangan Kompetensi',
-        capaian_pembelajaran: course.capaian_pembelajaran || '-',
-        nilai_kelulusan: course.nilai_kelulusan,
-        komunitas_id: course.komunitas_id
-      };
-      await api.put(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, payload);
-      
+      const data = new FormData();
+      data.append('judul_pembelajaran', course.judul_pembelajaran);
+      data.append('deskripsi', course.deskripsi || '-');
+      data.append('kategori', course.kategori || 'Pengembangan Kompetensi');
+      data.append('capaian_pembelajaran', course.capaian_pembelajaran || '-');
+      data.append('nilai_kelulusan', course.nilai_kelulusan ?? 70);
+      data.append('komunitas_id', course.komunitas_id);
+      if (courseThumbnailFile) {
+        data.append('thumbnail', courseThumbnailFile);
+      }
+
+      await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
       if (wasPublished) {
         Swal.fire({
           icon: 'info',
@@ -317,17 +353,40 @@ const DetailKursus = ({ onNavigate }) => {
     setIsEditingModule(false);
     setEditingModuleId(null);
     setModuleForm({ judul_modul: '', deskripsi: '' });
+    setModuleThumbnailFile(null);
+    setModuleThumbnailPreview('');
     setShowAddModuleModal(true);
   };
 
   const handleOpenEditModuleModal = (modul) => {
     setIsEditingModule(true);
     setEditingModuleId(modul.modul_id);
-    setModuleForm({ 
-      judul_modul: modul.judul_modul || '', 
-      deskripsi: modul.deskripsi || modul.gambaran_umum || '' 
+    setModuleForm({
+      judul_modul: modul.judul_modul || '',
+      deskripsi: modul.deskripsi || modul.gambaran_umum || ''
     });
+    setModuleThumbnailFile(null);
+    setModuleThumbnailPreview(modul.thumbnail_url || '');
     setShowAddModuleModal(true);
+  };
+
+  const handleModuleThumbnailChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'File Terlalu Besar',
+        text: 'Ukuran file thumbnail maksimal 2MB.',
+        confirmButtonColor: '#0F766E'
+      });
+      e.target.value = '';
+      return;
+    }
+
+    setModuleThumbnailFile(file);
+    setModuleThumbnailPreview(URL.createObjectURL(file));
   };
 
   const handleSaveModule = async (e) => {
@@ -335,16 +394,20 @@ const DetailKursus = ({ onNavigate }) => {
     if (!moduleForm.judul_modul.trim()) return;
 
     const desc = moduleForm.deskripsi?.trim() || `Gambaran umum modul ${moduleForm.judul_modul}`;
-    const payload = {
-      judul_modul: moduleForm.judul_modul,
-      gambaran_umum: desc,
-      deskripsi: desc,
-      evaluasi_deskripsi: 'Evaluasi pemahaman materi modul'
-    };
+    const data = new FormData();
+    data.append('judul_modul', moduleForm.judul_modul);
+    data.append('gambaran_umum', desc);
+    data.append('deskripsi', desc);
+    data.append('evaluasi_deskripsi', 'Evaluasi pemahaman materi modul');
+    if (moduleThumbnailFile) {
+      data.append('thumbnail', moduleThumbnailFile);
+    }
 
     try {
       if (isEditingModule && editingModuleId) {
-        await api.put(`/admin-komunitas/modul/${editingModuleId}`, payload);
+        await api.post(`/admin-komunitas/modul/${editingModuleId}`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         Swal.fire({
           icon: 'success',
           title: 'Berhasil Diperbarui',
@@ -353,7 +416,9 @@ const DetailKursus = ({ onNavigate }) => {
           showConfirmButton: false
         });
       } else {
-        const res = await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/modul`, payload);
+        const res = await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/modul`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         const newId = res.data?.data?.modul_id;
         if (newId) {
           setOpenModuleIds(prev => ({ ...prev, [newId]: true }));
@@ -368,6 +433,8 @@ const DetailKursus = ({ onNavigate }) => {
       }
       setShowAddModuleModal(false);
       setModuleForm({ judul_modul: '', deskripsi: '' });
+      setModuleThumbnailFile(null);
+      setModuleThumbnailPreview('');
       fetchCourseData();
     } catch (error) {
       console.error('Error saving module:', error);
@@ -853,22 +920,22 @@ const DetailKursus = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans pb-36 sm:pb-24">
-      <AdminSidebar 
-        activeMenu="katalog-kursus" 
+      <AdminSidebar
+        activeMenu="katalog-kursus"
         onNavigate={onNavigate}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
       />
-      
+
       <div className="lg:ml-64 flex flex-col min-h-screen">
         <Header setIsOpen={setIsSidebarOpen} />
-        
+
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Top Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
               <div>
-                <button 
+                <button
                   onClick={() => onNavigate('pelatihan-saya')}
                   className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#0F766E] mb-3 transition-colors font-medium"
                 >
@@ -879,15 +946,14 @@ const DetailKursus = ({ onNavigate }) => {
                     {course.judul_pembelajaran || 'Kursus Baru'}
                   </h1>
                   {course.status && (
-                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full uppercase ${
-                      course.status === 'dipublikasikan' 
-                        ? 'bg-green-100 text-green-700' 
+                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full uppercase ${course.status === 'dipublikasikan'
+                        ? 'bg-green-100 text-green-700'
                         : course.status === 'menunggu_approval'
-                        ? 'bg-amber-100 text-amber-700'
-                        : course.status === 'ditolak'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
+                          ? 'bg-amber-100 text-amber-700'
+                          : course.status === 'ditolak'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-gray-100 text-gray-700'
+                      }`}>
                       {course.status.replace('_', ' ')}
                     </span>
                   )}
@@ -895,7 +961,7 @@ const DetailKursus = ({ onNavigate }) => {
               </div>
 
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={handleDeleteCourse}
                   className="flex items-center gap-1.5 px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg text-xs font-bold transition-colors shadow-xs"
                 >
@@ -939,7 +1005,7 @@ const DetailKursus = ({ onNavigate }) => {
                   </div>
                   <p className="text-xs text-red-700 mb-2.5 leading-relaxed bg-white/70 p-3 rounded-lg border border-red-100">
                     <span className="font-semibold block text-red-800 mb-0.5">Catatan Perbaikan:</span>
-                    {course.validasi?.catatan 
+                    {course.validasi?.catatan
                       ? course.validasi.catatan
                       : 'Pembelajaran ini memerlukan perbaikan sebelum dapat dipublikasikan. Silakan lengkapi modul, materi, atau evaluasi sesuai arahan verifikator.'}
                   </p>
@@ -957,23 +1023,70 @@ const DetailKursus = ({ onNavigate }) => {
                 <span className="text-xs text-gray-500 font-medium">ID Pembelajaran: #{course.pembelajaran_id}</span>
               </div>
               <div className="p-6 space-y-6">
+                {/* Thumbnail / Cover Kursus */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Thumbnail / Cover Kursus <span className="text-gray-400 text-xs font-normal">(Maks. 2MB)</span>
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="w-full sm:w-56 h-32 rounded-lg border border-gray-200 overflow-hidden bg-gray-100 shrink-0 relative shadow-2xs">
+                      <img
+                        src={courseThumbnailPreview || course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop'}
+                        alt={course.judul_pembelajaran}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <label className="cursor-pointer px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg shadow-2xs transition-colors flex items-center gap-2">
+                          <Upload className="w-3.5 h-3.5 text-gray-500" />
+                          <span>{courseThumbnailFile ? 'Ganti File Dipilih' : 'Pilih File Thumbnail'}</span>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            onChange={handleCourseThumbnailChange}
+                            className="hidden"
+                          />
+                        </label>
+                        {courseThumbnailFile && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveCourseThumbnail}
+                            className="text-xs text-red-600 hover:text-red-700 font-semibold cursor-pointer"
+                          >
+                            Batal Pilih
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Format yang didukung: JPG, JPEG, PNG, WEBP. Maksimal 2MB. Gambar ini tampil di kartu kursus katalog dan dasbor peserta.
+                      </p>
+                      {courseThumbnailFile && (
+                        <p className="text-xs text-teal-700 font-medium">
+                          File baru terpilih: <strong>{courseThumbnailFile.name}</strong> (klik <em>Simpan Perubahan</em> di bawah untuk menerapkan)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Judul Kursus</label>
-                  <input 
-                    type="text" 
-                    value={course.judul_pembelajaran || ''} 
-                    onChange={(e) => setCourse({...course, judul_pembelajaran: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                  <input
+                    type="text"
+                    value={course.judul_pembelajaran || ''}
+                    onChange={(e) => setCourse({ ...course, judul_pembelajaran: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Kategori</label>
                     <div className="relative">
-                      <select 
-                        value={course.kategori || 'Pengembangan Kompetensi'} 
-                        onChange={(e) => setCourse({...course, kategori: e.target.value})}
+                      <select
+                        value={course.kategori || 'Pengembangan Kompetensi'}
+                        onChange={(e) => setCourse({ ...course, kategori: e.target.value })}
                         className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 pr-10"
                       >
                         <option value="Pengembangan Kompetensi">Pengembangan Kompetensi</option>
@@ -986,23 +1099,23 @@ const DetailKursus = ({ onNavigate }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Target Capaian Pembelajaran</label>
-                    <input 
-                      type="text" 
-                      value={course.capaian_pembelajaran || ''} 
-                      onChange={(e) => setCourse({...course, capaian_pembelajaran: e.target.value})}
+                    <input
+                      type="text"
+                      value={course.capaian_pembelajaran || ''}
+                      onChange={(e) => setCourse({ ...course, capaian_pembelajaran: e.target.value })}
                       placeholder="Contoh: Menguasai prinsip integritas birokrasi"
-                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi Kursus</label>
-                  <textarea 
-                    rows="3" 
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none" 
+                  <textarea
+                    rows="3"
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
                     value={course.deskripsi || ''}
-                    onChange={(e) => setCourse({...course, deskripsi: e.target.value})}
+                    onChange={(e) => setCourse({ ...course, deskripsi: e.target.value })}
                     placeholder="Tuliskan deskripsi lengkap mengenai tujuan dan target pelatihan ini..."
                   ></textarea>
                 </div>
@@ -1016,7 +1129,7 @@ const DetailKursus = ({ onNavigate }) => {
                   <h2 className="font-bold text-gray-900">Modul & Materi Pembelajaran</h2>
                   <p className="text-xs text-gray-500">Kelola bab, dokumen bacaan PDF, dan video pendukung.</p>
                 </div>
-                <button 
+                <button
                   onClick={handleOpenAddModuleModal}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 border border-[#0F766E]/30 text-[#0F766E] text-sm font-semibold rounded-lg hover:bg-teal-100 transition-colors"
                 >
@@ -1030,7 +1143,7 @@ const DetailKursus = ({ onNavigate }) => {
                     <BookOpen className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm font-semibold text-gray-700">Belum ada modul pada kursus ini</p>
                     <p className="text-xs text-gray-400 mt-1 mb-4">Mulai dengan menambahkan modul pembelajaran pertama.</p>
-                    <button 
+                    <button
                       onClick={handleOpenAddModuleModal}
                       className="px-4 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800"
                     >
@@ -1045,18 +1158,24 @@ const DetailKursus = ({ onNavigate }) => {
                     return (
                       <div key={modul.modul_id} className="border border-gray-200 rounded-xl overflow-hidden transition-all shadow-xs">
                         {/* Accordion Header */}
-                        <div 
-                          className={`flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors ${
-                            isOpen ? 'bg-teal-50/60 border-b border-teal-100' : 'bg-white hover:bg-gray-50'
-                          }`}
+                        <div
+                          className={`flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors ${isOpen ? 'bg-teal-50/60 border-b border-teal-100' : 'bg-white hover:bg-gray-50'
+                            }`}
                         >
-                          <div 
+                          <div
                             className="flex items-center gap-3 text-sm font-bold text-gray-900 flex-1 min-w-0"
                             onClick={() => toggleModuleOpen(modul.modul_id)}
                           >
                             <span className="w-6 h-6 rounded-full bg-teal-100 text-teal-700 text-xs flex items-center justify-center font-bold shrink-0">
                               {idx + 1}
                             </span>
+                            {modul.thumbnail_url && (
+                              <img 
+                                src={modul.thumbnail_url} 
+                                alt={modul.judul_modul} 
+                                className="w-8 h-8 rounded-md object-cover border border-gray-200 shrink-0" 
+                              />
+                            )}
                             <span className="truncate">{modul.judul_modul}</span>
                             <span className="text-xs font-normal text-gray-500 hidden sm:inline">
                               ({materiList.length} Materi • {modul.durasi_total_menit || 0} Menit)
@@ -1064,28 +1183,28 @@ const DetailKursus = ({ onNavigate }) => {
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
-                            <button 
+                            <button
                               onClick={() => handleOpenAddMaterialModal(modul.modul_id)}
                               title="Tambah Materi"
                               className="px-2.5 py-1 bg-white border border-gray-200 text-teal-700 hover:bg-teal-50 rounded text-xs font-semibold flex items-center gap-1"
                             >
                               <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Materi</span>
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleOpenEditModuleModal(modul)}
                               title="Edit Modul"
                               className="p-1 text-gray-400 hover:text-teal-600 rounded hover:bg-teal-50 transition-colors"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDeleteModule(modul.modul_id, modul.judul_modul)}
                               title="Hapus Modul"
                               className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => toggleModuleOpen(modul.modul_id)}
                               className="p-1 text-gray-400 hover:text-gray-600"
                             >
@@ -1097,10 +1216,19 @@ const DetailKursus = ({ onNavigate }) => {
                         {/* Accordion Body */}
                         {isOpen && (
                           <div className="p-4 sm:p-5 bg-white space-y-4">
-                            {(modul.deskripsi || modul.gambaran_umum) && (
-                              <div className="text-xs text-gray-700 bg-gray-50/80 p-3 rounded-lg border border-gray-100 flex items-start gap-2">
-                                <span className="font-semibold text-gray-900 shrink-0">Deskripsi:</span>
-                                <span className="leading-relaxed text-gray-600">{modul.deskripsi || modul.gambaran_umum}</span>
+                            {(modul.deskripsi || modul.gambaran_umum || modul.thumbnail_url) && (
+                              <div className="text-xs text-gray-700 bg-gray-50/80 p-3 rounded-lg border border-gray-100 flex items-start gap-3">
+                                {modul.thumbnail_url && (
+                                  <img 
+                                    src={modul.thumbnail_url} 
+                                    alt={modul.judul_modul} 
+                                    className="w-14 h-14 rounded-lg object-cover border border-gray-200 shrink-0" 
+                                  />
+                                )}
+                                <div className="flex-1">
+                                  <span className="font-semibold text-gray-900 block mb-0.5">Deskripsi Modul:</span>
+                                  <span className="leading-relaxed text-gray-600">{modul.deskripsi || modul.gambaran_umum || '-'}</span>
+                                </div>
                               </div>
                             )}
 
@@ -1114,7 +1242,7 @@ const DetailKursus = ({ onNavigate }) => {
                               {materiList.length === 0 ? (
                                 <div className="p-4 text-center border border-dashed border-gray-200 rounded-lg bg-gray-50/50">
                                   <p className="text-xs text-gray-500 mb-2">Belum ada berkas materi di modul ini.</p>
-                                  <button 
+                                  <button
                                     onClick={() => handleOpenAddMaterialModal(modul.modul_id)}
                                     className="text-xs font-semibold text-teal-700 hover:underline inline-flex items-center gap-1"
                                   >
@@ -1126,9 +1254,8 @@ const DetailKursus = ({ onNavigate }) => {
                                   {materiList.map((mat) => (
                                     <div key={mat.materi_id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg bg-gray-50/70 hover:bg-gray-50 transition-colors">
                                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${
-                                          mat.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                                        }`}>
+                                        <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${mat.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                          }`}>
                                           {mat.tipe_materi === 'pdf' ? <FileText className="w-4 h-4" /> : <Video className="w-4 h-4" />}
                                         </div>
                                         <div className="min-w-0 flex-1">
@@ -1140,7 +1267,7 @@ const DetailKursus = ({ onNavigate }) => {
                                       </div>
 
                                       <div className="flex items-center gap-2 shrink-0 ml-3">
-                                        <a 
+                                        <a
                                           href={mat.tautan_atau_berkas.startsWith('http') ? mat.tautan_atau_berkas : `http://localhost:8000${mat.tautan_atau_berkas}`}
                                           target="_blank"
                                           rel="noreferrer"
@@ -1148,7 +1275,7 @@ const DetailKursus = ({ onNavigate }) => {
                                         >
                                           <Eye className="w-3.5 h-3.5" /> Buka
                                         </a>
-                                        <button 
+                                        <button
                                           onClick={() => handleDeleteMaterial(mat.materi_id, mat.judul_materi)}
                                           className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
                                           title="Hapus Materi"
@@ -1176,7 +1303,7 @@ const DetailKursus = ({ onNavigate }) => {
                 <h2 className="font-bold text-gray-900">Evaluasi Pembelajaran (Kuis & Post Test)</h2>
               </div>
               <div className="p-6 space-y-8">
-                
+
                 {/* Kuis per Modul */}
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 mb-1">Kuis Evaluasi per Modul</h3>
@@ -1192,11 +1319,10 @@ const DetailKursus = ({ onNavigate }) => {
                         const questionCount = quiz?.soal_kuis?.length || 0;
 
                         return (
-                          <div 
-                            key={m.modul_id} 
-                            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-xl transition-colors ${
-                              hasQuiz ? 'border-gray-200 bg-gray-50/50' : 'border-dashed border-amber-200 bg-amber-50/30'
-                            }`}
+                          <div
+                            key={m.modul_id}
+                            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-xl transition-colors ${hasQuiz ? 'border-gray-200 bg-gray-50/50' : 'border-dashed border-amber-200 bg-amber-50/30'
+                              }`}
                           >
                             <div>
                               <div className="flex items-center gap-2">
@@ -1208,19 +1334,18 @@ const DetailKursus = ({ onNavigate }) => {
                                 )}
                               </div>
                               <p className="text-xs text-gray-500 mt-1">
-                                {hasQuiz 
+                                {hasQuiz
                                   ? `${questionCount} Butir Soal • Batas Lulus ${quiz?.nilai_kelulusan ?? 70}% • Maks. ${quiz?.maks_percobaan ?? 3}x Coba`
                                   : 'Modul ini belum memiliki evaluasi kuis'}
                               </p>
                             </div>
 
-                            <button 
+                            <button
                               onClick={() => handleOpenQuizModal(m)}
-                              className={`flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg transition-colors w-full sm:w-auto ${
-                                hasQuiz 
-                                  ? 'bg-white border border-gray-200 text-teal-700 hover:bg-gray-50' 
+                              className={`flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg transition-colors w-full sm:w-auto ${hasQuiz
+                                  ? 'bg-white border border-gray-200 text-teal-700 hover:bg-gray-50'
                                   : 'bg-[#0F766E] text-white hover:bg-teal-800'
-                              }`}
+                                }`}
                             >
                               {hasQuiz ? <><Edit2 className="w-3.5 h-3.5" /> Edit Kuis</> : <><Plus className="w-3.5 h-3.5" /> Buat Kuis</>}
                             </button>
@@ -1240,7 +1365,7 @@ const DetailKursus = ({ onNavigate }) => {
                       <h3 className="text-sm font-bold text-gray-900">Konfigurasi Post Test Akhir</h3>
                       <p className="text-xs text-gray-500">Evaluasi kelulusan komprehensif setelah seluruh modul diselesaikan.</p>
                     </div>
-                    <button 
+                    <button
                       onClick={handleSavePostTestConfig}
                       className="px-3 py-1.5 bg-white border border-gray-200 text-teal-700 hover:bg-teal-50 rounded-lg text-xs font-semibold transition-colors"
                     >
@@ -1252,12 +1377,12 @@ const DetailKursus = ({ onNavigate }) => {
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nilai Kelulusan (Passing Grade)</label>
                       <div className="relative">
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           min="0" max="100"
-                          value={course.nilai_kelulusan ?? 70} 
-                          onChange={(e) => setCourse({...course, nilai_kelulusan: Number(e.target.value)})}
-                          className="w-full pl-4 pr-10 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                          value={course.nilai_kelulusan ?? 70}
+                          onChange={(e) => setCourse({ ...course, nilai_kelulusan: Number(e.target.value) })}
+                          className="w-full pl-4 pr-10 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">%</span>
                       </div>
@@ -1265,7 +1390,7 @@ const DetailKursus = ({ onNavigate }) => {
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1.5">Batas Maksimal Percobaan</label>
                       <div className="relative">
-                        <select 
+                        <select
                           value={postTest?.maks_percobaan || 3}
                           onChange={(e) => setPostTest(prev => prev ? { ...prev, maks_percobaan: Number(e.target.value) } : { maks_percobaan: Number(e.target.value) })}
                           className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 pr-10"
@@ -1291,7 +1416,7 @@ const DetailKursus = ({ onNavigate }) => {
                       Total <span className="font-bold text-teal-800">{postTest?.soal_post_test?.length || 0} Pertanyaan</span> telah dikonfigurasi pada Bank Soal kursus ini.
                     </p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       localStorage.setItem('adminKomunitasCourseId', course.pembelajaran_id);
                       if (onNavigate) onNavigate('bank-soal');
@@ -1309,7 +1434,7 @@ const DetailKursus = ({ onNavigate }) => {
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-teal-600"></div>
                 <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                  Surat Pernyataan Keabsahan Konten 
+                  Surat Pernyataan Keabsahan Konten
                   <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] uppercase font-bold rounded">Opsional</span>
                 </h2>
               </div>
@@ -1337,7 +1462,7 @@ const DetailKursus = ({ onNavigate }) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                      <a 
+                      <a
                         href={course.surat_pernyataan_url.startsWith('http') ? course.surat_pernyataan_url : `http://localhost:8000${course.surat_pernyataan_url}`}
                         target="_blank"
                         rel="noreferrer"
@@ -1356,8 +1481,8 @@ const DetailKursus = ({ onNavigate }) => {
                   </label>
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50/60 flex flex-col items-center justify-center text-center">
                     <Upload className="w-8 h-8 text-teal-600 mb-2" />
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       accept="application/pdf"
                       onChange={(e) => setSuratFile(e.target.files[0] || null)}
                       className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
@@ -1365,7 +1490,7 @@ const DetailKursus = ({ onNavigate }) => {
                     <p className="text-xs text-gray-400 mt-2">Maksimal ukuran file 5MB (Format .pdf)</p>
                     {suratFile && (
                       <div className="mt-3">
-                        <button 
+                        <button
                           onClick={handleUploadSuratPernyataan}
                           disabled={isUploadingSurat}
                           className="px-4 py-1.5 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 disabled:opacity-50"
@@ -1385,7 +1510,7 @@ const DetailKursus = ({ onNavigate }) => {
 
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 p-4 px-6 z-20 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <button 
+        <button
           onClick={handleDeleteCourse}
           className="w-full sm:w-auto px-4 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
         >
@@ -1415,9 +1540,47 @@ const DetailKursus = ({ onNavigate }) => {
             </div>
             <form onSubmit={handleSaveModule} className="space-y-4">
               <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Thumbnail / Gambar Modul</label>
+                <div className="flex items-center gap-3.5">
+                  {moduleThumbnailPreview ? (
+                    <div className="relative w-16 h-16 rounded-lg border border-gray-200 overflow-hidden shrink-0 group">
+                      <img src={moduleThumbnailPreview} alt="Thumbnail Modul" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => { setModuleThumbnailFile(null); setModuleThumbnailPreview(''); }}
+                        className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] font-bold cursor-pointer"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 shrink-0 bg-gray-50">
+                      <ImageIcon className="w-5 h-5 mb-0.5 text-gray-400" />
+                      <span className="text-[9px]">No Image</span>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      id="module-thumbnail-upload"
+                      accept="image/png, image/jpeg, image/jpg, image/webp"
+                      onChange={handleModuleThumbnailChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="module-thumbnail-upload"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <Upload className="w-3.5 h-3.5" /> {moduleThumbnailPreview ? 'Ganti Gambar' : 'Pilih Gambar'}
+                    </label>
+                    <p className="text-[11px] text-gray-400 mt-1">Format: JPG, PNG, WEBP. Maksimal 2MB.</p>
+                  </div>
+                </div>
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Judul Modul</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   value={moduleForm.judul_modul || ''}
                   onChange={(e) => setModuleForm({ ...moduleForm, judul_modul: e.target.value })}
@@ -1427,7 +1590,7 @@ const DetailKursus = ({ onNavigate }) => {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Deskripsi / Gambaran Umum Modul</label>
-                <textarea 
+                <textarea
                   rows="3"
                   value={moduleForm.deskripsi || ''}
                   onChange={(e) => setModuleForm({ ...moduleForm, deskripsi: e.target.value })}
@@ -1436,14 +1599,14 @@ const DetailKursus = ({ onNavigate }) => {
                 ></textarea>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowAddModuleModal(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50"
                 >
                   Batal
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="px-5 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800"
                 >
@@ -1468,8 +1631,8 @@ const DetailKursus = ({ onNavigate }) => {
             <form onSubmit={handleCreateMaterial} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Judul Materi</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   value={materialForm.judul_materi || ''}
                   onChange={(e) => setMaterialForm({ ...materialForm, judul_materi: e.target.value })}
@@ -1481,25 +1644,23 @@ const DetailKursus = ({ onNavigate }) => {
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Tipe Materi</label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setMaterialForm({ ...materialForm, tipe_materi: 'pdf' })}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${
-                      materialForm.tipe_materi === 'pdf' 
-                        ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]' 
+                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${materialForm.tipe_materi === 'pdf'
+                        ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     Dokumen PDF
                   </button>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setMaterialForm({ ...materialForm, tipe_materi: 'video_embed' })}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${
-                      materialForm.tipe_materi === 'video_embed' 
-                        ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]' 
+                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${materialForm.tipe_materi === 'video_embed'
+                        ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     Video YouTube (Embed)
                   </button>
@@ -1509,8 +1670,8 @@ const DetailKursus = ({ onNavigate }) => {
               {materialForm.tipe_materi === 'pdf' ? (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Unggah Berkas PDF (Maks. 10MB)</label>
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     required
                     accept="application/pdf"
                     onChange={(e) => setMaterialForm({ ...materialForm, file_pdf: e.target.files[0] || null })}
@@ -1520,8 +1681,8 @@ const DetailKursus = ({ onNavigate }) => {
               ) : (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">URL Video YouTube</label>
-                  <input 
-                    type="url" 
+                  <input
+                    type="url"
                     required
                     value={materialForm.tautan_atau_berkas_embed || ''}
                     onChange={(e) => setMaterialForm({ ...materialForm, tautan_atau_berkas_embed: e.target.value })}
@@ -1533,8 +1694,8 @@ const DetailKursus = ({ onNavigate }) => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Estimasi Durasi Belajar (Menit)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   min="1"
                   required
                   value={materialForm.durasi_menit ?? 15}
@@ -1544,14 +1705,14 @@ const DetailKursus = ({ onNavigate }) => {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowAddMaterialModal(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50"
                 >
                   Batal
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="px-5 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800"
                 >
@@ -1581,7 +1742,7 @@ const DetailKursus = ({ onNavigate }) => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Judul Kuis</label>
-                <input 
+                <input
                   type="text"
                   value={quizForm.judul_kuis || ''}
                   onChange={(e) => setQuizForm({ ...quizForm, judul_kuis: e.target.value })}
@@ -1590,7 +1751,7 @@ const DetailKursus = ({ onNavigate }) => {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Passing Grade (%)</label>
-                <input 
+                <input
                   type="number"
                   min="0" max="100"
                   value={quizForm.nilai_kelulusan ?? 70}
@@ -1600,7 +1761,7 @@ const DetailKursus = ({ onNavigate }) => {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Maks. Percobaan</label>
-                <input 
+                <input
                   type="number"
                   min="1"
                   value={quizForm.maks_percobaan ?? 3}
@@ -1625,7 +1786,7 @@ const DetailKursus = ({ onNavigate }) => {
                         <p className="font-bold text-gray-900">{idx + 1}. {q.teks_soal}</p>
                         <p className="text-teal-700 font-semibold">Kunci Jawaban: {q.kunci_jawaban}</p>
                       </div>
-                      <button 
+                      <button
                         onClick={() => handleRemoveQuestionFromQuiz(idx)}
                         className="text-gray-400 hover:text-red-600 p-1"
                       >
@@ -1641,8 +1802,8 @@ const DetailKursus = ({ onNavigate }) => {
             <form onSubmit={handleAddQuestionToQuiz} className="border border-teal-100 bg-teal-50/30 p-4 rounded-xl space-y-3">
               <h4 className="text-xs font-bold text-teal-800 uppercase tracking-wider">Tambah Pertanyaan Baru</h4>
               <div>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Tuliskan butir soal pertanyaan..."
                   value={newQuizItem.teks_soal || ''}
                   onChange={(e) => setNewQuizItem({ ...newQuizItem, teks_soal: e.target.value })}
@@ -1653,7 +1814,7 @@ const DetailKursus = ({ onNavigate }) => {
                 {['A', 'B', 'C', 'D'].map((optKey) => (
                   <div key={optKey} className="flex items-center gap-2">
                     <span className="text-xs font-bold text-gray-600 w-4">{optKey}.</span>
-                    <input 
+                    <input
                       type="text"
                       placeholder={`Pilihan ${optKey}`}
                       value={newQuizItem[`opsi${optKey}`] || ''}
@@ -1666,7 +1827,7 @@ const DetailKursus = ({ onNavigate }) => {
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-gray-700">Kunci Jawaban Benar:</span>
-                  <select 
+                  <select
                     value={newQuizItem.kunci_jawaban || 'A'}
                     onChange={(e) => setNewQuizItem({ ...newQuizItem, kunci_jawaban: e.target.value })}
                     className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-bold text-teal-700"
@@ -1677,7 +1838,7 @@ const DetailKursus = ({ onNavigate }) => {
                     <option value="D">D</option>
                   </select>
                 </div>
-                <button 
+                <button
                   type="submit"
                   className="px-3 py-1.5 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 flex items-center gap-1"
                 >
@@ -1687,14 +1848,14 @@ const DetailKursus = ({ onNavigate }) => {
             </form>
 
             <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowQuizModal(false)}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50"
               >
                 Batal
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={handleSaveQuiz}
                 className="px-6 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"

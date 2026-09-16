@@ -147,7 +147,7 @@ const CourseCard = ({ course, onNavigate }) => {
       {/* Cover Image */}
       <div className="h-40 bg-gray-100 relative w-full overflow-hidden shrink-0">
         <img 
-          src={course.gambar_sampul_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60'} 
+          src={course.thumbnail_url || course.gambar_sampul_url || course.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60'} 
           alt={courseTitle} 
           className="w-full h-full object-cover" 
         />

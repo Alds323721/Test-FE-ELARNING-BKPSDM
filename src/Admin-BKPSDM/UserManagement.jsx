@@ -152,9 +152,17 @@ const UserManagement = ({ onNavigate }) => {
   const fetchUsers = async () => {
     try {
       const response = await api.get('/admin-bkpsdm/pengguna');
-      setUsers(response.data.data);
+      const resData = response.data?.data;
+      if (Array.isArray(resData)) {
+        setUsers(resData);
+      } else if (resData && Array.isArray(resData.data)) {
+        setUsers(resData.data);
+      } else {
+        setUsers([]);
+      }
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -163,9 +171,11 @@ const UserManagement = ({ onNavigate }) => {
   const fetchKomunitas = async () => {
     try {
       const response = await api.get('/admin-bkpsdm/komunitas');
-      setKomunitasList(response.data.data);
+      const kData = response.data?.data;
+      setKomunitasList(Array.isArray(kData) ? kData : (kData?.data || []));
     } catch (error) {
       console.error('Failed to fetch komunitas:', error);
+      setKomunitasList([]);
     }
   };
 
@@ -323,9 +333,11 @@ const UserManagement = ({ onNavigate }) => {
     );
   };
 
-  const filteredUsers = users.filter(u => 
-    u.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.nip.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const userList = Array.isArray(users) ? users : [];
+
+  const filteredUsers = userList.filter(u => 
+    (u.nama_lengkap && u.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase())) || 
+    (u.nip && u.nip.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -359,21 +371,21 @@ const UserManagement = ({ onNavigate }) => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <StatCard
               title="Total Pengguna"
-              value={users.length}
+              value={userList.length}
               icon={Users}
               colorClass="bg-blue-100"
               iconColorClass="text-blue-600"
             />
             <StatCard
               title="Pengguna Aktif"
-              value={users.filter(u => u.status === 'aktif').length}
+              value={userList.filter(u => u.status === 'aktif').length}
               icon={CheckCircle}
               colorClass="bg-emerald-100"
               iconColorClass="text-emerald-500"
             />
             <StatCard
               title="Admin Komunitas"
-              value={users.filter(u => u.peran === 'admin_komunitas').length}
+              value={userList.filter(u => u.peran === 'admin_komunitas').length}
               icon={ClipboardList}
               colorClass="bg-orange-100"
               iconColorClass="text-orange-500"

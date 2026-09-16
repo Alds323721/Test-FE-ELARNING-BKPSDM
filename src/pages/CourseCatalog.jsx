@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Swal from 'sweetalert2';
 import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
@@ -18,7 +19,8 @@ import {
   MapPin,
   Check,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Users
 } from 'lucide-react';
 
 /* ── Navbar ─────────────────────────────────────────── */
@@ -52,14 +54,14 @@ const CatalogNavbar = ({ onNavigate }) => {
           <button className="text-[#1D315F] hover:text-[#006A63]">
             <Search className="w-5 h-5" />
           </button>
-          <ProfileDropdown onLogout={() => onNavigate('landing')} />
+          <ProfileDropdown onNavigate={onNavigate} />
         </div>
       </div>
 
       {/* Mobile toggle */}
       <div className="md:hidden flex items-center gap-3">
         <LanguageDropdown />
-        <ProfileDropdown onLogout={() => onNavigate('landing')} />
+        <ProfileDropdown onNavigate={onNavigate} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#1D315F] hover:text-[#006A63] focus:outline-none">
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -93,7 +95,7 @@ const CatalogHeader = () => {
 };
 
 /* ── Catalog Course Card ────────────────────────── */
-const CatalogCard = ({ id, image, category, title, description, jpl, modules, isEnrolled, onEnroll, onNavigate }) => {
+const CatalogCard = ({ id, image, category, title, description, jpl, modules, isEnrolled, onEnroll, onNavigate, nama_komunitas }) => {
   const { t } = useLanguage();
   return (
     <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all">
@@ -104,6 +106,12 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
         </div>
       </div>
       <div className="p-6 flex-1 flex flex-col">
+        {nama_komunitas && (
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#006A63] uppercase tracking-wider mb-2">
+            <Users className="w-3.5 h-3.5" />
+            <span className="truncate">{nama_komunitas}</span>
+          </div>
+        )}
         <h3 className="font-bold text-[#1D315F] text-[17px] leading-snug mb-3">{title}</h3>
         <p className="text-[12px] text-gray-500 line-clamp-3 mb-5 flex-1">{description}</p>
         
@@ -118,14 +126,14 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
               if (id) localStorage.setItem('userCourseId', id);
               onNavigate('course-detail');
             }}
-            className="w-full py-2.5 border-2 border-[#006A63] text-[#006A63] bg-white rounded-md text-[13px] font-bold hover:bg-[#EFF5F3] transition-colors"
+            className="w-full py-2.5 border-2 border-[#006A63] text-[#006A63] bg-white rounded-md text-[13px] font-bold hover:bg-[#EFF5F3] transition-colors cursor-pointer"
           >
             {t('catalog.viewCurriculum')}
           </button>
         ) : (
           <button
             onClick={() => onEnroll(id)}
-            className="w-full py-2.5 bg-[#006A63] text-white rounded-md text-[13px] font-bold hover:bg-[#00534D] transition-colors"
+            className="w-full py-2.5 bg-[#006A63] text-white rounded-md text-[13px] font-bold hover:bg-[#00534D] transition-colors cursor-pointer"
           >
             {t('catalog.enrollNow')}
           </button>
@@ -141,6 +149,9 @@ const CatalogContent = ({ onNavigate }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
+  const [hasJoinedCommunity, setHasJoinedCommunity] = useState(true);
+  const [joinedCommunities, setJoinedCommunities] = useState([]);
+  const [selectedKomunitasId, setSelectedKomunitasId] = useState(() => localStorage.getItem('filterKomunitasId') || '');
   const [category, setCategory] = useState('Semua Kategori');
   const [searchQuery, setSearchQuery] = useState('');
   const [sort, setSort] = useState('terbaru');
@@ -158,12 +169,17 @@ const CatalogContent = ({ onNavigate }) => {
       };
       if (searchQuery.trim()) params.search = searchQuery.trim();
       
-      const komunitasId = localStorage.getItem('filterKomunitasId');
-      if (komunitasId) {
-        params.komunitas_id = komunitasId;
+      if (selectedKomunitasId && selectedKomunitasId !== 'all') {
+        params.komunitas_id = selectedKomunitasId;
       }
 
       const response = await api.get('/user/katalog', { params });
+      const hasJoined = response.data?.has_joined_community !== false;
+      setHasJoinedCommunity(hasJoined);
+      if (response.data?.joined_communities) {
+        setJoinedCommunities(response.data.joined_communities);
+      }
+
       if (response.data?.data) {
         setCourses(response.data.data.data || []);
         setCurrentPage(response.data.data.current_page || 1);
@@ -175,20 +191,65 @@ const CatalogContent = ({ onNavigate }) => {
     } finally {
       setLoading(false);
     }
-  }, [category, searchQuery, sort, currentPage]);
+  }, [category, searchQuery, sort, currentPage, selectedKomunitasId]);
 
   useEffect(() => {
     fetchKatalog();
   }, [fetchKatalog]);
 
+  const handleClearKomunitasFilter = () => {
+    localStorage.removeItem('filterKomunitasId');
+    setSelectedKomunitasId('');
+    setCurrentPage(1);
+  };
+
+  const handleSelectKomunitas = (kId) => {
+    if (kId && kId !== 'all') {
+      localStorage.setItem('filterKomunitasId', kId);
+      setSelectedKomunitasId(kId);
+    } else {
+      localStorage.removeItem('filterKomunitasId');
+      setSelectedKomunitasId('');
+    }
+    setCurrentPage(1);
+  };
+
+  const activeKomunitas = joinedCommunities.find(k => String(k.komunitas_id) === String(selectedKomunitasId));
+
   const handleEnroll = async (id) => {
     try {
       setEnrolling(true);
-      await api.post(`/user/katalog/${id}/enroll`);
-      alert('Berhasil mendaftar ke pelatihan!');
+      const res = await api.post(`/user/katalog/${id}/enroll`);
+      Swal.fire({
+        icon: 'success',
+        title: 'Pendaftaran Berhasil!',
+        text: res.data?.message || 'Anda telah berhasil mendaftar ke pelatihan ini.',
+        confirmButtonColor: '#006A63'
+      });
       fetchKatalog(); // refresh to update isEnrolled status
     } catch (error) {
-      alert(error.response?.data?.message || 'Gagal mendaftar ke pelatihan');
+      if (error.response?.status === 403) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Perlu Bergabung Komunitas',
+          text: error.response?.data?.message || 'Anda harus bergabung ke komunitas penyelenggara terlebih dahulu sebelum mendaftar pelatihan ini.',
+          showCancelButton: true,
+          confirmButtonText: 'Buka Menu Komunitas',
+          cancelButtonText: 'Tutup',
+          confirmButtonColor: '#006A63'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            onNavigate('community');
+          }
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Mendaftar',
+          text: error.response?.data?.message || 'Gagal mendaftar ke pelatihan',
+          confirmButtonColor: '#006A63'
+        });
+      }
     } finally {
       setEnrolling(false);
     }
@@ -217,6 +278,26 @@ const CatalogContent = ({ onNavigate }) => {
               className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-[#006A63]"
             />
           </div>
+
+          {/* Filter Komunitas Belajar Saya */}
+          {joinedCommunities.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-gray-100">
+              <h3 className="font-bold text-base text-[#1D315F] mb-3">Komunitas Belajar Saya</h3>
+              <select
+                value={selectedKomunitasId}
+                onChange={(e) => handleSelectKomunitas(e.target.value)}
+                className="w-full border border-gray-300 rounded-md p-2.5 text-xs font-semibold text-[#1D315F] bg-white focus:outline-none focus:border-[#006A63] cursor-pointer"
+              >
+                <option value="">Semua Komunitas Saya ({joinedCommunities.length})</option>
+                {joinedCommunities.map((k) => (
+                  <option key={k.komunitas_id} value={k.komunitas_id}>
+                    {k.nama_komunitas}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <h3 className="font-bold text-xl text-[#1D315F] mb-4 pb-4 border-b border-gray-100">{t('catalog.category')}</h3>
           <div className="space-y-4">
             {categories.map((c, idx) => (
@@ -233,6 +314,25 @@ const CatalogContent = ({ onNavigate }) => {
 
       {/* Main Grid */}
       <div className="md:col-span-9">
+        {/* Banner Filter Komunitas Aktif */}
+        {activeKomunitas && (
+          <div className="mb-6 p-4 bg-teal-50/70 border border-teal-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <Users className="w-5 h-5 text-[#006A63] shrink-0" />
+              <div>
+                <p className="text-xs text-teal-800 font-semibold uppercase tracking-wider">Menampilkan Pembelajaran Komunitas</p>
+                <p className="text-base font-bold text-[#1D315F]">{activeKomunitas.nama_komunitas}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleClearKomunitasFilter}
+              className="text-xs font-bold text-[#006A63] hover:text-[#00534D] underline cursor-pointer"
+            >
+              Tampilkan Semua Komunitas Saya
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-[#BBC9C7]">
           <p className="text-[14px] font-medium text-gray-500 mb-4 sm:mb-0">
             {t('catalog.showing')} <span className="font-bold text-[#1D315F]">{courses.length}</span> {t('catalog.of')} <span className="font-bold text-[#1D315F]">{totalItems}</span> {t('catalog.courses')}
@@ -252,6 +352,22 @@ const CatalogContent = ({ onNavigate }) => {
 
         {loading ? (
           <div className="py-20 text-center text-gray-500 font-bold">{t('catalog.loading')}</div>
+        ) : !hasJoinedCommunity ? (
+          <div className="bg-white border border-[#BBC9C7] rounded-xl p-8 sm:p-12 text-center flex flex-col items-center justify-center max-w-xl mx-auto shadow-sm my-6">
+            <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center text-[#006A63] mb-4">
+              <Users className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-[#1D315F] mb-2">Belum Bergabung dengan Komunitas Belajar</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Katalog pembelajaran diselenggarakan oleh komunitas belajar masing-masing. Anda harus memilih dan bergabung ke komunitas belajar terlebih dahulu agar dapat mengakses dan mendaftar pelatihan yang tersedia.
+            </p>
+            <button
+              onClick={() => onNavigate('community')}
+              className="px-6 py-3 bg-[#006A63] hover:bg-[#00534D] text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm text-sm cursor-pointer"
+            >
+              <Users className="w-4 h-4" /> Pilih & Gabung Komunitas Sekarang
+            </button>
+          </div>
         ) : courses.length === 0 ? (
           <div className="py-20 text-center text-gray-500 font-bold">{t('catalog.empty')}</div>
         ) : (

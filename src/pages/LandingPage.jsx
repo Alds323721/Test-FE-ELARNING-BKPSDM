@@ -412,8 +412,9 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
                     <div className="relative">
                       <input
                         type={showRegPassword ? 'text' : 'password'}
-                        value={regPassword}
+                        value={regPassword || ''}
                         onChange={(e) => setRegPassword(e.target.value)}
+                        autoComplete="new-password"
                         required
                         minLength={8}
                         className="w-full pl-3 pr-9 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-xs sm:text-sm text-gray-700 placeholder-gray-400 font-medium bg-gray-50/50"
@@ -434,8 +435,9 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
                     <div className="relative">
                       <input
                         type={showRegConfirmPassword ? 'text' : 'password'}
-                        value={regConfirmPassword}
+                        value={regConfirmPassword || ''}
                         onChange={(e) => setRegConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
                         required
                         minLength={8}
                         className="w-full pl-3 pr-9 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-xs sm:text-sm text-gray-700 placeholder-gray-400 font-medium bg-gray-50/50"
@@ -679,8 +681,9 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
                       </div>
                       <input
                         type={showNewPassword ? 'text' : 'password'}
-                        value={newPassword}
+                        value={newPassword || ''}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        autoComplete="new-password"
                         required
                         className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400"
                         placeholder="Masukkan kata sandi baru"
@@ -702,8 +705,9 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
                       </div>
                       <input
                         type={showConfirmPassword ? 'text' : 'password'}
-                        value={resetConfirmPassword}
+                        value={resetConfirmPassword || ''}
                         onChange={(e) => setResetConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
                         required
                         className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400"
                         placeholder="Konfirmasi kata sandi baru"
@@ -761,8 +765,9 @@ const Hero = ({ showAuth, setShowAuth, authMode, setAuthMode, onLogin, onAuthCli
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    value={password}
+                    value={password || ''}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                     required
                     className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3FCDC1] focus:border-[#3FCDC1] text-sm text-gray-700 placeholder-gray-400"
                     placeholder="Masukkan kata sandi akun"

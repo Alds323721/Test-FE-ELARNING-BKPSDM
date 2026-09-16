@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import api from '../api/axios';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
@@ -8,7 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import {
   Search, Bell, ChevronDown, Menu, X,
   Mail, Phone, MapPin, Users, BookOpen,
-  ArrowRight, ChevronLeft, ChevronRight, Check
+  ArrowRight, ChevronLeft, ChevronRight, Check, Lock
 } from 'lucide-react';
 
 /* ── Navbar ───────────────────────────────────── */
@@ -38,15 +39,14 @@ const CommunityNavbar = ({ onNavigate }) => {
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">10+</span>
           </button>
           <button className="text-[#1D315F] hover:text-[#006A63]"><Search className="w-5 h-5" /></button>
-          <ProfileDropdown onLogout={() => onNavigate('landing')} />
+          <ProfileDropdown onNavigate={onNavigate} />
         </div>
       </div>
 
-      {/* Mobile */}
+      {/* Mobile button */}
       <div className="md:hidden flex items-center gap-3">
         <LanguageDropdown />
-        <ProfileDropdown onLogout={() => onNavigate('landing')} />
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#1D315F] hover:text-[#006A63]">
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#1D315F]">
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
@@ -78,18 +78,37 @@ const PageHeader = () => {
 };
 
 /* ── Community Card ───────────────────────────── */
-const CommunityCard = ({ id, image, category, title, description, members, courses, isJoined, onJoin, onNavigate }) => {
+const CommunityCard = ({ id, image, category, title, description, members, courses, isJoined, canJoin = true, onJoin, onNavigate }) => {
   const { t, language } = useLanguage();
+  const isRestricted = !isJoined && !canJoin;
+
   return (
-    <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
+    <div className={`bg-white border rounded-lg overflow-hidden flex flex-col transition-all duration-200 ${
+      isRestricted
+        ? 'border-gray-200 bg-gray-50/60'
+        : 'border-[#BBC9C7] hover:shadow-lg hover:-translate-y-1'
+    }`}>
       <div className="h-44 relative overflow-hidden">
-        <img src={image} alt={title} className="w-full h-full object-cover" />
-        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-[#1D315F] text-[11px] font-bold px-3 py-1 rounded-sm shadow-sm">
+        <img 
+          src={image} 
+          alt={title} 
+          className={`w-full h-full object-cover transition-transform duration-300 ${isRestricted ? 'opacity-80 grayscale-[25%]' : 'hover:scale-105'}`} 
+        />
+        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#1D315F] text-[11px] font-bold px-3 py-1 rounded shadow-sm">
           {category}
         </div>
+        {isRestricted && (
+          <div className="absolute top-3 right-3 bg-gray-900/80 backdrop-blur-sm text-gray-200 text-[10px] font-semibold px-2.5 py-1 rounded shadow-sm flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Beda Rumpun</span>
+          </div>
+        )}
       </div>
+
       <div className="p-6 flex-1 flex flex-col">
-        <h3 className="font-bold text-[#1D315F] text-[20px] leading-snug mb-3">{title}</h3>
+        <h3 className={`font-bold text-[20px] leading-snug mb-3 ${isRestricted ? 'text-gray-700' : 'text-[#1D315F]'}`}>
+          {title}
+        </h3>
         <p className="text-[13px] text-gray-500 leading-relaxed mb-5 flex-1 line-clamp-3">{description}</p>
 
         <div className="flex items-center gap-6 text-[13px] text-gray-600 font-semibold mb-6 border-t border-gray-100 pt-5">
@@ -100,14 +119,29 @@ const CommunityCard = ({ id, image, category, title, description, members, cours
         {isJoined ? (
           <button
             onClick={() => onNavigate('catalog')}
-            className="w-full py-2.5 border-2 border-[#006A63] text-[#006A63] bg-white rounded-md text-[13px] font-bold hover:bg-[#EFF5F3] transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 border-2 border-[#006A63] text-[#006A63] bg-white rounded-md text-[13px] font-bold hover:bg-[#EFF5F3] transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             {t('community.viewCommunity')} <ArrowRight className="w-4 h-4" />
           </button>
+        ) : isRestricted ? (
+          <div>
+            <button
+              type="button"
+              disabled
+              className="w-full py-2.5 bg-gray-200 text-gray-500 border border-gray-300 rounded-md text-[13px] font-bold cursor-not-allowed flex items-center justify-center gap-2 select-none shadow-none"
+              title={`Komunitas ini khusus untuk pegawai rumpun jabatan ${category}`}
+            >
+              <Lock className="w-4 h-4 text-gray-400" />
+              <span>Khusus Rumpun {category}</span>
+            </button>
+            <p className="text-[11px] text-gray-400 text-center mt-1.5 font-medium">
+              Tidak dapat dipilih (beda rumpun jabatan)
+            </p>
+          </div>
         ) : (
           <button
             onClick={() => onJoin(id)}
-            className="w-full py-2.5 bg-[#006A63] text-white rounded-md text-[13px] font-bold hover:bg-[#00534D] transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[#006A63] text-white rounded-md text-[13px] font-bold hover:bg-[#00534D] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
           >
             {t('community.joinCommunity')} <ArrowRight className="w-4 h-4" />
           </button>
@@ -122,6 +156,13 @@ const CommunityContent = ({ onNavigate }) => {
   const { t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState('Semua Kategori');
   const [communities, setCommunities] = useState([]);
+  const [userRumpun, setUserRumpun] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}').rumpun_jabatan || '';
+    } catch {
+      return '';
+    }
+  });
   const [loading, setLoading] = useState(true);
 
   const categories = [
@@ -139,6 +180,9 @@ const CommunityContent = ({ onNavigate }) => {
         if (res.data?.data) {
           setCommunities(res.data.data);
         }
+        if (res.data?.user_rumpun_jabatan) {
+          setUserRumpun(res.data.user_rumpun_jabatan);
+        }
       } catch (error) {
         console.error('Failed to fetch communities:', error);
       } finally {
@@ -148,15 +192,34 @@ const CommunityContent = ({ onNavigate }) => {
     fetchCommunities();
   }, []);
 
-  const handleJoin = async (id) => {
+  const handleJoin = async (id, canJoin = true) => {
+    if (!canJoin) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Tidak Dapat Memilih',
+        text: 'Anda hanya dapat memilih komunitas yang sesuai dengan rumpun jabatan Anda.',
+        confirmButtonColor: '#006A63'
+      });
+      return;
+    }
     try {
-      await api.post(`/user/komunitas/${id}/join`);
+      const res = await api.post(`/user/komunitas/${id}/join`);
       setCommunities(prev => prev.map(c => 
         c.id === id ? { ...c, is_joined: true, members: c.members + 1 } : c
       ));
-      alert('Berhasil bergabung dengan komunitas!');
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: res.data?.message || 'Berhasil bergabung dengan komunitas!',
+        confirmButtonColor: '#006A63'
+      });
     } catch (error) {
-      alert(error.response?.data?.message || 'Gagal bergabung dengan komunitas');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Bergabung',
+        text: error.response?.data?.message || 'Gagal bergabung dengan komunitas',
+        confirmButtonColor: '#006A63'
+      });
     }
   };
 
@@ -197,6 +260,23 @@ const CommunityContent = ({ onNavigate }) => {
 
         {/* Grid */}
         <div className="md:col-span-9">
+          {/* User Rumpun Jabatan Banner */}
+          {userRumpun && (
+            <div className="mb-6 bg-teal-50/70 border border-teal-200 rounded-lg p-3.5 sm:p-4 flex items-center gap-3.5 shadow-sm">
+              <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-[#006A63] flex-shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="text-[13px] sm:text-[14px] font-bold text-[#1D315F]">
+                  Rumpun Jabatan Anda: <span className="text-[#006A63] bg-white border border-teal-300 px-2 py-0.5 rounded text-[12px] font-extrabold ml-1">{userRumpun}</span>
+                </div>
+                <p className="text-[12px] text-gray-600 mt-0.5 leading-snug">
+                  Anda dapat melihat seluruh komunitas yang tersedia. Pemilihan/bergabung ke komunitas hanya dibuka untuk komunitas yang sesuai dengan rumpun jabatan Anda.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Top bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
             <p className="text-[14px] font-medium text-gray-500 mb-3 sm:mb-0">
@@ -218,8 +298,9 @@ const CommunityContent = ({ onNavigate }) => {
                 <CommunityCard
                   key={c.id}
                   {...c}
+                  canJoin={c.can_join}
                   isJoined={c.is_joined}
-                  onJoin={handleJoin}
+                  onJoin={() => handleJoin(c.id, c.can_join)}
                   onNavigate={() => handleNavigateToCatalog(c.id)}
                 />
               ))}

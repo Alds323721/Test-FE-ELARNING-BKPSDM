@@ -309,8 +309,9 @@ const ProfileDropdown = ({ onLogout }) => {
                      <div className="relative">
                        <input
                          type={showCurrentPassword ? "text" : "password"}
-                         value={currentPassword}
+                         value={currentPassword || ''}
                          onChange={(e) => setCurrentPassword(e.target.value)}
+                         autoComplete="current-password"
                          required
                          placeholder="Masukkan password saat ini"
                          className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
@@ -331,8 +332,9 @@ const ProfileDropdown = ({ onLogout }) => {
                      <div className="relative">
                        <input
                          type={showNewPassword ? "text" : "password"}
-                         value={newPassword}
+                         value={newPassword || ''}
                          onChange={(e) => setNewPassword(e.target.value)}
+                         autoComplete="new-password"
                          required
                          placeholder="Masukkan password baru"
                          className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"
@@ -353,8 +355,9 @@ const ProfileDropdown = ({ onLogout }) => {
                      <div className="relative">
                        <input
                          type={showConfirmPassword ? "text" : "password"}
-                         value={confirmPassword}
+                         value={confirmPassword || ''}
                          onChange={(e) => setConfirmPassword(e.target.value)}
+                         autoComplete="new-password"
                          required
                          placeholder="Konfirmasi password baru"
                          className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#006A63] outline-none text-sm font-semibold"

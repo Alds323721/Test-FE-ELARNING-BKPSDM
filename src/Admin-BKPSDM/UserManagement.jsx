@@ -338,7 +338,8 @@ const UserManagement = ({ onNavigate }) => {
   const filteredUsers = userList.filter(u => 
     (u.nama_lengkap && u.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase())) || 
     (u.nip && u.nip.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (u.rumpun_jabatan && u.rumpun_jabatan.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) return <AdminLoadingSkeleton />;
@@ -400,19 +401,20 @@ const UserManagement = ({ onNavigate }) => {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Cari pengguna..."
+                  placeholder="Cari pengguna / rumpun..."
                   className="border border-gray-200 rounded-lg px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 w-full sm:w-64"
                 />
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[900px]">
+              <table className="w-full text-left border-collapse min-w-[950px]">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100">
                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">NAMA & NIP</th>
                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">EMAIL</th>
                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PERAN</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">RUMPUN JABATAN</th>
                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">UNIT KERJA</th>
                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">AKSI</th>
@@ -437,6 +439,15 @@ const UserManagement = ({ onNavigate }) => {
                       </td>
                       <td className="px-6 py-4">
                         {getRoleBadge(user.peran)}
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.rumpun_jabatan ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200">
+                            {user.rumpun_jabatan}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-600 font-medium">{user.unit_kerja || '-'}</p>

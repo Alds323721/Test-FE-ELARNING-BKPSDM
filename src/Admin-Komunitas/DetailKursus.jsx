@@ -602,11 +602,11 @@ const DetailKursus = ({ onNavigate }) => {
   const handleSavePostTestConfig = async () => {
     if (!course) return;
     try {
-      const passingGrade = course.nilai_kelulusan || 70;
+      const passingGrade = course.nilai_kelulusan ?? 70;
       const payload = {
         nilai_kelulusan: passingGrade,
-        maks_percobaan: 3,
-        durasi_menit: 45
+        maks_percobaan: postTest?.maks_percobaan || 3,
+        durasi_menit: postTest?.durasi_menit || 45
       };
 
       if (postTest) {
@@ -673,10 +673,21 @@ const DetailKursus = ({ onNavigate }) => {
         komunitas_id: course.komunitas_id
       });
 
-      const payload = {
-        ringkasan_materi: course.deskripsi || 'Ringkasan materi kursus'
-      };
-      await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/ajukan-approval`, payload);
+      if (suratFile) {
+        const formData = new FormData();
+        formData.append('ringkasan_materi', course.deskripsi || 'Ringkasan materi kursus');
+        formData.append('surat_pernyataan', suratFile);
+        await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/ajukan-approval`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setSuratFile(null);
+      } else {
+        const payload = {
+          ringkasan_materi: course.deskripsi || 'Ringkasan materi kursus'
+        };
+        await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/ajukan-approval`, payload);
+      }
+
       alert('Pengajuan approval berhasil dikirim ke Admin BKPSDM!');
       fetchCourseData();
     } catch (error) {
@@ -1092,7 +1103,7 @@ const DetailKursus = ({ onNavigate }) => {
                         <input 
                           type="number" 
                           min="0" max="100"
-                          value={course.nilai_kelulusan || 70} 
+                          value={course.nilai_kelulusan ?? 70} 
                           onChange={(e) => setCourse({...course, nilai_kelulusan: Number(e.target.value)})}
                           className="w-full pl-4 pr-10 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
                         />
@@ -1103,7 +1114,8 @@ const DetailKursus = ({ onNavigate }) => {
                       <label className="block text-xs font-semibold text-gray-700 mb-1.5">Batas Maksimal Percobaan</label>
                       <div className="relative">
                         <select 
-                          defaultValue="3"
+                          value={postTest?.maks_percobaan || 3}
+                          onChange={(e) => setPostTest(prev => prev ? { ...prev, maks_percobaan: Number(e.target.value) } : { maks_percobaan: Number(e.target.value) })}
                           className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 pr-10"
                         >
                           <option value="3">3 Kali Kesempatan</option>
@@ -1255,7 +1267,7 @@ const DetailKursus = ({ onNavigate }) => {
                 <input 
                   type="text" 
                   required
-                  value={moduleForm.judul_modul}
+                  value={moduleForm.judul_modul || ''}
                   onChange={(e) => setModuleForm({ ...moduleForm, judul_modul: e.target.value })}
                   placeholder="Contoh: Modul 1: Konsep Dasar Integritas"
                   className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
@@ -1265,7 +1277,7 @@ const DetailKursus = ({ onNavigate }) => {
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Deskripsi / Gambaran Umum Modul</label>
                 <textarea 
                   rows="3"
-                  value={moduleForm.deskripsi}
+                  value={moduleForm.deskripsi || ''}
                   onChange={(e) => setModuleForm({ ...moduleForm, deskripsi: e.target.value })}
                   placeholder="Tuliskan deskripsi atau gambaran umum mengenai materi pada modul ini..."
                   className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
@@ -1307,7 +1319,7 @@ const DetailKursus = ({ onNavigate }) => {
                 <input 
                   type="text" 
                   required
-                  value={materialForm.judul_materi}
+                  value={materialForm.judul_materi || ''}
                   onChange={(e) => setMaterialForm({ ...materialForm, judul_materi: e.target.value })}
                   placeholder="Contoh: Modul Bacaan Bab 1 (PDF)"
                   className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
@@ -1359,7 +1371,7 @@ const DetailKursus = ({ onNavigate }) => {
                   <input 
                     type="url" 
                     required
-                    value={materialForm.tautan_atau_berkas_embed}
+                    value={materialForm.tautan_atau_berkas_embed || ''}
                     onChange={(e) => setMaterialForm({ ...materialForm, tautan_atau_berkas_embed: e.target.value })}
                     placeholder="https://www.youtube.com/watch?v=..."
                     className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
@@ -1373,7 +1385,7 @@ const DetailKursus = ({ onNavigate }) => {
                   type="number" 
                   min="1"
                   required
-                  value={materialForm.durasi_menit}
+                  value={materialForm.durasi_menit ?? 15}
                   onChange={(e) => setMaterialForm({ ...materialForm, durasi_menit: Number(e.target.value) })}
                   className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                 />

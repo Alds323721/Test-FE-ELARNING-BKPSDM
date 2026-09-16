@@ -121,13 +121,19 @@ const CourseReview = ({ onNavigate }) => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showMateriModal, setShowMateriModal] = useState(false);
   const [note, setNote] = useState('');
+  const [customJp, setCustomJp] = useState('');
 
   useEffect(() => {
     const fetchCourseDetails = async (id) => {
       try {
         setLoadingDetails(true);
         const response = await api.get(`/admin-bkpsdm/approval/${id}`);
-        setCourse(response.data.data);
+        const cData = response.data?.data;
+        setCourse(cData);
+        if (cData?.pembelajaran_jp && cData.pembelajaran_jp.length > 0) {
+          const jpItem = cData.pembelajaran_jp[0];
+          setCustomJp(jpItem.jp_final ?? jpItem.jp_dihitung_sistem ?? '');
+        }
       } catch (error) {
         console.error('Failed to fetch course details:', error);
       } finally {
@@ -147,10 +153,14 @@ const CourseReview = ({ onNavigate }) => {
 
   const handleAction = async (status) => {
     try {
-      await api.post(`/admin-bkpsdm/approval/${course.pembelajaran_id}`, {
+      const payload = {
         status_validasi: status,
         catatan: note
-      });
+      };
+      if (status === 'disetujui' && customJp !== '') {
+        payload.jp_final = Number(customJp);
+      }
+      await api.post(`/admin-bkpsdm/approval/${course.pembelajaran_id}`, payload);
       Toast.fire({
         icon: 'success',
         title: `Validasi berhasil disimpan: ${status}`
@@ -160,7 +170,7 @@ const CourseReview = ({ onNavigate }) => {
       console.error('Validation failed', error);
       Toast.fire({
         icon: 'error',
-        title: 'Gagal menyimpan validasi'
+        title: error.response?.data?.message || 'Gagal menyimpan validasi'
       });
     }
   };
@@ -214,7 +224,7 @@ const CourseReview = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Kategori</p>
                     <span className="inline-block bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1 rounded text-sm font-semibold">
@@ -227,6 +237,21 @@ const CourseReview = ({ onNavigate }) => {
                       <div className="border border-gray-200 rounded px-3 py-1 flex items-baseline gap-1">
                         <span className="font-bold text-gray-800">{course.nilai_kelulusan}</span>
                       </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Jam Pelajaran (JP)</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={customJp}
+                        onChange={(e) => setCustomJp(e.target.value)}
+                        className="w-24 border border-teal-300 rounded px-2.5 py-1 text-sm font-bold text-teal-800 bg-teal-50/50 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        placeholder="JP"
+                      />
+                      <span className="text-xs font-semibold text-gray-500">JP</span>
                     </div>
                   </div>
                   <div>
@@ -356,126 +381,162 @@ const CourseReview = ({ onNavigate }) => {
                       <X className="w-5 h-5" />
                     </button>
                   </div>
-                  {course.pembelajaran_jp && course.pembelajaran_jp.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {course.pembelajaran_jp.map((jp, jpIdx) => (
-                        <span key={jp.pembelajaran_jp_id || jpIdx} className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold">
-                          {jp.kategori_jp}: {jp.jumlah_jp} JP
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {(() => {
+                    const jpList = Array.isArray(course.pembelajaran_jp)
+                      ? course.pembelajaran_jp
+                      : Array.isArray(course.pembelajaranJp)
+                      ? course.pembelajaranJp
+                      : (course.pembelajaran_jp || course.pembelajaranJp)
+                      ? [course.pembelajaran_jp || course.pembelajaranJp]
+                      : [];
+                    if (jpList.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap gap-2">
+                        {jpList.map((jp, jpIdx) => (
+                          <span key={jp.pembelajaran_jp_id || jpIdx} className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold">
+                            {jp.kategori_jp || jp.jenis_pelatihan || 'Pelatihan'}: {jp.jp_final ?? jp.jp_dihitung_sistem ?? jp.jumlah_jp ?? 0} JP
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
                   {course.moduls && course.moduls.length > 0 ? (
                     <div className="space-y-6">
-                      {course.moduls.map((modul, index) => (
-                        <div key={modul.modul_id || index} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                          {/* Header Modul */}
-                          <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
-                              <h3 className="font-bold text-gray-800 text-lg">Modul {modul.urutan || index + 1}: {modul.judul_modul}</h3>
-                              <div className="flex flex-wrap items-center gap-3">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  {modul.durasi_total_menit} Menit
-                                </span>
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold">
-                                  <BookOpen className="w-3.5 h-3.5" />
-                                  {modul.jp_modul} JP
-                                </span>
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-600">{modul.gambaran_umum}</p>
-                            {modul.info_tatap_muka && (
-                              <div className="mt-3 inline-flex items-start gap-2 bg-amber-50 text-amber-800 p-2.5 rounded-lg text-xs font-medium w-full">
-                                <Users className="w-4 h-4 shrink-0 mt-0.5" />
-                                <p>Info Tatap Muka: {modul.info_tatap_muka}</p>
-                              </div>
-                            )}
-                          </div>
+                      {course.moduls.map((modul, index) => {
+                        const materiList = Array.isArray(modul.materis)
+                          ? modul.materis
+                          : Array.isArray(modul.materi)
+                          ? modul.materi
+                          : [];
 
-                          {/* Daftar Materi & Kuis */}
-                          <div className="p-0">
-                            {((modul.materis && modul.materis.length > 0) || (modul.kuis && modul.kuis.length > 0)) ? (
-                              <div className="divide-y divide-gray-100">
-                                {modul.materis && modul.materis.map((materi, mIdx) => (
-                                  <div key={`materi-${materi.materi_id || mIdx}`} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${materi.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
-                                      {materi.tipe_materi === 'pdf' ? <FileText className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="font-semibold text-gray-800 text-sm truncate">{materi.judul_materi}</h4>
-                                        {materi.apakah_wajib ? (
-                                          <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold uppercase tracking-wider">Wajib</span>
-                                        ) : (
-                                          <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold uppercase tracking-wider">Opsional</span>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {materi.durasi_menit} Menit</span>
-                                        <span className="flex items-center gap-1.5"><File className="w-3.5 h-3.5" /> {materi.tipe_materi.replace('_', ' ').toUpperCase()}</span>
-                                      </div>
-                                    </div>
-                                    <a href={materi.tautan_atau_berkas?.startsWith('/storage/') ? `http://localhost:8000${materi.tautan_atau_berkas}` : materi.tautan_atau_berkas} target="_blank" rel="noreferrer" className="w-full sm:w-auto mt-3 sm:mt-0 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shrink-0">
-                                      <Eye className="w-4 h-4" /> Lihat
-                                    </a>
-                                  </div>
-                                ))}
-                                {modul.kuis && modul.kuis.map((k, kIdx) => (
-                                  <div key={`kuis-${k.kuis_id || kIdx}`} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-purple-50 text-purple-600">
-                                      <HelpCircle className="w-5 h-5" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="font-semibold text-gray-800 text-sm truncate">{k.judul_kuis}</h4>
-                                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold uppercase tracking-wider">Kuis</span>
-                                      </div>
-                                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {k.durasi_menit} Menit</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
+                        const kuisList = Array.isArray(modul.kuis)
+                          ? modul.kuis
+                          : modul.kuis
+                          ? [modul.kuis]
+                          : [];
+
+                        return (
+                          <div key={modul.modul_id || index} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            {/* Header Modul */}
+                            <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
+                                <h3 className="font-bold text-gray-800 text-lg">Modul {modul.urutan || index + 1}: {modul.judul_modul}</h3>
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {modul.durasi_total_menit} Menit
+                                  </span>
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold">
+                                    <BookOpen className="w-3.5 h-3.5" />
+                                    {modul.jp_modul} JP
+                                  </span>
+                                </div>
                               </div>
-                            ) : (
-                              <div className="p-8 text-center text-gray-500">
-                                <p className="text-sm">Belum ada materi atau kuis untuk modul ini.</p>
-                              </div>
-                            )}
+                              <p className="text-sm text-gray-600">{modul.gambaran_umum}</p>
+                              {modul.info_tatap_muka && (
+                                <div className="mt-3 inline-flex items-start gap-2 bg-amber-50 text-amber-800 p-2.5 rounded-lg text-xs font-medium w-full">
+                                  <Users className="w-4 h-4 shrink-0 mt-0.5" />
+                                  <p>Info Tatap Muka: {modul.info_tatap_muka}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Daftar Materi & Kuis */}
+                            <div className="p-0">
+                              {(materiList.length > 0 || kuisList.length > 0) ? (
+                                <div className="divide-y divide-gray-100">
+                                  {materiList.map((materi, mIdx) => (
+                                    <div key={`materi-${materi.materi_id || mIdx}`} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${materi.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                                        {materi.tipe_materi === 'pdf' ? <FileText className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <h4 className="font-semibold text-gray-800 text-sm truncate">{materi.judul_materi}</h4>
+                                          {materi.apakah_wajib ? (
+                                            <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold uppercase tracking-wider">Wajib</span>
+                                          ) : (
+                                            <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold uppercase tracking-wider">Opsional</span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                                          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {materi.durasi_menit} Menit</span>
+                                          <span className="flex items-center gap-1.5"><File className="w-3.5 h-3.5" /> {(materi.tipe_materi || '').replace('_', ' ').toUpperCase()}</span>
+                                        </div>
+                                      </div>
+                                      <a href={materi.tautan_atau_berkas?.startsWith('/storage/') ? `http://localhost:8000${materi.tautan_atau_berkas}` : materi.tautan_atau_berkas} target="_blank" rel="noreferrer" className="w-full sm:w-auto mt-3 sm:mt-0 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shrink-0">
+                                        <Eye className="w-4 h-4" /> Lihat
+                                      </a>
+                                    </div>
+                                  ))}
+                                  {kuisList.map((k, kIdx) => (
+                                    <div key={`kuis-${k.kuis_id || kIdx}`} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-purple-50 text-purple-600">
+                                        <HelpCircle className="w-5 h-5" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <h4 className="font-semibold text-gray-800 text-sm truncate">{k.judul_kuis}</h4>
+                                          <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold uppercase tracking-wider">Kuis</span>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                                          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {k.durasi_menit} Menit</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="p-8 text-center text-gray-500">
+                                  <p className="text-sm">Belum ada materi atau kuis untuk modul ini.</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {/* Post Test */}
-                      {course.post_tests && course.post_tests.length > 0 && (
-                        <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm">
-                          <div className="p-5 border-b border-orange-100 bg-orange-50/50">
-                            <h3 className="font-bold text-orange-800 text-lg mb-2">Evaluasi Akhir (Post Test)</h3>
-                            <p className="text-sm text-orange-700">Evaluasi yang harus diselesaikan setelah semua modul selesai.</p>
-                          </div>
-                          <div className="divide-y divide-gray-100 p-0">
-                            {course.post_tests.map((pt, ptIdx) => (
-                              <div key={`pt-${pt.post_test_id || ptIdx}`} className="p-4 hover:bg-orange-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-orange-100 text-orange-600">
-                                  <FileText className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="font-semibold text-gray-800 text-sm truncate">{pt.judul_post_test}</h4>
+                      {(() => {
+                        const postTestList = Array.isArray(course.post_tests)
+                          ? course.post_tests
+                          : Array.isArray(course.postTests)
+                          ? course.postTests
+                          : (course.post_test || course.postTest)
+                          ? [course.post_test || course.postTest]
+                          : [];
+
+                        if (postTestList.length === 0) return null;
+
+                        return (
+                          <div className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="p-5 border-b border-orange-100 bg-orange-50/50">
+                              <h3 className="font-bold text-orange-800 text-lg mb-2">Evaluasi Akhir (Post Test)</h3>
+                              <p className="text-sm text-orange-700">Evaluasi yang harus diselesaikan setelah semua modul selesai.</p>
+                            </div>
+                            <div className="divide-y divide-gray-100 p-0">
+                              {postTestList.map((pt, ptIdx) => (
+                                <div key={`pt-${pt.post_test_id || ptIdx}`} className="p-4 hover:bg-orange-50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-orange-100 text-orange-600">
+                                    <FileText className="w-5 h-5" />
                                   </div>
-                                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                                    <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {pt.durasi_menit} Menit</span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="font-semibold text-gray-800 text-sm truncate">{pt.judul_post_test}</h4>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                                      <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {pt.durasi_menit} Menit</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full py-12 text-center">

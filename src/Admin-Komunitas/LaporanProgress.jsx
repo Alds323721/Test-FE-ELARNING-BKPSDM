@@ -231,11 +231,12 @@ const LaporanProgress = ({ onNavigate }) => {
       return;
     }
 
-    const headers = ['No', 'Nama Peserta', 'NIP', 'Unit Kerja', 'Judul Pelatihan', 'Progres (%)', 'Nilai Post Test', 'Status'];
+    const headers = ['No', 'Nama Peserta', 'NIP', 'Rumpun Jabatan', 'Unit Kerja', 'Judul Pelatihan', 'Progres (%)', 'Nilai Post Test', 'Status'];
     const rows = pesertaList.map((p, idx) => [
       idx + 1,
       `"${p.nama || ''}"`,
       `"${p.nip || ''}"`,
+      `"${p.rumpun_jabatan || '-'}"`,
       `"${p.unit_kerja || ''}"`,
       `"${p.judul_pembelajaran || ''}"`,
       p.progres || 0,
@@ -391,6 +392,7 @@ const LaporanProgress = ({ onNavigate }) => {
                   <thead className="bg-gray-50/70 text-xs uppercase font-bold text-gray-500 border-b border-gray-100">
                     <tr>
                       <th className="px-6 py-4">NAMA PESERTA / NIP</th>
+                      <th className="px-6 py-4">RUMPUN JABATAN</th>
                       <th className="px-6 py-4">JUDUL PELATIHAN</th>
                       <th className="px-6 py-4">PROGRES BELAJAR</th>
                       <th className="px-6 py-4 text-center">NILAI POST TEST</th>
@@ -400,11 +402,11 @@ const LaporanProgress = ({ onNavigate }) => {
                   <tbody className="divide-y divide-gray-100">
                     {loading ? (
                       <tr>
-                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">Memuat data progress...</td>
+                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">Memuat data progress...</td>
                       </tr>
                     ) : displayedPeserta.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                           Tidak ada data peserta yang cocok dengan filter.
                         </td>
                       </tr>
@@ -421,6 +423,11 @@ const LaporanProgress = ({ onNavigate }) => {
                                 <p className="text-xs text-gray-500 mt-0.5">NIP. {row.nip} • {row.unit_kerja}</p>
                               </div>
                             </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {row.rumpun_jabatan || '-'}
+                            </span>
                           </td>
                           <td className="px-6 py-4 text-gray-800 font-medium">{row.judul_pembelajaran}</td>
                           <td className="px-6 py-4">

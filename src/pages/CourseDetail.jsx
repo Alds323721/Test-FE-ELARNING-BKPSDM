@@ -20,8 +20,44 @@ import {
   Lock,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  ExternalLink,
+  Video
 } from 'lucide-react';
+
+const extractYouTubeId = (url) => {
+  if (!url) return null;
+  let cleaned = String(url).trim();
+  if (cleaned.includes('<iframe')) {
+    const srcMatch = cleaned.match(/src=["']([^"']+)["']/i);
+    if (srcMatch && srcMatch[1]) {
+      cleaned = srcMatch[1];
+    }
+  }
+  const regExp = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
+  const match = cleaned.match(regExp);
+  return match ? match[1] : null;
+};
+
+const getDocumentUrl = (path) => {
+  if (!path) return '';
+  const trimmed = String(path).trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  const apiBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+  const origin = apiBase.replace(/\/api\/?$/, '');
+  const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${origin}${cleanPath}`;
+};
+
+const isMateriVideo = (materi) => {
+  if (!materi) return false;
+  if (materi.tipe === 'video' || materi.tipe === 'video_embed') return true;
+  if (extractYouTubeId(materi.tautan)) return true;
+  if (materi.tautan && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(materi.tautan)) return true;
+  return false;
+};
 
 const CourseDetailNavbar = ({ onNavigate }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -115,6 +151,7 @@ const CourseHeader = ({ onBack, courseData }) => {
 const SyllabusItem = ({ index, title, subtitle, duration, status, onClick, isActive }) => {
   const getStatusIcon = () => {
     if (status === 'completed') return <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-[#10B981]" />;
+    if (status === 'locked') return <Lock className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />;
     return <Circle className="w-4 h-4 md:w-5 md:h-5 text-gray-300" />;
   };
 
@@ -149,11 +186,22 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
                 key={mat.materi_id}
                 index={i + 1}
                 title={mat.judul}
-                subtitle={`Tipe: ${mat.tipe === 'video' ? 'Video' : 'Materi Bacaan'}`}
+                subtitle={`Tipe: ${isMateriVideo(mat) ? 'Video' : 'Materi Bacaan'}`}
                 duration={mat.durasi}
-                status={mat.is_read ? 'completed' : 'pending'}
+                status={mat.is_read ? 'completed' : (mat.is_locked ? 'locked' : 'pending')}
                 isActive={activeMateri?.materi_id === mat.materi_id}
-                onClick={() => onSelectMateri(mat)}
+                onClick={() => {
+                  if (mat.is_locked) {
+                    Swal.fire({
+                      icon: 'info',
+                      title: 'Materi Masih Terkunci',
+                      text: 'Selesaikan materi sebelumnya sesuai urutan silabus terlebih dahulu.',
+                      confirmButtonColor: '#006A63'
+                    });
+                    return;
+                  }
+                  onSelectMateri(mat);
+                }}
               />
             ))}
             {modul.kuis && (
@@ -163,9 +211,18 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
                 title={modul.kuis.judul}
                 subtitle="Kuis Evaluasi Modul"
                 duration={modul.kuis.durasi}
-                status={modul.kuis.is_completed ? 'completed' : 'pending'}
+                status={modul.kuis.is_completed ? 'completed' : (modul.kuis.is_locked ? 'locked' : 'pending')}
                 isActive={false}
                 onClick={() => {
+                  if (modul.kuis.is_locked) {
+                    Swal.fire({
+                      icon: 'info',
+                      title: 'Kuis Masih Terkunci',
+                      text: 'Selesaikan seluruh materi pada modul ini terlebih dahulu sebelum mengerjakan kuis.',
+                      confirmButtonColor: '#006A63'
+                    });
+                    return;
+                  }
                   localStorage.setItem('userModulId', modul.modul_id);
                   localStorage.setItem('userKuisId', modul.kuis.kuis_id);
                   onNavigate('kuis');
@@ -210,7 +267,23 @@ const MainContent = ({ activeMateri, onMarkAsRead }) => {
     );
   }
 
-  const isVideo = activeMateri.tipe === 'video';
+  if (activeMateri.is_locked) {
+    return (
+      <div className="bg-white border border-[#BBC9C7] rounded-lg p-12 text-center text-gray-500 flex flex-col items-center justify-center">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
+          <Lock className="w-8 h-8" />
+        </div>
+        <h3 className="text-lg font-semibold text-[#1D315F] mb-1">{activeMateri.judul}</h3>
+        <p className="text-sm text-gray-500 max-w-md">
+          Materi ini masih terkunci. Silakan selesaikan seluruh materi sebelumnya sesuai urutan silabus.
+        </p>
+      </div>
+    );
+  }
+
+  const isVideo = isMateriVideo(activeMateri);
+  const youtubeId = extractYouTubeId(activeMateri.tautan);
+  const docUrl = getDocumentUrl(activeMateri.tautan);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -220,30 +293,54 @@ const MainContent = ({ activeMateri, onMarkAsRead }) => {
         </h2>
         
         {isVideo ? (
-          <div className="aspect-video bg-gray-900 flex items-center justify-center relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center px-4">
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-red-700 transition-colors">
-                  <div className="w-0 h-0 border-t-[10px] md:border-t-[12px] border-t-transparent border-l-[16px] md:border-l-[20px] border-l-white border-b-[10px] md:border-b-[12px] border-b-transparent ml-1"></div>
-                </div>
-                <div className="bg-black/70 px-4 py-4 md:px-6 md:py-8 rounded-lg max-w-md mx-auto">
-                   {/* In a real app, this would be an iframe or video tag taking the full size */}
-                  <p className="text-white text-xs md:text-sm font-semibold text-center mb-2">{activeMateri.tautan || 'Tautan video tidak tersedia'}</p>
-                </div>
+          <div className="w-full bg-black aspect-video relative overflow-hidden flex items-center justify-center">
+            {youtubeId ? (
+              <iframe
+                className="w-full h-full border-0"
+                src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
+                title={activeMateri.judul || 'Video Pembelajaran'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : activeMateri.tautan ? (
+              <video
+                controls
+                className="w-full h-full object-contain"
+                src={getDocumentUrl(activeMateri.tautan)}
+              >
+                Browser Anda tidak mendukung pemutar video.
+              </video>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-gray-400 p-6 text-center">
+                <Video className="w-12 h-12 mb-2 text-gray-500" />
+                <p className="text-sm font-semibold text-white">Tautan video tidak tersedia</p>
               </div>
-            </div>
+            )}
           </div>
         ) : (
-          <div className="p-6 bg-gray-50 flex items-center justify-center">
-             <div className="text-center">
-               <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-               <p className="text-gray-600 mb-4">Silakan baca dokumen materi berikut</p>
-               {activeMateri.tautan && (
-                  <a href={activeMateri.tautan} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-[#006A63] text-white rounded font-bold hover:bg-[#00534D]">
-                    Buka Dokumen <Download className="w-4 h-4" />
-                  </a>
-               )}
-             </div>
+          <div className="p-8 md:p-12 bg-gray-50 flex items-center justify-center">
+            <div className="text-center max-w-md">
+              <FileText className="w-16 h-16 text-teal-600/70 mx-auto mb-3" />
+              <p className="text-gray-600 font-medium mb-5 text-sm md:text-base">
+                Silakan baca dokumen materi berikut
+              </p>
+              {activeMateri.tautan ? (
+                <a
+                  href={docUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#006A63] text-white rounded-lg font-bold text-sm hover:bg-[#00534D] active:scale-95 transition-all shadow-sm cursor-pointer"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Buka Materi</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold">
+                  Dokumen materi belum tersedia
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

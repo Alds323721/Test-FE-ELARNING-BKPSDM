@@ -147,6 +147,7 @@ const DetailKursus = ({ onNavigate }) => {
   // Course Thumbnail State
   const [courseThumbnailFile, setCourseThumbnailFile] = useState(null);
   const [courseThumbnailPreview, setCourseThumbnailPreview] = useState('');
+  const [savingBasicInfo, setSavingBasicInfo] = useState(false);
 
   // Modal State: Tambah & Edit Modul
   const [showAddModuleModal, setShowAddModuleModal] = useState(false);
@@ -269,6 +270,7 @@ const DetailKursus = ({ onNavigate }) => {
     if (!course) return;
     const wasPublished = course.status === 'dipublikasikan';
     try {
+      setSavingBasicInfo(true);
       const data = new FormData();
       data.append('judul_pembelajaran', course.judul_pembelajaran);
       data.append('deskripsi', course.deskripsi || '-');
@@ -280,22 +282,30 @@ const DetailKursus = ({ onNavigate }) => {
         data.append('thumbnail', courseThumbnailFile);
       }
 
-      await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, data, {
+      const res = await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+
+      if (res.data?.data) {
+        setCourse(res.data.data);
+        if (res.data.data.thumbnail_url) {
+          setCourseThumbnailPreview(res.data.data.thumbnail_url);
+        }
+        setCourseThumbnailFile(null);
+      }
 
       if (wasPublished) {
         Swal.fire({
           icon: 'info',
           title: 'Status Berubah ke Draft',
-          text: 'Perubahan informasi dasar berhasil disimpan! Karena pelatihan sebelumnya aktif dipublikasikan, statusnya otomatis dikembalikan ke Draft. Silakan ajukan approval kembali jika sudah siap.',
+          text: 'Perubahan informasi dasar & thumbnail berhasil disimpan! Karena pelatihan sebelumnya aktif dipublikasikan, statusnya otomatis dikembalikan ke Draft. Silakan ajukan approval kembali jika sudah siap.',
           confirmButtonColor: '#0F766E'
         });
       } else {
         Swal.fire({
           icon: 'success',
           title: 'Tersimpan!',
-          text: 'Perubahan informasi dasar berhasil disimpan.',
+          text: 'Perubahan informasi dasar & thumbnail berhasil disimpan.',
           timer: 1500,
           showConfirmButton: false
         });
@@ -308,6 +318,8 @@ const DetailKursus = ({ onNavigate }) => {
         title: 'Gagal Menyimpan',
         text: error.response?.data?.message || 'Gagal menyimpan perubahan.'
       });
+    } finally {
+      setSavingBasicInfo(false);
     }
   };
 
@@ -872,15 +884,30 @@ const DetailKursus = ({ onNavigate }) => {
     if (!confirmSubmit.isConfirmed) return;
 
     try {
-      // Pastikan informasi dasar dan kategori terbaru tersimpan sebelum diajukan
-      await api.put(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, {
-        judul_pembelajaran: course.judul_pembelajaran,
-        deskripsi: course.deskripsi,
-        kategori: course.kategori || 'Pengembangan Kompetensi',
-        capaian_pembelajaran: course.capaian_pembelajaran || '-',
-        nilai_kelulusan: course.nilai_kelulusan,
-        komunitas_id: course.komunitas_id
-      });
+      // Pastikan informasi dasar dan thumbnail terbaru tersimpan sebelum diajukan
+      if (courseThumbnailFile) {
+        const formData = new FormData();
+        formData.append('judul_pembelajaran', course.judul_pembelajaran);
+        formData.append('deskripsi', course.deskripsi || '-');
+        formData.append('kategori', course.kategori || 'Pengembangan Kompetensi');
+        formData.append('capaian_pembelajaran', course.capaian_pembelajaran || '-');
+        formData.append('nilai_kelulusan', course.nilai_kelulusan ?? 70);
+        formData.append('komunitas_id', course.komunitas_id);
+        formData.append('thumbnail', courseThumbnailFile);
+        await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setCourseThumbnailFile(null);
+      } else {
+        await api.put(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, {
+          judul_pembelajaran: course.judul_pembelajaran,
+          deskripsi: course.deskripsi,
+          kategori: course.kategori || 'Pengembangan Kompetensi',
+          capaian_pembelajaran: course.capaian_pembelajaran || '-',
+          nilai_kelulusan: course.nilai_kelulusan,
+          komunitas_id: course.komunitas_id
+        });
+      }
 
       if (suratFile) {
         const formData = new FormData();
@@ -1118,6 +1145,18 @@ const DetailKursus = ({ onNavigate }) => {
                     onChange={(e) => setCourse({ ...course, deskripsi: e.target.value })}
                     placeholder="Tuliskan deskripsi lengkap mengenai tujuan dan target pelatihan ini..."
                   ></textarea>
+                </div>
+
+                {/* Tombol Simpan Cepat untuk Informasi Dasar & Thumbnail */}
+                <div className="pt-4 border-t border-gray-100 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleUpdateBasicInfo}
+                    disabled={savingBasicInfo}
+                    className="px-5 py-2.5 bg-[#0F766E] hover:bg-teal-800 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+                  >
+                    {savingBasicInfo ? 'Menyimpan...' : 'Simpan Informasi Dasar & Thumbnail'}
+                  </button>
                 </div>
               </div>
             </section>
@@ -1517,8 +1556,8 @@ const DetailKursus = ({ onNavigate }) => {
           <Trash2 className="w-4 h-4" /> Hapus Pelatihan
         </button>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <button onClick={handleUpdateBasicInfo} className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
-            Simpan Perubahan
+          <button onClick={handleUpdateBasicInfo} disabled={savingBasicInfo} className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50">
+            {savingBasicInfo ? 'Menyimpan...' : 'Simpan Perubahan'}
           </button>
           <button onClick={handleAjukanApproval} className="w-full sm:w-auto px-6 py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm">
             Ajukan Approval Publikasi ke BKPSDM

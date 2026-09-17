@@ -22,8 +22,23 @@ import {
   Menu,
   X,
   BookMarked,
-  ArrowRight
+  ArrowRight,
+  Folder,
+  LayoutGrid
 } from 'lucide-react';
+
+const getCourseImage = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop';
+  // Jika URL mengarah ke localhost tanpa port 8000
+  if (url.startsWith('http://localhost/storage') || url.startsWith('http://127.0.0.1/storage')) {
+    return url.replace(/http:\/\/(localhost|127\.0\.0\.1)\/storage/, 'http://localhost:8000/storage');
+  }
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const apiBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+  const origin = apiBase.replace(/\/api\/?$/, '');
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${origin}${cleanPath}`;
+};
 
 /* ── Navbar ─────────────────────────────────────────── */
 const DashboardNavbar = ({ onLogout, onNavigate }) => {
@@ -151,34 +166,62 @@ const CurrentCourseSection = ({ onNavigate, currentCourse, activitiesData }) => 
     <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-8 md:pb-12">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Current Course Card */}
-        <div className="lg:col-span-2 bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col">
+        <div className="lg:col-span-2 bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col shadow-sm">
           {currentCourse ? (
             <>
-              <div className="h-48 sm:h-56 md:h-64 overflow-hidden bg-gray-100">
+              <div className="h-48 sm:h-56 md:h-64 overflow-hidden bg-gray-100 relative">
                 <img
-                  src={currentCourse.image || 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop'}
-                  alt="Current course"
+                  src={getCourseImage(currentCourse.image || currentCourse.thumbnail_url)}
+                  alt={currentCourse.judul}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop';
+                  }}
                 />
               </div>
-              <div className="p-4 sm:p-6 flex-1 flex flex-col">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">◇ {currentCourse.kategori}</span>
-                <h3 className="text-lg sm:text-xl font-bold text-[#1D315F] mb-3 leading-tight">{currentCourse.judul}</h3>
+              <div className="p-5 sm:p-6 flex-1 flex flex-col">
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mb-2">
+                  <Folder className="w-3.5 h-3.5 text-gray-400" />
+                  <span>{currentCourse.kategori}</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-[#1D315F] mb-3 leading-snug">
+                  {currentCourse.judul}
+                </h3>
 
-                <div className="flex items-center gap-4 sm:gap-5 text-xs text-gray-500 mb-4 sm:mb-5">
-                  <span className="flex items-center gap-1"><Clock className="w-3 sm:w-3.5 sm:h-3.5" /> {currentCourse.jpl} {t('common.hours')}</span>
-                  <span className="flex items-center gap-1"><BookOpen className="w-3 sm:w-3.5 sm:h-3.5" /> {currentCourse.total_modul} {t('common.modules')}</span>
+                <div className="flex items-center gap-5 text-xs text-gray-500 mb-5 font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-gray-400" />
+                    {currentCourse.jpl} JPL
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <LayoutGrid className="w-3.5 h-3.5 text-gray-400" />
+                    {currentCourse.total_modul} Modul
+                  </span>
                 </div>
 
                 {/* Progress bar */}
                 <div className="mb-4">
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="font-bold text-[#1D315F]">{t('dashboard.progress')}</span>
-                    <span className="font-bold text-[#3FCDC1]">{currentCourse.progress}%</span>
+                  <div className="flex justify-between items-center text-xs mb-1.5 font-bold">
+                    <span className="text-[#1D315F]">{t('dashboard.progress')}</span>
+                    <span className="text-[#3FCDC1]">{currentCourse.progress}%</span>
                   </div>
-                  <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#3FCDC1] rounded-full transition-all" style={{ width: `${currentCourse.progress}%` }}></div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#3FCDC1] rounded-full transition-all duration-500"
+                      style={{ width: `${currentCourse.progress}%` }}
+                    ></div>
                   </div>
+                </div>
+
+                {/* SELANJUTNYA Box */}
+                <div className="border border-gray-200 rounded-lg p-3.5 sm:p-4 mb-5 bg-gray-50/50">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+                    SELANJUTNYA
+                  </p>
+                  <p className="text-sm font-bold text-[#1D315F] truncate">
+                    {currentCourse.next_module || 'Lanjutkan Modul'}
+                  </p>
                 </div>
 
                 <button
@@ -186,9 +229,10 @@ const CurrentCourseSection = ({ onNavigate, currentCourse, activitiesData }) => 
                     localStorage.setItem('userCourseId', currentCourse.pembelajaran_id);
                     onNavigate('course-detail');
                   }}
-                  className="w-full py-2.5 sm:py-3 bg-[#1D315F] text-white text-sm sm:text-base font-bold rounded-md hover:bg-[#162847] transition-colors flex items-center justify-center gap-2 mt-auto"
+                  className="w-full py-3 bg-[#1D315F] hover:bg-[#162847] text-white text-sm sm:text-base font-bold rounded-lg transition-colors flex items-center justify-center gap-2 mt-auto shadow-sm cursor-pointer"
                 >
-                  {t('dashboard.continueLearning')} <ArrowRight className="w-4 h-4" />
+                  <span>{t('dashboard.continueLearning')}</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </>
@@ -205,19 +249,27 @@ const CurrentCourseSection = ({ onNavigate, currentCourse, activitiesData }) => 
         </div>
 
         {/* Activity Feed */}
-        <div className="bg-white border border-[#BBC9C7] rounded-lg p-4 sm:p-6 flex flex-col">
-          <h3 className="text-base sm:text-lg font-bold text-[#1D315F] mb-4 sm:mb-5">{t('dashboard.recentActivity')}</h3>
-          <div className="flex flex-col gap-4 sm:gap-5 flex-1">
-            {activities.map((a, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <a.icon className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: a.color }} />
-                <div>
-                  <p className="text-xs sm:text-[13px] font-bold text-[#1D315F] leading-snug">{a.title}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">{a.time}</p>
+        <div className="bg-white border border-[#BBC9C7] rounded-lg p-4 sm:p-6 flex flex-col justify-between">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-[#1D315F] mb-4 sm:mb-5">{t('dashboard.recentActivity')}</h3>
+            <div className="flex flex-col gap-4 sm:gap-5">
+              {activities.map((a, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <a.icon className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: a.color }} />
+                  <div>
+                    <p className="text-xs sm:text-[13px] font-bold text-[#1D315F] leading-snug">{a.title}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{a.time}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+          <button
+            onClick={() => onNavigate('my-courses')}
+            className="w-full mt-6 py-2 border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-colors"
+          >
+            Lihat Semua
+          </button>
         </div>
       </div>
     </section>

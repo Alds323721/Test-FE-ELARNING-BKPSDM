@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import logoImg from '../assets/logo-removebg-preview 1.png';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
@@ -48,7 +49,7 @@ const AdminSidebar = ({ activeMenu = 'admin-komunitas', onNavigate, isOpen, setI
         <div className="p-6 flex flex-col gap-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded shrink-0 flex items-center justify-center">
-              <img src="/vite.svg" alt="Logo" className="w-full h-full object-contain" />
+              <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="font-bold text-gray-900 text-sm leading-tight text-[#1D315F]">Buleleng ASN Corpu</h1>

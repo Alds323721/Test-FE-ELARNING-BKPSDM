@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import Swal from 'sweetalert2';
+import logoImg from '../assets/logo-removebg-preview 1.png';
 import { 
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
   FileText, RotateCcw, ChevronDown, CheckCircle, CheckCircle2,
@@ -49,7 +50,7 @@ const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIs
         <div className="p-6 flex flex-col gap-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded shrink-0 flex items-center justify-center">
-              <img src="/vite.svg" alt="Logo" className="w-full h-full object-contain" />
+              <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="font-bold text-gray-900 text-sm leading-tight text-[#1D315F]">Buleleng ASN Corpu</h1>

@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import api from '../api/axios';
 import Swal from 'sweetalert2';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import hiasanImg from '../assets/Hiasan.png';
 import ProfileDropdown from '../components/ProfileDropdown';
+import CrosswordBoard from '../components/CrosswordBoard';
+import DragDropQuiz from '../components/DragDropQuiz';
 import {
   Search,
   Bell,
@@ -14,7 +16,10 @@ import {
   Flag,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  Grid,
+  BookOpen,
+  Sparkles
 } from 'lucide-react';
 
 /* ── Navbar ─────────────────────────────────────────── */
@@ -75,7 +80,7 @@ const KuisNavbar = ({ onNavigate }) => {
   );
 };
 
-const KuisHeader = ({ onBack, testData, currentQuestion }) => (
+const KuisHeader = ({ onBack, testData, answeredCount = 0 }) => (
   <div className="bg-[#1D315F] py-6 md:py-8 px-6 md:px-12 relative overflow-hidden" style={{ backgroundImage: `url(${hiasanImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
     <div className="absolute inset-0 bg-[#1D315F] opacity-55"></div>
     <div className="max-w-7xl mx-auto relative z-10">
@@ -99,7 +104,7 @@ const KuisHeader = ({ onBack, testData, currentQuestion }) => (
           <span>•</span>
           <div className="flex items-center gap-1">
             <div className="w-16 sm:w-20 h-1.5 bg-[#3FCDC1] rounded-full"></div>
-            <span className="text-white text-xs">{currentQuestion}/{testData?.soal?.length || 0}</span>
+            <span className="text-white text-xs">{answeredCount}/{testData?.soal?.length || 0} Terjawab</span>
           </div>
         </div>
       </div>
@@ -341,6 +346,7 @@ export default function Kuis({ onNavigate, onBack }) {
   const [testData, setTestData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [activeSection, setActiveSection] = useState('pg'); // 'pg' | 'tts'
 
   const courseId = localStorage.getItem('userCourseId');
   const modulId = localStorage.getItem('userModulId');
@@ -351,7 +357,18 @@ export default function Kuis({ onNavigate, onBack }) {
       try {
         const res = await api.get(`/user/courses/${courseId}/modul/${modulId}/kuis/${kuisId}`);
         if (res.data?.data) {
-          setTestData(res.data.data);
+          const data = res.data.data;
+          setTestData(data);
+          const hasPG = (data.soal || []).some(s => s.tipe_soal === 'pilihan_ganda' || (!s.tipe_soal && s.tipe_soal !== 'tts' && s.tipe_soal !== 'drag_drop'));
+          const hasTTS = (data.soal || []).some(s => s.tipe_soal === 'tts');
+          const hasDD = (data.soal || []).some(s => s.tipe_soal === 'drag_drop');
+          if (hasPG) {
+            setActiveSection('pg');
+          } else if (hasTTS) {
+            setActiveSection('tts');
+          } else if (hasDD) {
+            setActiveSection('drag_drop');
+          }
         }
       } catch (error) {
         Swal.fire({
@@ -379,6 +396,45 @@ export default function Kuis({ onNavigate, onBack }) {
     }
   }, [courseId]);
 
+  // Pisahkan soal PG, TTS, dan Drag & Drop
+  const pgQuestions = useMemo(() => {
+    return (testData?.soal || []).filter(s => s.tipe_soal === 'pilihan_ganda' || (!s.tipe_soal && s.tipe_soal !== 'tts' && s.tipe_soal !== 'drag_drop'));
+  }, [testData]);
+
+  const ttsQuestions = useMemo(() => {
+    return (testData?.soal || []).filter(s => s.tipe_soal === 'tts');
+  }, [testData]);
+
+  const dragDropQuestions = useMemo(() => {
+    return (testData?.soal || []).filter(s => s.tipe_soal === 'drag_drop');
+  }, [testData]);
+
+  const totalSoal = testData?.soal?.length || 0;
+
+  // Hitung jumlah butir yang sudah terjawab
+  const answeredCount = useMemo(() => {
+    let count = 0;
+    (testData?.soal || []).forEach(s => {
+      const ans = answers[s.soal_kuis_id];
+      if (s.tipe_soal === 'tts') {
+        const minLen = s.panjang_kata || 2;
+        if (typeof ans === 'string' && ans.trim().length >= minLen && !ans.includes(' ')) {
+          count++;
+        }
+      } else if (s.tipe_soal === 'drag_drop') {
+        const required = s.jumlah_blank || 1;
+        if (Array.isArray(ans) && ans.filter(Boolean).length === required) {
+          count++;
+        }
+      } else {
+        if (typeof ans === 'string' && ans.trim().length > 0) {
+          count++;
+        }
+      }
+    });
+    return count;
+  }, [testData, answers]);
+
   const handleFlag = () => {
     setFlaggedQuestions((prev) => {
       if (prev.includes(currentQuestion)) {
@@ -396,7 +452,7 @@ export default function Kuis({ onNavigate, onBack }) {
   };
 
   const handleNext = () => {
-    if (testData && currentQuestion < testData.soal.length) {
+    if (currentQuestion < pgQuestions.length) {
       setCurrentQuestion((prev) => prev + 1);
     }
   };
@@ -415,8 +471,6 @@ export default function Kuis({ onNavigate, onBack }) {
   const handleSubmit = async (isTimeUp = false) => {
     if (!testData || submitting) return;
 
-    const totalSoal = testData.soal?.length || 0;
-    const answeredCount = Object.keys(answers).length;
     const unansweredCount = totalSoal - answeredCount;
 
     if (!isTimeUp) {
@@ -424,14 +478,14 @@ export default function Kuis({ onNavigate, onBack }) {
         title: 'Kumpulkan Kuis?',
         html: unansweredCount > 0 ? `
           <div class="text-left text-sm text-gray-600 space-y-2 pt-1">
-            <p>Masih ada <b class="text-red-500">${unansweredCount} dari ${totalSoal} butir soal</b> yang belum Anda jawab.</p>
+            <p>Masih ada <b class="text-red-500">${unansweredCount} dari ${totalSoal} butir soal / kata</b> yang belum selesai Anda jawab.</p>
             <p class="text-xs text-amber-800 bg-amber-50 p-2.5 rounded border border-amber-200">
-              ⚠️ Soal yang tidak dijawab akan bernilai 0. Apakah Anda yakin ingin mengumpulkan kuis sekarang?
+              ⚠️ Soal atau kata TTS yang tidak dijawab akan bernilai 0. Apakah Anda yakin ingin mengumpulkan kuis sekarang?
             </p>
           </div>
         ` : `
           <div class="text-left text-sm text-gray-600 space-y-2 pt-1">
-            <p>Anda telah menjawab seluruh <b>${totalSoal} butir soal</b>.</p>
+            <p>Anda telah menjawab seluruh <b>${totalSoal} butir soal & kata TTS</b>.</p>
             <p>Apakah Anda yakin ingin menyelesaikan dan mengumpulkan kuis ini?</p>
           </div>
         `,
@@ -452,7 +506,7 @@ export default function Kuis({ onNavigate, onBack }) {
       
       const formattedAnswers = Object.entries(answers).map(([id, val]) => ({
         soal_kuis_id: parseInt(id),
-        jawaban: val
+        jawaban: typeof val === 'string' ? val.trim().toUpperCase() : val
       }));
 
       const res = await api.post(`/user/courses/${courseId}/modul/${modulId}/kuis/${kuisId}/submit`, {
@@ -516,114 +570,285 @@ export default function Kuis({ onNavigate, onBack }) {
   }
 
   const answeredQuestionsSet = new Set(
-    testData.soal
+    pgQuestions
       .map((s, idx) => (answers[s.soal_kuis_id] ? idx + 1 : null))
       .filter(Boolean)
   );
 
-  const currentQuestionData = testData.soal[currentQuestion - 1];
+  const currentQuestionData = pgQuestions[currentQuestion - 1];
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#F9FBFC]">
       <KuisNavbar onNavigate={onNavigate} />
-      <KuisHeader onBack={onBack} testData={testData} currentQuestion={currentQuestion} />
+      <KuisHeader onBack={onBack} testData={testData} answeredCount={answeredCount} />
 
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-6 md:py-8">
           {/* Timer Card - Top untuk semua tampilan */}
           <div className="mb-6">
             <TimerCard 
-              answeredCount={Object.keys(answers).length} 
-              totalQuestions={testData.soal.length} 
+              answeredCount={answeredCount} 
+              totalQuestions={totalSoal} 
               durationMinutes={testData.durasi_menit}
-              onTimeUp={handleSubmit}
+              onTimeUp={() => handleSubmit(true)}
             />
           </div>
 
-          {/* Desktop Layout: QuestionCard + Navigation + Submit */}
-          <div className="hidden lg:grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
-            <div className="lg:col-span-8">
-              <QuestionCard
-                questionNumber={currentQuestion}
-                questionData={currentQuestionData}
-                savedAnswer={answers[currentQuestionData?.soal_kuis_id]}
-                onPrevious={handlePrevious}
-                onNext={handleNext}
-                onFlag={handleFlag}
-                onAnswer={handleAnswer}
-                isDisabled={{
-                  previous: currentQuestion === 1,
-                  next: currentQuestion === testData.soal.length,
-                }}
-              />
+          {/* Tab Selector jika Kuis memiliki lebih dari 1 jenis soal (Hybrid) */}
+          {[
+            pgQuestions.length > 0 ? 'pg' : null,
+            ttsQuestions.length > 0 ? 'tts' : null,
+            dragDropQuestions.length > 0 ? 'drag_drop' : null
+          ].filter(Boolean).length > 1 && (
+            <div className="flex bg-white p-1.5 rounded-xl border border-gray-200 mb-6 shadow-xs max-w-2xl overflow-x-auto">
+              {pgQuestions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('pg')}
+                  className={`flex-1 min-w-[130px] py-2.5 px-3 sm:px-4 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+                    activeSection === 'pg'
+                      ? 'bg-[#006A63] text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Pilihan Ganda</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeSection === 'pg' ? 'bg-teal-800 text-teal-100' : 'bg-gray-100 text-gray-600'}`}>
+                    {pgQuestions.filter(s => answers[s.soal_kuis_id]).length}/{pgQuestions.length}
+                  </span>
+                </button>
+              )}
+              {ttsQuestions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('tts')}
+                  className={`flex-1 min-w-[130px] py-2.5 px-3 sm:px-4 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+                    activeSection === 'tts'
+                      ? 'bg-[#006A63] text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Grid className="w-4 h-4" />
+                  <span>TTS</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeSection === 'tts' ? 'bg-teal-800 text-teal-100' : 'bg-gray-100 text-gray-600'}`}>
+                    {ttsQuestions.filter(s => answers[s.soal_kuis_id] && answers[s.soal_kuis_id].trim().length === (s.panjang_kata || 0)).length}/{ttsQuestions.length}
+                  </span>
+                </button>
+              )}
+              {dragDropQuestions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('drag_drop')}
+                  className={`flex-1 min-w-[150px] py-2.5 px-3 sm:px-4 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+                    activeSection === 'drag_drop'
+                      ? 'bg-[#006A63] text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Drag & Drop</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeSection === 'drag_drop' ? 'bg-teal-800 text-teal-100' : 'bg-gray-100 text-gray-600'}`}>
+                    {dragDropQuestions.filter(s => Array.isArray(answers[s.soal_kuis_id]) && answers[s.soal_kuis_id].filter(Boolean).length === (s.jumlah_blank || 1)).length}/{dragDropQuestions.length}
+                  </span>
+                </button>
+              )}
             </div>
+          )}
 
-            <div className="lg:col-span-4 space-y-6">
-              <QuestionNavigation
-                currentQuestion={currentQuestion}
-                totalQuestions={testData.soal.length}
-                onNavigate={handleQuestionSelect}
-                flaggedQuestions={flaggedQuestions}
-                answeredQuestions={answeredQuestionsSet}
+          {/* TAMPILAN 1: PILIHAN GANDA */}
+          {activeSection === 'pg' && pgQuestions.length > 0 && (
+            <>
+              {/* Desktop Layout: QuestionCard + Navigation + Submit */}
+              <div className="hidden lg:grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+                <div className="lg:col-span-8">
+                  <QuestionCard
+                    questionNumber={currentQuestion}
+                    questionData={currentQuestionData}
+                    savedAnswer={answers[currentQuestionData?.soal_kuis_id]}
+                    onPrevious={handlePrevious}
+                    onNext={handleNext}
+                    onFlag={handleFlag}
+                    onAnswer={handleAnswer}
+                    isDisabled={{
+                      previous: currentQuestion === 1,
+                      next: currentQuestion === pgQuestions.length,
+                    }}
+                  />
+                </div>
+
+                <div className="lg:col-span-4 space-y-6">
+                  <QuestionNavigation
+                    currentQuestion={currentQuestion}
+                    totalQuestions={pgQuestions.length}
+                    onNavigate={handleQuestionSelect}
+                    flaggedQuestions={flaggedQuestions}
+                    answeredQuestions={answeredQuestionsSet}
+                  />
+
+                  {/* Submit Button - Desktop (di samping navigasi) */}
+                  <div>
+                    <button
+                      onClick={() => handleSubmit(false)}
+                      disabled={submitting}
+                      className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      <span className="text-lg">▶</span>
+                      {submitting ? 'Mengumpulkan...' : 'Submit Kuis'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tablet & Mobile Layout: QuestionCard + Navigation */}
+              <div className="lg:hidden">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
+                  <div className="md:col-span-8">
+                    <QuestionCard
+                      questionNumber={currentQuestion}
+                      questionData={currentQuestionData}
+                      savedAnswer={answers[currentQuestionData?.soal_kuis_id]}
+                      onPrevious={handlePrevious}
+                      onNext={handleNext}
+                      onFlag={handleFlag}
+                      onAnswer={handleAnswer}
+                      isDisabled={{
+                        previous: currentQuestion === 1,
+                        next: currentQuestion === pgQuestions.length,
+                      }}
+                    />
+                  </div>
+
+                  <div className="md:col-span-4">
+                    <QuestionNavigation
+                      currentQuestion={currentQuestion}
+                      totalQuestions={pgQuestions.length}
+                      onNavigate={handleQuestionSelect}
+                      flaggedQuestions={flaggedQuestions}
+                      answeredQuestions={answeredQuestionsSet}
+                    />
+                  </div>
+                </div>
+
+                {/* Submit Button - Bottom hanya untuk Tablet & Mobile */}
+                <div className="mt-6">
+                  <button
+                    onClick={() => handleSubmit(false)}
+                    disabled={submitting}
+                    className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    <span className="text-lg">▶</span>
+                    {submitting ? 'Mengumpulkan...' : 'Submit Kuis'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* TAMPILAN 2: TEKA-TEKI SILANG (TTS) */}
+          {activeSection === 'tts' && ttsQuestions.length > 0 && (
+            <div className="bg-white border border-[#BBC9C7] rounded-xl p-4 sm:p-6 md:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-[#1D315F] flex items-center gap-2">
+                    <Grid className="w-6 h-6 text-[#006A63]" />
+                    Game Teka-Teki Silang (TTS)
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                    Klik pada kotak TTS atau klik nomor petunjuk (mendatar / menurun), lalu ketik huruf jawabannya.
+                  </p>
+                </div>
+                <div className="text-xs bg-teal-50 text-[#006A63] font-bold px-3 py-1.5 rounded-lg border border-teal-200 self-start sm:self-auto flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-[#006A63]" />
+                  {ttsQuestions.filter(s => answers[s.soal_kuis_id] && answers[s.soal_kuis_id].trim().length === (s.panjang_kata || 0)).length} dari {ttsQuestions.length} Kata Terisi Lengkap
+                </div>
+              </div>
+
+              <CrosswordBoard
+                gridConfig={testData.grid_config}
+                words={ttsQuestions}
+                answers={answers}
+                onAnswerChange={handleAnswer}
               />
 
-              {/* Submit Button - Desktop (di samping navigasi) */}
-              <div>
+              {/* Submit Button Section for TTS */}
+              <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-xs text-gray-500">
+                  Pastikan seluruh kata terisi sebelum menyelesaikan kuis. Klik <b>Submit Kuis</b> jika sudah selesai.
+                </div>
                 <button
                   onClick={() => handleSubmit(false)}
                   disabled={submitting}
-                  className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full sm:w-auto px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 text-sm cursor-pointer"
                 >
-                  <span className="text-lg">▶</span>
+                  <span className="text-base">▶</span>
                   {submitting ? 'Mengumpulkan...' : 'Submit Kuis'}
                 </button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Tablet & Mobile Layout: QuestionCard + Navigation */}
-          <div className="lg:hidden">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
-              {/* QuestionCard */}
-              <div className="md:col-span-8">
-                <QuestionCard
-                  questionNumber={currentQuestion}
-                  questionData={currentQuestionData}
-                  savedAnswer={answers[currentQuestionData?.soal_kuis_id]}
-                  onPrevious={handlePrevious}
-                  onNext={handleNext}
-                  onFlag={handleFlag}
-                  onAnswer={handleAnswer}
-                  isDisabled={{
-                    previous: currentQuestion === 1,
-                    next: currentQuestion === testData.soal.length,
-                  }}
-                />
-              </div>
+          {/* TAMPILAN 3: DRAG & DROP / DROPDOWN */}
+          {activeSection === 'drag_drop' && dragDropQuestions.length > 0 && (
+            <div className="space-y-6">
+              <div className="bg-white border border-[#BBC9C7] rounded-xl p-4 sm:p-6 md:p-8 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-[#1D315F] flex items-center gap-2">
+                      <Sparkles className="w-6 h-6 text-[#006A63]" />
+                      Soal Dropdown / Drag & Drop
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                      Lengkapi titik-titik kosong pada kalimat berikut dengan menyeret kata atau mengklik titik kosong untuk memilih kata yang tepat.
+                    </p>
+                  </div>
+                  <div className="text-xs bg-teal-50 text-[#006A63] font-bold px-3 py-1.5 rounded-lg border border-teal-200 self-start sm:self-auto flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-[#006A63]" />
+                    {dragDropQuestions.filter(s => Array.isArray(answers[s.soal_kuis_id]) && answers[s.soal_kuis_id].filter(Boolean).length === (s.jumlah_blank || 1)).length} dari {dragDropQuestions.length} Soal Terisi Lengkap
+                  </div>
+                </div>
 
-              <div className="md:col-span-4">
-                <QuestionNavigation
-                  currentQuestion={currentQuestion}
-                  totalQuestions={testData.soal.length}
-                  onNavigate={handleQuestionSelect}
-                  flaggedQuestions={flaggedQuestions}
-                  answeredQuestions={answeredQuestionsSet}
-                />
+                <div className="space-y-8">
+                  {dragDropQuestions.map((q, idx) => (
+                    <div key={q.soal_kuis_id} className="p-4 sm:p-6 rounded-2xl border border-gray-200 bg-white shadow-xs space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-extrabold text-[#006A63] uppercase tracking-wider flex items-center gap-1.5">
+                          <span className="w-5 h-5 rounded-full bg-teal-100 text-[#006A63] flex items-center justify-center text-[11px]">
+                            {idx + 1}
+                          </span>
+                          Pertanyaan #{idx + 1}
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-semibold">
+                          Bobot: {q.bobot_nilai || 1} Poin
+                        </span>
+                      </div>
+
+                      <DragDropQuiz
+                        question={q}
+                        value={answers[q.soal_kuis_id] || []}
+                        onChange={(newAns) => handleAnswer(q.soal_kuis_id, newAns)}
+                        isReadOnly={submitting}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Submit Button Section for Drag & Drop */}
+                <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-xs text-gray-500">
+                    Pastikan seluruh titik kosong pada semua soal telah terisi sebelum menyelesaikan kuis.
+                  </div>
+                  <button
+                    onClick={() => handleSubmit(false)}
+                    disabled={submitting}
+                    className="w-full sm:w-auto px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 text-sm cursor-pointer"
+                  >
+                    <span className="text-base">▶</span>
+                    {submitting ? 'Mengumpulkan...' : 'Submit Kuis'}
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* Submit Button - Bottom hanya untuk Tablet & Mobile */}
-            <div className="mt-6">
-              <button
-                onClick={() => handleSubmit(false)}
-                disabled={submitting}
-                className="w-full px-8 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <span className="text-lg">▶</span>
-                {submitting ? 'Mengumpulkan...' : 'Submit Kuis'}
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </main>
 

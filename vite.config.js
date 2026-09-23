@@ -9,4 +9,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
   },
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: [
+      '.ngrok-free.app'
+    ]
+  }
 })

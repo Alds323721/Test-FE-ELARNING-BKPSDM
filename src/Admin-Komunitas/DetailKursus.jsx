@@ -10,8 +10,11 @@ import {
   PlayCircle, Edit, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Clock,
   BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon,
   ArrowLeft, Upload, Plus, AlertCircle, File, Eye, Trash2, Edit2, Download,
-  ExternalLink, Video, Check, Image as ImageIcon
+  ExternalLink, Video, Check, Image as ImageIcon, Grid, Sparkles, RefreshCw
 } from 'lucide-react';
+import { generateCrosswordLayout } from '../utils/crosswordGenerator';
+import CrosswordBoard from '../components/CrosswordBoard';
+import DragDropQuiz from '../components/DragDropQuiz';
 
 const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIsOpen }) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -185,6 +188,15 @@ const DetailKursus = ({ onNavigate }) => {
     opsiB: '',
     opsiC: '',
     opsiD: ''
+  });
+  const [quizActiveTab, setQuizActiveTab] = useState('pilihan_ganda'); // 'pilihan_ganda' | 'tts'
+  const [ttsInputWords, setTtsInputWords] = useState([]);
+  const [newTtsItem, setNewTtsItem] = useState({ word: '', clue: '' });
+  const [ttsLayout, setTtsLayout] = useState(null);
+  const [newDragDropItem, setNewDragDropItem] = useState({
+    teks_soal: '',
+    distractors: '',
+    bobot_nilai: 1
   });
 
   // Surat Pernyataan State
@@ -620,34 +632,94 @@ const DetailKursus = ({ onNavigate }) => {
   };
 
   // --- Kuis Handlers ---
+  const syncTtsLayoutToQuizForm = (layout, wordSource) => {
+    if (!layout || layout.placedWords.length === 0) return;
+
+    const ttsSoalItems = layout.placedWords.map(w => ({
+      tipe_soal: 'tts',
+      teks_soal: w.clue,
+      kunci_jawaban: w.word,
+      arah: w.direction,
+      nomor_urut: w.number,
+      baris_mulai: w.row,
+      kolom_mulai: w.col,
+      pilihan_jawaban_json: null,
+      bobot_nilai: 1
+    }));
+
+    setQuizForm(prev => {
+      const pgOnly = prev.soal.filter(s => s.tipe_soal !== 'tts');
+      return {
+        ...prev,
+        soal: [...pgOnly, ...ttsSoalItems],
+        grid_config_json: {
+          rows: layout.rows,
+          cols: layout.cols
+        }
+      };
+    });
+  };
+
   const handleOpenQuizModal = (modul) => {
     setTargetQuizModule(modul);
+    setQuizActiveTab('pilihan_ganda');
     const existingQuiz = getModulQuiz(modul);
+
     if (existingQuiz && existingQuiz.kuis_id) {
+      const allSoal = (existingQuiz.soal_kuis || []).map(s => {
+        let opts = s.pilihan_jawaban_json;
+        if (typeof opts === 'string') {
+          try { opts = JSON.parse(opts); } catch (e) { opts = {}; }
+        }
+        return {
+          soal_kuis_id: s.soal_kuis_id,
+          tipe_soal: s.tipe_soal || 'pilihan_ganda',
+          teks_soal: s.teks_soal || '',
+          kunci_jawaban: s.kunci_jawaban || 'A',
+          pilihan_jawaban_json: opts || {},
+          arah: s.arah || null,
+          nomor_urut: s.nomor_urut || null,
+          baris_mulai: s.baris_mulai || null,
+          kolom_mulai: s.kolom_mulai || null,
+          bobot_nilai: s.bobot_nilai ?? 1
+        };
+      });
+
+      const ttsSoal = allSoal.filter(s => s.tipe_soal === 'tts');
+      const initialTts = ttsSoal.map((s, idx) => ({
+        id: s.soal_kuis_id ? `tts-${s.soal_kuis_id}` : `tts-init-${idx}`,
+        word: s.kunci_jawaban || '',
+        clue: s.teks_soal || ''
+      }));
+
+      setTtsInputWords(initialTts);
+
       setQuizForm({
         judul_kuis: existingQuiz.judul_kuis || `Kuis ${modul.judul_modul}`,
         nilai_kelulusan: existingQuiz.nilai_kelulusan ?? 70,
         maks_percobaan: existingQuiz.maks_percobaan ?? 3,
-        soal: (existingQuiz.soal_kuis || []).map(s => {
-          let opts = s.pilihan_jawaban_json;
-          if (typeof opts === 'string') {
-            try { opts = JSON.parse(opts); } catch (e) { opts = {}; }
-          }
-          return {
-            teks_soal: s.teks_soal || '',
-            kunci_jawaban: s.kunci_jawaban || 'A',
-            pilihan_jawaban_json: opts || {}
-          };
-        })
+        soal: allSoal,
+        grid_config_json: existingQuiz.grid_config_json || null
       });
+
+      if (initialTts.length > 0) {
+        const layout = generateCrosswordLayout(initialTts, 12);
+        setTtsLayout(layout);
+      } else {
+        setTtsLayout(null);
+      }
     } else {
       setQuizForm({
         judul_kuis: `Kuis ${modul.judul_modul}`,
         nilai_kelulusan: 70,
         maks_percobaan: 3,
-        soal: []
+        soal: [],
+        grid_config_json: null
       });
+      setTtsInputWords([]);
+      setTtsLayout(null);
     }
+
     setNewQuizItem({
       teks_soal: '',
       kunci_jawaban: 'A',
@@ -656,6 +728,8 @@ const DetailKursus = ({ onNavigate }) => {
       opsiC: '',
       opsiD: ''
     });
+    setNewTtsItem({ word: '', clue: '' });
+    setNewDragDropItem({ teks_soal: '', distractors: '', bobot_nilai: 1 });
     setShowQuizModal(true);
   };
 
@@ -672,6 +746,7 @@ const DetailKursus = ({ onNavigate }) => {
     }
 
     const item = {
+      tipe_soal: 'pilihan_ganda',
       teks_soal: newQuizItem.teks_soal,
       kunci_jawaban: newQuizItem.kunci_jawaban,
       pilihan_jawaban_json: {
@@ -699,10 +774,169 @@ const DetailKursus = ({ onNavigate }) => {
   };
 
   const handleRemoveQuestionFromQuiz = (index) => {
+    // index pada filter soal PG
+    const pgQuestions = quizForm.soal.filter(s => s.tipe_soal !== 'tts' && s.tipe_soal !== 'drag_drop');
+    const targetItem = pgQuestions[index];
+    if (!targetItem) return;
+
     setQuizForm(prev => ({
       ...prev,
-      soal: prev.soal.filter((_, i) => i !== index)
+      soal: prev.soal.filter(s => s !== targetItem)
     }));
+  };
+
+  const handleAddDragDropToQuiz = (e) => {
+    e.preventDefault();
+    const rawText = newDragDropItem.teks_soal.trim();
+    if (!rawText) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Kalimat Soal Belum Diisi',
+        text: 'Tuliskan kalimat soal dan apit kata kunci dengan tanda kurung siku [ ... ]',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
+
+    const regex = /\[([^\]]+)\]/g;
+    const matches = [];
+    let m;
+    while ((m = regex.exec(rawText)) !== null) {
+      const val = m[1].trim();
+      if (val) matches.push(val);
+    }
+
+    if (matches.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Belum Ada Titik Kosong',
+        text: 'Apit minimal 1 kata kunci dengan tanda kurung siku, contoh: Anak ayam lahir dari [telur] dan ikan bernafas dengan [insang]',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
+
+    const blanks = matches.map((kunci, idx) => ({
+      id: idx + 1,
+      kunci: kunci
+    }));
+
+    const distractorList = newDragDropItem.distractors
+      ? newDragDropItem.distractors.split(',').map(d => d.trim()).filter(Boolean)
+      : [];
+
+    const allOptions = Array.from(new Set([...matches, ...distractorList]));
+
+    const item = {
+      tipe_soal: 'drag_drop',
+      teks_soal: rawText,
+      kunci_jawaban: matches.join(', '),
+      pilihan_jawaban_json: {
+        blanks: blanks,
+        distractors: distractorList,
+        all_options: allOptions
+      },
+      bobot_nilai: Number(newDragDropItem.bobot_nilai) || 1
+    };
+
+    setQuizForm(prev => ({
+      ...prev,
+      soal: [...prev.soal, item]
+    }));
+
+    setNewDragDropItem({
+      teks_soal: '',
+      distractors: '',
+      bobot_nilai: 1
+    });
+  };
+
+  const handleRemoveDragDropFromQuiz = (index) => {
+    const ddQuestions = quizForm.soal.filter(s => s.tipe_soal === 'drag_drop');
+    const targetItem = ddQuestions[index];
+    if (!targetItem) return;
+
+    setQuizForm(prev => ({
+      ...prev,
+      soal: prev.soal.filter(s => s !== targetItem)
+    }));
+  };
+
+  const handleAddTtsWord = (e) => {
+    e.preventDefault();
+    const cleanWord = (newTtsItem.word || '').toUpperCase().replace(/[^A-Z]/g, '');
+    if (cleanWord.length < 2) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Kata Terlalu Pendek',
+        text: 'Kata TTS harus terdiri dari minimal 2 huruf abjad (A-Z).',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
+    if (!newTtsItem.clue.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Petunjuk Wajib Diisi',
+        text: 'Tuliskan petunjuk (clue) untuk kata ini!',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
+
+    // Cek duplikasi kata
+    if (ttsInputWords.some(w => w.word === cleanWord)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Kata Sudah Ada',
+        text: `Kata "${cleanWord}" sudah ada dalam daftar TTS ini.`,
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
+
+    const updatedWords = [
+      ...ttsInputWords,
+      {
+        id: `tts-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        word: cleanWord,
+        clue: newTtsItem.clue.trim()
+      }
+    ];
+
+    setTtsInputWords(updatedWords);
+    setNewTtsItem({ word: '', clue: '' });
+
+    // Auto-generate layout TTS
+    const layout = generateCrosswordLayout(updatedWords, 12);
+    setTtsLayout(layout);
+    syncTtsLayoutToQuizForm(layout, updatedWords);
+  };
+
+  const handleRemoveTtsWord = (id) => {
+    const updatedWords = ttsInputWords.filter(w => w.id !== id);
+    setTtsInputWords(updatedWords);
+
+    if (updatedWords.length > 0) {
+      const layout = generateCrosswordLayout(updatedWords, 12);
+      setTtsLayout(layout);
+      syncTtsLayoutToQuizForm(layout, updatedWords);
+    } else {
+      setTtsLayout(null);
+      setQuizForm(prev => ({
+        ...prev,
+        soal: prev.soal.filter(s => s.tipe_soal !== 'tts'),
+        grid_config_json: null
+      }));
+    }
+  };
+
+  const handleRegenerateTtsLayout = () => {
+    if (ttsInputWords.length === 0) return;
+    const shuffled = [...ttsInputWords].sort(() => Math.random() - 0.5);
+    const layout = generateCrosswordLayout(shuffled, 12);
+    setTtsLayout(layout);
+    syncTtsLayoutToQuizForm(layout, ttsInputWords);
   };
 
   const handleSaveQuiz = async () => {
@@ -711,7 +945,7 @@ const DetailKursus = ({ onNavigate }) => {
       Swal.fire({
         icon: 'warning',
         title: 'Kuis Masih Kosong',
-        text: 'Kuis harus memiliki minimal 1 butir pertanyaan sebelum disimpan.',
+        text: 'Kuis harus memiliki minimal 1 butir pertanyaan (Pilihan Ganda atau Teka-Teki Silang) sebelum disimpan.',
         confirmButtonColor: '#0F766E'
       });
       return;
@@ -722,6 +956,7 @@ const DetailKursus = ({ onNavigate }) => {
         judul_kuis: quizForm.judul_kuis,
         nilai_kelulusan: quizForm.nilai_kelulusan,
         maks_percobaan: quizForm.maks_percobaan,
+        grid_config_json: quizForm.grid_config_json,
         soal: quizForm.soal
       };
 
@@ -732,12 +967,16 @@ const DetailKursus = ({ onNavigate }) => {
         await api.post(`/admin-komunitas/modul/${targetQuizModule.modul_id}/kuis`, payload);
       }
 
+      const countPG = quizForm.soal.filter(s => s.tipe_soal === 'pilihan_ganda' || !s.tipe_soal).length;
+      const countTTS = quizForm.soal.filter(s => s.tipe_soal === 'tts').length;
+      const countDD = quizForm.soal.filter(s => s.tipe_soal === 'drag_drop').length;
+
       await Swal.fire({
         icon: 'success',
         title: 'Kuis Berhasil Disimpan!',
-        text: 'Kuis evaluasi modul berhasil disimpan dan diperbarui.',
+        text: `Kuis evaluasi modul berhasil disimpan (${countPG} PG, ${countTTS} TTS, ${countDD} Drag & Drop).`,
         confirmButtonColor: '#0F766E',
-        timer: 2000,
+        timer: 2500,
         showConfirmButton: true
       });
       setShowQuizModal(false);
@@ -1767,11 +2006,11 @@ const DetailKursus = ({ onNavigate }) => {
       {/* MODAL: Kelola Kuis Modul */}
       {showQuizModal && targetQuizModule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-100 space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-5xl w-full p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 max-h-[92vh] overflow-y-auto overflow-x-hidden">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
                 <h3 className="font-bold text-gray-900 text-base">Kelola Kuis: {targetQuizModule.judul_modul}</h3>
-                <p className="text-xs text-gray-500">Konfigurasi soal evaluasi pemahaman untuk modul ini.</p>
+                <p className="text-xs text-gray-500">Konfigurasi soal evaluasi pemahaman (Pilihan Ganda dan/atau Teka-Teki Silang).</p>
               </div>
               <button onClick={() => setShowQuizModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -1811,97 +2050,419 @@ const DetailKursus = ({ onNavigate }) => {
               </div>
             </div>
 
-            {/* Questions List */}
-            <div>
-              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Daftar Butir Pertanyaan ({quizForm.soal.length})
-              </h4>
-              {quizForm.soal.length === 0 ? (
-                <p className="text-xs text-gray-400 italic py-3">Belum ada pertanyaan pada kuis ini. Tambahkan pertanyaan di bawah.</p>
-              ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {quizForm.soal.map((q, idx) => (
-                    <div key={idx} className="p-3 border border-gray-100 rounded-lg bg-gray-50/70 flex justify-between items-start gap-2">
-                      <div className="text-xs space-y-1">
-                        <p className="font-bold text-gray-900">{idx + 1}. {q.teks_soal}</p>
-                        <p className="text-teal-700 font-semibold">Kunci Jawaban: {q.kunci_jawaban}</p>
-                      </div>
-                      <button
-                        onClick={() => handleRemoveQuestionFromQuiz(idx)}
-                        className="text-gray-400 hover:text-red-600 p-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* Tab Nav: Pilihan Ganda vs Teka-Teki Silang vs Drag & Drop */}
+            <div className="flex border-b border-gray-200 gap-2 sm:gap-4 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setQuizActiveTab('pilihan_ganda')}
+                className={`flex items-center gap-2 pb-2.5 px-3 text-xs font-bold transition-all border-b-2 shrink-0 ${
+                  quizActiveTab === 'pilihan_ganda'
+                    ? 'border-[#0F766E] text-[#0F766E]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                Soal Pilihan Ganda ({quizForm.soal.filter(s => s.tipe_soal === 'pilihan_ganda' || !s.tipe_soal).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuizActiveTab('tts')}
+                className={`flex items-center gap-2 pb-2.5 px-3 text-xs font-bold transition-all border-b-2 shrink-0 ${
+                  quizActiveTab === 'tts'
+                    ? 'border-[#0F766E] text-[#0F766E]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Grid className="w-4 h-4" />
+                Teka-Teki Silang (TTS) ({ttsInputWords.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuizActiveTab('drag_drop')}
+                className={`flex items-center gap-2 pb-2.5 px-3 text-xs font-bold transition-all border-b-2 shrink-0 ${
+                  quizActiveTab === 'drag_drop'
+                    ? 'border-[#0F766E] text-[#0F766E]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                Dropdown / Drag & Drop ({quizForm.soal.filter(s => s.tipe_soal === 'drag_drop').length})
+              </button>
             </div>
 
-            {/* Add Question Form */}
-            <form onSubmit={handleAddQuestionToQuiz} className="border border-teal-100 bg-teal-50/30 p-4 rounded-xl space-y-3">
-              <h4 className="text-xs font-bold text-teal-800 uppercase tracking-wider">Tambah Pertanyaan Baru</h4>
-              <div>
-                <input
-                  type="text"
-                  placeholder="Tuliskan butir soal pertanyaan..."
-                  value={newQuizItem.teks_soal || ''}
-                  onChange={(e) => setNewQuizItem({ ...newQuizItem, teks_soal: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {['A', 'B', 'C', 'D'].map((optKey) => (
-                  <div key={optKey} className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-600 w-4">{optKey}.</span>
+            {/* TAB CONTENT: PILIHAN GANDA */}
+            {quizActiveTab === 'pilihan_ganda' && (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                    Daftar Butir Pilihan Ganda ({quizForm.soal.filter(s => s.tipe_soal !== 'tts').length})
+                  </h4>
+                  {quizForm.soal.filter(s => s.tipe_soal !== 'tts').length === 0 ? (
+                    <p className="text-xs text-gray-400 italic py-3 bg-gray-50 rounded-lg text-center">
+                      Belum ada butir soal pilihan ganda. Tambahkan melalui formulir di bawah jika diperlukan.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {quizForm.soal.filter(s => s.tipe_soal !== 'tts').map((q, idx) => (
+                        <div key={idx} className="p-3 border border-gray-100 rounded-lg bg-gray-50/70 flex justify-between items-start gap-2">
+                          <div className="text-xs space-y-1">
+                            <p className="font-bold text-gray-900">{idx + 1}. {q.teks_soal}</p>
+                            <p className="text-teal-700 font-semibold">Kunci Jawaban: {q.kunci_jawaban}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveQuestionFromQuiz(idx)}
+                            className="text-gray-400 hover:text-red-600 p-1"
+                            title="Hapus Soal"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Add Question Form PG */}
+                <form onSubmit={handleAddQuestionToQuiz} className="border border-teal-100 bg-teal-50/30 p-4 rounded-xl space-y-3">
+                  <h4 className="text-xs font-bold text-teal-800 uppercase tracking-wider">Tambah Pertanyaan Pilihan Ganda</h4>
+                  <div>
                     <input
                       type="text"
-                      placeholder={`Pilihan ${optKey}`}
-                      value={newQuizItem[`opsi${optKey}`] || ''}
-                      onChange={(e) => setNewQuizItem({ ...newQuizItem, [`opsi${optKey}`]: e.target.value })}
-                      className="flex-1 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs"
+                      placeholder="Tuliskan butir soal pertanyaan..."
+                      value={newQuizItem.teks_soal || ''}
+                      onChange={(e) => setNewQuizItem({ ...newQuizItem, teks_soal: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
                     />
                   </div>
-                ))}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {['A', 'B', 'C', 'D'].map((optKey) => (
+                      <div key={optKey} className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-600 w-4">{optKey}.</span>
+                        <input
+                          type="text"
+                          placeholder={`Pilihan ${optKey}`}
+                          value={newQuizItem[`opsi${optKey}`] || ''}
+                          onChange={(e) => setNewQuizItem({ ...newQuizItem, [`opsi${optKey}`]: e.target.value })}
+                          className="flex-1 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-700">Kunci Jawaban Benar:</span>
+                      <select
+                        value={newQuizItem.kunci_jawaban || 'A'}
+                        onChange={(e) => setNewQuizItem({ ...newQuizItem, kunci_jawaban: e.target.value })}
+                        className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-bold text-teal-700"
+                      >
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                      </select>
+                    </div>
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Tambah Soal PG
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-gray-700">Kunci Jawaban Benar:</span>
-                  <select
-                    value={newQuizItem.kunci_jawaban || 'A'}
-                    onChange={(e) => setNewQuizItem({ ...newQuizItem, kunci_jawaban: e.target.value })}
-                    className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-bold text-teal-700"
-                  >
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                    <option value="D">D</option>
-                  </select>
+            )}
+
+            {/* TAB CONTENT: TEKA-TEKI SILANG (TTS) */}
+            {quizActiveTab === 'tts' && (
+              <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-800">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Game Teka-Teki Silang Interaktif:</span> Masukkan kata kunci jawaban dan petunjuk (clue). Kotak persilangan kata dan nomor petunjuk akan otomatis dihitung dan disusun ke dalam papan TTS.
+                  </div>
                 </div>
+
+                {/* Form Tambah Kata TTS - Rapi mendatar dan proporsional */}
+                <form onSubmit={handleAddTtsWord} className="border border-teal-200 bg-teal-50/30 p-4 sm:p-5 rounded-2xl space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-extrabold text-[#0F766E] uppercase tracking-wider flex items-center gap-1.5">
+                      <Plus className="w-4 h-4" /> Tambah Kata & Petunjuk TTS
+                    </h4>
+                    <span className="text-[11px] text-gray-500 font-medium">Hanya huruf A-Z, tanpa spasi</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+                    <div className="md:col-span-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-xs font-bold text-gray-700">Kata Kunci (Jawaban)</label>
+                        <span className="text-[10px] text-teal-700 font-semibold">{newTtsItem.word.length} huruf</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Contoh: INTEGRITAS"
+                        value={newTtsItem.word}
+                        onChange={(e) => setNewTtsItem({ ...newTtsItem, word: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })}
+                        className="w-full h-10 px-3.5 bg-white border border-gray-300 rounded-lg text-xs font-extrabold tracking-wider text-teal-900 uppercase focus:ring-2 focus:ring-teal-500 focus:outline-none shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="md:col-span-6">
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-xs font-bold text-gray-700">Petunjuk (Clue / Soal)</label>
+                        <span className="text-[10px] text-gray-400">Pertanyaan peserta</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Sikap teguh berpegang pada nilai moral dan kejujuran"
+                        value={newTtsItem.clue}
+                        onChange={(e) => setNewTtsItem({ ...newTtsItem, clue: e.target.value })}
+                        className="w-full h-10 px-3.5 bg-white border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <div className="h-[17px] mb-1"></div>
+                      <button
+                        type="submit"
+                        className="w-full h-10 bg-[#0F766E] text-white rounded-lg text-xs font-bold hover:bg-teal-800 transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" /> Tambah
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                {/* List Kata TTS */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>Daftar Kata TTS</span>
+                      <span className="bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                        {ttsInputWords.length} Kata
+                      </span>
+                    </h4>
+                    {ttsInputWords.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={handleRegenerateTtsLayout}
+                        className="text-xs text-teal-700 hover:text-teal-900 font-bold flex items-center gap-1.5 hover:underline cursor-pointer bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200"
+                        title="Acak ulang susunan persilangan kata"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Acak Ulang Susunan
+                      </button>
+                    )}
+                  </div>
+
+                  {ttsInputWords.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl bg-gray-50">
+                      <Grid className="w-8 h-8 text-gray-300 mx-auto mb-1.5" />
+                      <p className="text-xs font-medium text-gray-500">Belum ada kata TTS yang ditambahkan.</p>
+                      <p className="text-[11px] text-gray-400">Tambahkan minimal 2 kata di atas untuk menghasilkan papan TTS otomatis.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2.5 bg-gray-50/70 rounded-xl border border-gray-200">
+                      {ttsInputWords.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-teal-200 shadow-2xs text-xs group hover:border-teal-400 transition-colors"
+                        >
+                          <span className="font-extrabold text-teal-900 tracking-wider uppercase">{item.word}</span>
+                          <span className="bg-teal-50 text-teal-700 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                            {item.word.length}H
+                          </span>
+                          <span className="text-gray-300">|</span>
+                          <span className="text-gray-600 truncate max-w-[220px]" title={item.clue}>{item.clue}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTtsWord(item.id)}
+                            className="text-gray-400 hover:text-red-500 ml-1 p-0.5 rounded hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Hapus kata"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Live Preview Grid TTS */}
+                {ttsLayout && (
+                  <div className="border border-teal-100 rounded-2xl p-4 sm:p-5 bg-teal-50/20 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-gray-800 flex items-center gap-2">
+                        <Grid className="w-4 h-4 text-[#0F766E]" />
+                        Preview Papan Teka-Teki Silang ({ttsLayout.rows} &times; {ttsLayout.cols} Kotak)
+                      </span>
+                      <span className="text-[11px] text-[#0F766E] bg-teal-100/70 px-2.5 py-0.5 rounded-full border border-teal-200 font-bold">
+                        {ttsLayout.placedWords.length} Kata Tersusun Rapi
+                      </span>
+                    </div>
+
+                    {ttsLayout.unplacedWords && ttsLayout.unplacedWords.length > 0 && (
+                      <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">Perhatian:</span> Kata (<b>{ttsLayout.unplacedWords.map(w => w.word).join(', ')}</b>) belum memiliki huruf yang bersilangan dengan kata lainnya. Coba klik <b>"Acak Ulang Susunan"</b> atau tambahkan kata lain yang memiliki huruf yang sama.
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs w-full overflow-hidden">
+                      <CrosswordBoard gridData={ttsLayout} showAnswers={true} isReadOnly={true} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB CONTENT: DRAG & DROP / DROPDOWN */}
+            {quizActiveTab === 'drag_drop' && (
+              <div className="space-y-5">
+                <div className="bg-teal-50 border border-teal-200 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-teal-900">
+                  <Sparkles className="w-4 h-4 text-[#0F766E] shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <span className="font-bold">Cara Membuat Soal Dropdown / Drag & Drop:</span> Tuliskan kalimat soal dan apit kata yang ingin dijadikan titik-titik kosong menggunakan tanda kurung siku <b>[ ... ]</b>. Kata di dalam kurung siku otomatis menjadi kunci jawaban dan bank pilihan.
+                    <div className="mt-1 text-[11px] text-teal-700 font-mono bg-white/70 px-2 py-1 rounded border border-teal-100">
+                      Contoh: Anak ayam lahir dari [telur] dan ikan bernafas dengan [insang]
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Tambah Soal Drag & Drop */}
+                <form onSubmit={handleAddDragDropToQuiz} className="border border-teal-200 bg-teal-50/20 p-4 sm:p-5 rounded-2xl space-y-3.5 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-extrabold text-[#0F766E] uppercase tracking-wider flex items-center gap-1.5">
+                      <Plus className="w-4 h-4" /> Tambah Soal Dropdown / Drag & Drop
+                    </h4>
+                    <span className="text-[11px] text-gray-500 font-medium">Apit kata kunci dengan [ ]</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Kalimat Soal (Gunakan [kunci] untuk titik-titik kosong)
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Contoh: ASN harus memiliki nilai dasar [BerAKHLAK] dan selalu menjaga [integritas] dalam melayani masyarakat."
+                      value={newDragDropItem.teks_soal}
+                      onChange={(e) => setNewDragDropItem({ ...newDragDropItem, teks_soal: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-lg text-xs leading-relaxed focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    <div className="sm:col-span-8">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Pilihan Pengecoh / Tambahan (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: loyalitas, adaptif, kompeten (pisahkan dengan koma)"
+                        value={newDragDropItem.distractors}
+                        onChange={(e) => setNewDragDropItem({ ...newDragDropItem, distractors: e.target.value })}
+                        className="w-full h-10 px-3.5 bg-white border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                      />
+                      <span className="text-[10px] text-gray-400 mt-0.5 block">Kata pengecoh untuk memperkaya pilihan</span>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Bobot Nilai</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newDragDropItem.bobot_nilai}
+                        onChange={(e) => setNewDragDropItem({ ...newDragDropItem, bobot_nilai: Number(e.target.value) })}
+                        className="w-full h-10 px-3.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-teal-800"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <button
+                        type="submit"
+                        className="w-full h-10 bg-[#0F766E] text-white rounded-lg text-xs font-bold hover:bg-teal-800 transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" /> Simpan Soal
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                {/* Daftar Soal Drag & Drop yang Sudah Dibuat */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Daftar Soal Dropdown / Drag & Drop</span>
+                    <span className="bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      {quizForm.soal.filter(s => s.tipe_soal === 'drag_drop').length} Soal
+                    </span>
+                  </h4>
+
+                  {quizForm.soal.filter(s => s.tipe_soal === 'drag_drop').length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl bg-gray-50">
+                      <Sparkles className="w-8 h-8 text-gray-300 mx-auto mb-1.5" />
+                      <p className="text-xs font-medium text-gray-500">Belum ada butir soal Drag & Drop.</p>
+                      <p className="text-[11px] text-gray-400">Tambahkan kalimat rumpang melalui formulir di atas.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {quizForm.soal.filter(s => s.tipe_soal === 'drag_drop').map((item, idx) => (
+                        <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-xs space-y-3">
+                          <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                            <span className="text-xs font-bold text-teal-800 flex items-center gap-1.5">
+                              <span className="w-5 h-5 rounded-full bg-teal-100 text-[#0F766E] flex items-center justify-center text-[10px]">
+                                {idx + 1}
+                              </span>
+                              Soal #{idx + 1} (Bobot: {item.bobot_nilai || 1})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDragDropFromQuiz(idx)}
+                              className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50 transition-colors cursor-pointer text-xs flex items-center gap-1"
+                              title="Hapus Soal"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Hapus
+                            </button>
+                          </div>
+
+                          {/* Live Preview Soal dengan DragDropQuiz */}
+                          <DragDropQuiz
+                            question={item}
+                            isReadOnly={true}
+                            showAnswers={true}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+              <div className="text-xs text-gray-500">
+                Total Soal: <span className="font-bold text-gray-800">{quizForm.soal.length}</span> (
+                {quizForm.soal.filter(s => s.tipe_soal === 'pilihan_ganda' || !s.tipe_soal).length} PG,{' '}
+                {quizForm.soal.filter(s => s.tipe_soal === 'tts').length} TTS,{' '}
+                {quizForm.soal.filter(s => s.tipe_soal === 'drag_drop').length} Drag & Drop)
+              </div>
+              <div className="flex gap-2">
                 <button
-                  type="submit"
-                  className="px-3 py-1.5 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 flex items-center gap-1"
+                  type="button"
+                  onClick={() => setShowQuizModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Tambah Soal
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveQuiz}
+                  className="px-6 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"
+                >
+                  Simpan Seluruh Kuis
                 </button>
               </div>
-            </form>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setShowQuizModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveQuiz}
-                className="px-6 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"
-              >
-                Simpan Seluruh Kuis
-              </button>
             </div>
           </div>
         </div>

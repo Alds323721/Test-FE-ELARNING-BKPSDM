@@ -5,7 +5,7 @@ import {
   Users, BookOpen, MessageSquare, Award, CheckCircle, 
   TrendingUp, TrendingDown, ArrowRight, LayoutDashboard,
   ShieldCheck, BarChart3, HelpCircle, LogOut, Bell, Settings,
-  Search, ChevronRight, Clock, Book, Menu, X, Layers
+  Search, ChevronRight, Clock, Book, Menu, X, Layers, RefreshCw
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'admin', onNavigate, isOpen, setIsOpen }) => {
@@ -187,29 +187,52 @@ const AdminDashboard = ({ onNavigate }) => {
   const [stats, setStats] = useState(null);
   const [trendData, setTrendData] = useState([]);
   const [recentCourses, setRecentCourses] = useState([]);
+  const [pendingCoursesCount, setPendingCoursesCount] = useState(0);
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchDashboard = async (isManual = false) => {
+    try {
+      if (isManual) setIsRefreshing(true);
+      const [dashboardRes, approvalRes, komunitasRes] = await Promise.all([
+        api.get('/admin-bkpsdm/dashboard'),
+        api.get('/admin-bkpsdm/approval'),
+        api.get('/admin-bkpsdm/komunitas')
+      ]);
+      
+      const approvalList = approvalRes.data?.data || [];
+      setStats(dashboardRes.data?.data?.statistik || {});
+      setTrendData(dashboardRes.data?.data?.trend_sertifikat || []);
+      setPendingCoursesCount(approvalList.length);
+      setRecentCourses(approvalList.slice(0, 5));
+      setCommunities((komunitasRes.data?.data || []).slice(0, 3));
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+      if (isManual) setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const [dashboardRes, approvalRes, komunitasRes] = await Promise.all([
-          api.get('/admin-bkpsdm/dashboard'),
-          api.get('/admin-bkpsdm/approval'),
-          api.get('/admin-bkpsdm/komunitas')
-        ]);
-        
-        setStats(dashboardRes.data.data.statistik);
-        setTrendData(dashboardRes.data.data.trend_sertifikat || []);
-        setRecentCourses((approvalRes.data.data || []).slice(0, 3));
-        setCommunities((komunitasRes.data.data || []).slice(0, 3));
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchDashboard();
+
+    // Auto-refresh interval (polling setiap 15 detik agar realtime)
+    const interval = setInterval(() => {
+      fetchDashboard(false);
+    }, 15000);
+
+    // Refresh ketika user kembali ke tab browser
+    const handleFocus = () => {
+      fetchDashboard(false);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   if (loading) return <AdminLoadingSkeleton />;
@@ -299,10 +322,32 @@ const AdminDashboard = ({ onNavigate }) => {
 
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
             <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h2 className="text-base sm:text-lg font-bold text-gray-800">Pengajuan Kursus Terbaru</h2>
-              <div className="bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold flex items-center gap-1.5">
-                <Clock className="w-3 h-3" />
-                3 Menunggu Tinjauan
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-gray-800">Pengajuan Kursus Terbaru</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Daftar kursus dari komunitas yang menunggu validasi admin</p>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => fetchDashboard(true)}
+                  disabled={isRefreshing}
+                  title="Segarkan data pengajuan"
+                  className="p-1.5 text-gray-400 hover:text-teal-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-teal-700' : ''}`} />
+                </button>
+                <div className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                  pendingCoursesCount > 0 
+                    ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}>
+                  {pendingCoursesCount > 0 ? (
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                  ) : (
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  )}
+                  <span>{pendingCoursesCount} Menunggu Tinjauan</span>
+                </div>
               </div>
             </div>
             
@@ -322,17 +367,35 @@ const AdminDashboard = ({ onNavigate }) => {
                     <tr key={course.pembelajaran_id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <p className="font-semibold text-gray-800 text-xs sm:text-sm">{course.judul_pembelajaran}</p>
+                        {course.kategori && (
+                          <span className="inline-block mt-1 text-[11px] font-medium text-teal-700 bg-teal-50 px-2 py-0.5 rounded">
+                            {course.kategori}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4">
-                        <p className="text-xs sm:text-sm text-gray-600">ID Komunitas: {course.komunitas_id}</p>
+                        <p className="text-xs sm:text-sm text-gray-700 font-medium">
+                          {course.komunitas?.nama_komunitas || `Komunitas #${course.komunitas_id}`}
+                        </p>
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4">
-                        <p className="text-xs sm:text-sm text-gray-600">{new Date(course.created_at).toLocaleDateString('id-ID')}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          {course.dibuat_pada || course.created_at
+                            ? new Date(course.dibuat_pada || course.created_at).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })
+                            : '-'}
+                        </p>
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4">
-                        <div className="flex flex-wrap gap-2">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
-                            <Clock className="w-3 h-3" /> {course.total_jp || 0} JPL
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-700 text-[10px] sm:text-xs font-medium">
+                            <Clock className="w-3 h-3 text-gray-500" /> {course.total_jp || 0} JPL
+                          </span>
+                          <span className="inline-flex items-center px-2 py-1 rounded bg-blue-50 text-blue-700 text-[10px] sm:text-xs font-medium">
+                            {course.moduls?.length ?? 0} Modul
                           </span>
                         </div>
                       </td>
@@ -342,7 +405,7 @@ const AdminDashboard = ({ onNavigate }) => {
                             localStorage.setItem('reviewCourseData', JSON.stringify(course));
                             if (onNavigate) onNavigate('course-review');
                           }}
-                          className="bg-teal-700 hover:bg-teal-800 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition-colors"
+                          className="bg-teal-700 hover:bg-teal-800 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
                         >
                           Validasi
                         </button>
@@ -350,7 +413,11 @@ const AdminDashboard = ({ onNavigate }) => {
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan="5" className="px-4 py-6 text-center text-xs text-gray-500">Belum ada pengajuan kursus baru.</td>
+                      <td colSpan="5" className="px-4 py-10 text-center text-xs text-gray-500">
+                        <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+                        <p className="font-semibold text-gray-700 text-sm">Tidak ada pengajuan kursus yang menunggu tinjauan</p>
+                        <p className="text-gray-400 mt-0.5">Semua kursus yang diajukan telah selesai divalidasi.</p>
+                      </td>
                     </tr>
                   )}
                 </tbody>

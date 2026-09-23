@@ -479,16 +479,25 @@ export default function CategoryManagement({ onNavigate }) {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-gray-100 overflow-hidden transform transition-all">
-            <div className="px-6 py-4 bg-teal-800 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers className="w-5 h-5 text-teal-200" />
-                <h3 className="font-bold text-base">
-                  {editingCategory ? 'Edit Kategori Kursus' : 'Tambah Kategori Kursus Baru'}
-                </h3>
+            <div className="px-6 py-4 bg-teal-800 flex items-center justify-between border-b border-teal-900/30">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-teal-700/60 border border-teal-600/40 flex items-center justify-center text-teal-100 shrink-0">
+                  <Layers className="w-4 h-4 text-teal-200" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base !text-white leading-tight">
+                    {editingCategory ? 'Edit Kategori Kursus' : 'Tambah Kategori Kursus Baru'}
+                  </h3>
+                  <p className="text-xs !text-teal-100/90 font-normal mt-0.5">
+                    {editingCategory ? 'Perbarui informasi kategori kursus' : 'Kelola kategori untuk katalog pelatihan'}
+                  </p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-teal-200 hover:text-white transition-colors"
+                className="p-1.5 rounded-lg text-teal-100 hover:!text-white hover:bg-teal-700/60 transition-colors"
+                title="Tutup"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -512,7 +521,7 @@ export default function CategoryManagement({ onNavigate }) {
                   value={formData.nama_kategori}
                   onChange={(e) => setFormData({ ...formData, nama_kategori: e.target.value })}
                   placeholder="Contoh: Tata Kelola Pemerintahan"
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent transition-all"
+                  className="w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent transition-all placeholder:text-gray-400"
                 />
               </div>
 
@@ -525,7 +534,7 @@ export default function CategoryManagement({ onNavigate }) {
                   value={formData.deskripsi}
                   onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
                   placeholder="Jelaskan ruang lingkup materi atau sasaran kursus dalam kategori ini..."
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent transition-all resize-none"
+                  className="w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent transition-all resize-none placeholder:text-gray-400"
                 />
               </div>
 
@@ -541,10 +550,10 @@ export default function CategoryManagement({ onNavigate }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2 bg-teal-700 hover:bg-teal-800 !text-white rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
-                  {submitting && <RefreshCw className="w-4 h-4 animate-spin" />}
-                  <span>{editingCategory ? 'Simpan Perubahan' : 'Tambah Kategori'}</span>
+                  {submitting && <RefreshCw className="w-4 h-4 animate-spin text-white" />}
+                  <span className="!text-white">{editingCategory ? 'Simpan Perubahan' : 'Tambah Kategori'}</span>
                 </button>
               </div>
             </form>

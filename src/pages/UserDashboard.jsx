@@ -24,7 +24,11 @@ import {
   BookMarked,
   ArrowRight,
   Folder,
-  LayoutGrid
+  LayoutGrid,
+  User,
+  Briefcase,
+  Building2,
+  CreditCard
 } from 'lucide-react';
 
 const getCourseImage = (url) => {
@@ -112,10 +116,15 @@ const DashboardHeader = () => {
 };
 
 /* ── Welcome & Stats ────────────────────────────────── */
-const WelcomeSection = ({ statsData }) => {
+const WelcomeSection = ({ statsData, userData }) => {
   const { t } = useLanguage();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const name = user.nama_lengkap || 'Peserta ASN';
+  const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = userData || localUser;
+
+  const namaLengkap = user?.nama_lengkap || 'Peserta ASN';
+  const nip = user?.nip || '-';
+  const jabatan = user?.jabatan || 'Aparatur Sipil Negara';
+  const unitKerja = user?.unit_kerja || 'Pemerintah Kabupaten Buleleng';
 
   const stats = [
     { label: t('dashboard.activeTraining'), value: statsData?.aktif || 0, icon: BookMarked, color: '#3FCDC1' },
@@ -125,12 +134,70 @@ const WelcomeSection = ({ statsData }) => {
   ];
 
   return (
-    <section className="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-10">
-      <div className="mb-6 md:mb-8">
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#1D315F] mb-2">{t('dashboard.welcome')} {name}</h2>
-        <p className="text-gray-500 text-xs sm:text-sm">{t('dashboard.bannerDesc')}</p>
+    <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8">
+      {/* Kartu Profil Pegawai ASN */}
+      <div className="bg-white border border-[#BBC9C7] rounded-xl p-5 sm:p-6 mb-6 md:mb-8 shadow-xs relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          {/* Kolom Kiri: Sapaan & Nama Pegawai */}
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#1D315F] to-[#006A63] text-white flex items-center justify-center font-bold text-lg sm:text-xl shadow-sm flex-shrink-0">
+              {namaLengkap.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-[#006A63] bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200 uppercase tracking-wider inline-flex items-center gap-1">
+                  <User className="w-3 h-3 text-[#006A63]" />
+                  Pegawai ASN
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#1D315F] leading-tight">
+                {t('dashboard.welcome')} {namaLengkap}
+              </h2>
+              <p className="text-gray-500 text-xs sm:text-sm mt-1">
+                {t('dashboard.bannerDesc')}
+              </p>
+            </div>
+          </div>
+
+          {/* Kolom Kanan: Rincian Kepegawaian (NIP, Jabatan, Unit Kerja) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-gray-100 lg:pl-6 text-xs">
+            {/* NIP */}
+            <div className="bg-slate-50/80 p-3 rounded-lg border border-slate-200/60 flex flex-col justify-center">
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                <CreditCard className="w-3.5 h-3.5 text-[#006A63]" />
+                NIP
+              </span>
+              <span className="font-bold text-xs sm:text-[13px] text-[#1D315F] tracking-wide truncate" title={nip}>
+                {nip}
+              </span>
+            </div>
+
+            {/* Jabatan */}
+            <div className="bg-slate-50/80 p-3 rounded-lg border border-slate-200/60 flex flex-col justify-center">
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                <Briefcase className="w-3.5 h-3.5 text-[#006A63]" />
+                Jabatan
+              </span>
+              <span className="font-bold text-xs sm:text-[13px] text-[#1D315F] truncate" title={jabatan}>
+                {jabatan}
+              </span>
+            </div>
+
+            {/* Unit Kerja */}
+            <div className="bg-slate-50/80 p-3 rounded-lg border border-slate-200/60 flex flex-col justify-center">
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                <Building2 className="w-3.5 h-3.5 text-[#006A63]" />
+                Unit Kerja
+              </span>
+              <span className="font-bold text-xs sm:text-[13px] text-[#1D315F] truncate" title={unitKerja}>
+                {unitKerja}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
+      {/* Grid Statistik Pelatihan */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {stats.map((s, i) => (
           <div key={i} className="bg-white border border-[#BBC9C7] rounded-lg p-4 md:p-5 flex items-start justify-between">
@@ -379,7 +446,12 @@ export default function UserDashboard({ onLogout, onNavigate }) {
     const fetchData = async () => {
       try {
         const response = await api.get('/user/dashboard');
-        setDashboardData(response.data.data);
+        const data = response.data?.data;
+        setDashboardData(data);
+        if (data?.user) {
+          const currentLocal = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...currentLocal, ...data.user }));
+        }
       } catch (error) {
         console.error('Error fetching user dashboard:', error);
       } finally {
@@ -402,7 +474,7 @@ export default function UserDashboard({ onLogout, onNavigate }) {
       <DashboardNavbar onLogout={onLogout} onNavigate={onNavigate} />
       <main className="flex-grow bg-[#F9FAFB]">
         <DashboardHeader />
-        <WelcomeSection statsData={dashboardData?.stats} />
+        <WelcomeSection statsData={dashboardData?.stats} userData={dashboardData?.user} />
         <CurrentCourseSection 
            onNavigate={onNavigate} 
            currentCourse={dashboardData?.current_course} 

@@ -19,7 +19,8 @@ import {
   MapPin,
   Grid,
   BookOpen,
-  Sparkles
+  Sparkles,
+  Check
 } from 'lucide-react';
 
 /* ── Navbar ─────────────────────────────────────────── */
@@ -468,24 +469,55 @@ export default function Kuis({ onNavigate, onBack }) {
     }));
   };
 
+  // Parse grid_config secara aman jika berbentuk string JSON
+  const parsedGridConfig = useMemo(() => {
+    if (!testData?.grid_config) return null;
+    if (typeof testData.grid_config === 'string') {
+      try {
+        return JSON.parse(testData.grid_config);
+      } catch (e) {
+        return null;
+      }
+    }
+    return testData.grid_config;
+  }, [testData?.grid_config]);
+
   const handleSubmit = async (isTimeUp = false) => {
     if (!testData || submitting) return;
 
     const unansweredCount = totalSoal - answeredCount;
 
     if (!isTimeUp) {
+      const unansPG = pgQuestions.filter(s => !answers[s.soal_kuis_id]).length;
+      const unansTTS = ttsQuestions.filter(s => {
+        const a = answers[s.soal_kuis_id];
+        const minLen = s.panjang_kata || 2;
+        return !(typeof a === 'string' && a.trim().length >= minLen && !a.includes(' '));
+      }).length;
+      const unansDD = dragDropQuestions.filter(s => {
+        const a = answers[s.soal_kuis_id];
+        const required = s.jumlah_blank || 1;
+        return !(Array.isArray(a) && a.filter(Boolean).length === required);
+      }).length;
+
+      const breakdownDetails = [];
+      if (unansPG > 0) breakdownDetails.push(`<li><b>${unansPG}</b> Soal Pilihan Ganda</li>`);
+      if (unansTTS > 0) breakdownDetails.push(`<li><b>${unansTTS}</b> Kata Teka-Teki Silang (TTS)</li>`);
+      if (unansDD > 0) breakdownDetails.push(`<li><b>${unansDD}</b> Soal Drag & Drop / Dropdown</li>`);
+
       const confirmResult = await Swal.fire({
         title: 'Kumpulkan Kuis?',
         html: unansweredCount > 0 ? `
           <div class="text-left text-sm text-gray-600 space-y-2 pt-1">
-            <p>Masih ada <b class="text-red-500">${unansweredCount} dari ${totalSoal} butir soal / kata</b> yang belum selesai Anda jawab.</p>
+            <p>Masih ada <b class="text-red-500">${unansweredCount} dari ${totalSoal} butir soal / kata</b> yang belum selesai Anda jawab:</p>
+            ${breakdownDetails.length > 0 ? `<ul class="list-disc pl-5 text-xs text-gray-700 space-y-1">${breakdownDetails.join('')}</ul>` : ''}
             <p class="text-xs text-amber-800 bg-amber-50 p-2.5 rounded border border-amber-200">
-              ⚠️ Soal atau kata TTS yang tidak dijawab akan bernilai 0. Apakah Anda yakin ingin mengumpulkan kuis sekarang?
+              ⚠️ Soal, kata TTS, atau titik kosong yang belum terjawab akan bernilai 0. Apakah Anda yakin ingin mengumpulkan kuis sekarang?
             </p>
           </div>
         ` : `
           <div class="text-left text-sm text-gray-600 space-y-2 pt-1">
-            <p>Anda telah menjawab seluruh <b>${totalSoal} butir soal & kata TTS</b>.</p>
+            <p>Anda telah menjawab seluruh <b>${totalSoal} butir soal, kata TTS & drag-drop</b> dengan lengkap.</p>
             <p>Apakah Anda yakin ingin menyelesaikan dan mengumpulkan kuis ini?</p>
           </div>
         `,
@@ -504,10 +536,19 @@ export default function Kuis({ onNavigate, onBack }) {
     try {
       setSubmitting(true);
       
-      const formattedAnswers = Object.entries(answers).map(([id, val]) => ({
-        soal_kuis_id: parseInt(id),
-        jawaban: typeof val === 'string' ? val.trim().toUpperCase() : val
-      }));
+      const formattedAnswers = (testData?.soal || []).map(s => {
+        const val = answers[s.soal_kuis_id];
+        if (s.tipe_soal === 'drag_drop') {
+          return {
+            soal_kuis_id: s.soal_kuis_id,
+            jawaban: Array.isArray(val) ? val : []
+          };
+        }
+        return {
+          soal_kuis_id: s.soal_kuis_id,
+          jawaban: typeof val === 'string' ? val.trim().toUpperCase() : (val || '')
+        };
+      });
 
       const res = await api.post(`/user/courses/${courseId}/modul/${modulId}/kuis/${kuisId}/submit`, {
         jawaban: formattedAnswers
@@ -795,7 +836,7 @@ export default function Kuis({ onNavigate, onBack }) {
               </div>
 
               <CrosswordBoard
-                gridConfig={testData.grid_config}
+                gridConfig={parsedGridConfig}
                 words={ttsQuestions}
                 answers={answers}
                 onAnswerChange={handleAnswer}

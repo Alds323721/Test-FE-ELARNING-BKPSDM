@@ -150,7 +150,22 @@ const CourseHeader = ({ onBack, courseData }) => {
   );
 };
 
-const SyllabusItem = ({ index, title, subtitle, duration, status, onClick, isActive, badge }) => {
+const getQuizBadges = (tipeSoalList = []) => {
+  if (!tipeSoalList || !Array.isArray(tipeSoalList) || tipeSoalList.length === 0) return [];
+  const badges = [];
+  if (tipeSoalList.includes('tts')) {
+    badges.push({ label: '🧩 TTS', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' });
+  }
+  if (tipeSoalList.includes('drag_drop')) {
+    badges.push({ label: '🎯 Drag & Drop', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' });
+  }
+  if (tipeSoalList.includes('pilihan_ganda') && (tipeSoalList.includes('tts') || tipeSoalList.includes('drag_drop'))) {
+    badges.push({ label: '📝 PG', color: 'bg-teal-50 text-teal-700 border-teal-200' });
+  }
+  return badges;
+};
+
+const SyllabusItem = ({ index, title, subtitle, duration, status, onClick, isActive, badge, typeBadges = [] }) => {
   const getStatusIcon = () => {
     if (status === 'completed') return <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-[#10B981]" />;
     if (status === 'locked') return <Lock className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />;
@@ -178,6 +193,11 @@ const SyllabusItem = ({ index, title, subtitle, duration, status, onClick, isAct
               {badge}
             </span>
           )}
+          {typeBadges && typeBadges.map((tb, idx) => (
+            <span key={idx} className={`px-1.5 py-0.5 text-[10px] font-bold rounded border ${tb.color}`}>
+              {tb.label}
+            </span>
+          ))}
         </div>
         <p className="text-xs text-gray-500 mb-1 font-semibold line-clamp-1">{subtitle}</p>
         {duration && <p className="text-xs text-gray-400 font-semibold">{duration} Menit</p>}
@@ -252,6 +272,7 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
                 duration={modul.kuis.durasi}
                 status={modul.kuis.is_completed ? 'completed' : (modul.kuis.is_locked ? 'locked' : 'pending')}
                 isActive={false}
+                typeBadges={getQuizBadges(modul.kuis.tipe_soal_list)}
                 onClick={() => {
                   if (modul.kuis.is_locked) {
                     Swal.fire({
@@ -315,9 +336,16 @@ const MainContent = ({ activeMateri, onMarkAsRead, onNavigate }) => {
           <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4 shadow-xs">
             <HelpCircle className="w-8 h-8" />
           </div>
-          <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full mb-3">
-            Pre-Test Pemahaman Awal
-          </span>
+          <div className="flex items-center gap-2 mb-3 flex-wrap justify-center">
+            <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">
+              Pre-Test Pemahaman Awal
+            </span>
+            {getQuizBadges(activeMateri.pre_test?.tipe_soal_list).map((tb, idx) => (
+              <span key={idx} className={`px-2.5 py-1 text-xs font-bold rounded-full border ${tb.color}`}>
+                {tb.label}
+              </span>
+            ))}
+          </div>
           <h3 className="text-xl font-bold text-[#1D315F] mb-2">{activeMateri.judul}</h3>
           <p className="text-sm text-gray-600 max-w-lg mb-6 leading-relaxed">
             Materi ini mewajibkan pengerjaan <strong>Pre-Test</strong> untuk mengukur pemahaman awal Anda sebelum berkas materi dapat dipelajari.

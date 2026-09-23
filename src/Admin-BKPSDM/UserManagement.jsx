@@ -147,7 +147,7 @@ const UserManagement = ({ onNavigate }) => {
   // Form states
   const [formData, setFormData] = useState({
     nip: '', nama_lengkap: '', email: '', peran: 'peserta',
-    jabatan: '', rumpun_jabatan: 'Pelaksana', unit_kerja: '', komunitas_id: ''
+    jabatan: '', rumpun_jabatan: 'JP', unit_kerja: '', komunitas_id: ''
   });
 
   const fetchUsers = async () => {
@@ -200,7 +200,7 @@ const UserManagement = ({ onNavigate }) => {
       }
       await api.post('/admin-bkpsdm/pengguna', payload);
       setShowAddModal(false);
-      setFormData({ nip: '', nama_lengkap: '', email: '', peran: 'peserta', jabatan: '', rumpun_jabatan: 'Pelaksana', unit_kerja: '', komunitas_id: '' });
+      setFormData({ nip: '', nama_lengkap: '', email: '', peran: 'peserta', jabatan: '', rumpun_jabatan: 'JP', unit_kerja: '', komunitas_id: '' });
       fetchUsers();
       Toast.fire({
         icon: 'success',
@@ -545,7 +545,7 @@ const UserManagement = ({ onNavigate }) => {
                       <option value="JPT">JPT</option>
                       <option value="JA">JA</option>
                       <option value="JF">JF</option>
-                      <option value="Pelaksana">Pelaksana</option>
+                      <option value="JP">JP (Pelaksana)</option>
                     </select>
                   </div>
                   <div>

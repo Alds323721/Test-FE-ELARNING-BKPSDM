@@ -239,14 +239,12 @@ const PelatihanSaya = ({ onNavigate }) => {
       data.append('kategori', formData.kategori);
       data.append('capaian_pembelajaran', formData.capaian_pembelajaran);
       data.append('nilai_kelulusan', formData.nilai_kelulusan);
-      data.append('deskripsi', '-');
+      data.append('deskripsi', '');
       if (courseThumbnailFile) {
         data.append('thumbnail', courseThumbnailFile);
       }
 
-      const response = await api.post('/admin-komunitas/pembelajaran', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.post('/admin-komunitas/pembelajaran', data);
       
       setToastMessage('Draf pembelajaran berhasil dibuat!');
       setShowCreateModal(false);

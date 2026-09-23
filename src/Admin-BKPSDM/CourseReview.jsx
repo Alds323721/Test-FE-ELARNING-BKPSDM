@@ -212,7 +212,9 @@ const CourseReview = ({ onNavigate }) => {
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">KOMUNITAS PENYELENGGARA</p>
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-gray-800">ID: {course.komunitas_id}</p>
+                      <p className="font-bold text-gray-800">
+                        {course.komunitas?.nama_komunitas || (course.komunitas_id ? `Komunitas #${course.komunitas_id}` : '-')}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -258,9 +260,14 @@ const CourseReview = ({ onNavigate }) => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Admin Pembuat</p>
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-gray-800 text-sm">ID: {course.dirancang_oleh_pengguna_id}</p>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Pengaju Kursus</p>
+                    <div className="flex flex-col">
+                      <p className="font-bold text-gray-800 text-sm">
+                        {course.perancang?.nama_lengkap || (course.dirancang_oleh_pengguna_id ? `User #${course.dirancang_oleh_pengguna_id}` : '-')}
+                      </p>
+                      {course.perancang?.nip && (
+                        <p className="text-xs text-gray-400">NIP: {course.perancang.nip}</p>
+                      )}
                     </div>
                   </div>
                 </div>

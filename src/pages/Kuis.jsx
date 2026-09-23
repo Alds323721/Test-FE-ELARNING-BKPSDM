@@ -19,7 +19,8 @@ import {
   MapPin,
   Grid,
   BookOpen,
-  Sparkles
+  Sparkles,
+  Check
 } from 'lucide-react';
 
 /* ── Navbar ─────────────────────────────────────────── */

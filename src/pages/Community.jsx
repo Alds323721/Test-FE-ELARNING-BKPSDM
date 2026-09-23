@@ -83,16 +83,15 @@ const CommunityCard = ({ id, image, thumbnail_url, category, title, description,
   const isRestricted = !isJoined && !canJoin;
 
   return (
-    <div className={`bg-white border rounded-lg overflow-hidden flex flex-col transition-all duration-200 ${
-      isRestricted
+    <div className={`bg-white border rounded-lg overflow-hidden flex flex-col transition-all duration-200 ${isRestricted
         ? 'border-gray-200 bg-gray-50/60'
         : 'border-[#BBC9C7] hover:shadow-lg hover:-translate-y-1'
-    }`}>
+      }`}>
       <div className="h-44 relative overflow-hidden">
-        <img 
-          src={thumbnail_url || image || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop'} 
-          alt={title} 
-          className={`w-full h-full object-cover transition-transform duration-300 ${isRestricted ? 'opacity-80 grayscale-[25%]' : 'hover:scale-105'}`} 
+        <img
+          src={thumbnail_url || image || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop'}
+          alt={title}
+          className={`w-full h-full object-cover transition-transform duration-300 ${isRestricted ? 'opacity-80 grayscale-[25%]' : 'hover:scale-105'}`}
         />
         <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#1D315F] text-[11px] font-bold px-3 py-1 rounded shadow-sm">
           {category}
@@ -170,7 +169,7 @@ const CommunityContent = ({ onNavigate }) => {
     { value: 'JPT', label: 'JPT' },
     { value: 'JA', label: 'JA' },
     { value: 'JF', label: 'JF' },
-    { value: 'Pelaksana', label: t('community.staff') }
+    { value: 'JP', label: 'JP' }
   ];
 
   useEffect(() => {
@@ -204,7 +203,7 @@ const CommunityContent = ({ onNavigate }) => {
     }
     try {
       const res = await api.post(`/user/komunitas/${id}/join`);
-      setCommunities(prev => prev.map(c => 
+      setCommunities(prev => prev.map(c =>
         c.id === id ? { ...c, is_joined: true, members: c.members + 1 } : c
       ));
       Swal.fire({
@@ -229,7 +228,7 @@ const CommunityContent = ({ onNavigate }) => {
     onNavigate('catalog');
   };
 
-  const filteredCommunities = communities.filter(c => 
+  const filteredCommunities = communities.filter(c =>
     activeCategory === 'Semua Kategori' || c.category === activeCategory
   );
 
@@ -305,7 +304,7 @@ const CommunityContent = ({ onNavigate }) => {
                 />
               ))}
               {filteredCommunities.length === 0 && (
-                 <div className="col-span-full text-center text-gray-500 py-10 font-semibold">{t('community.empty')}</div>
+                <div className="col-span-full text-center text-gray-500 py-10 font-semibold">{t('community.empty')}</div>
               )}
             </div>
           )}

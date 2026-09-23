@@ -143,7 +143,7 @@ const CommunityManagement = ({ onNavigate }) => {
   const [selectedCommunity, setSelectedCommunity] = useState(null);
 
   const [formData, setFormData] = useState({
-    nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif'
+    nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'JP', status: 'aktif'
   });
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState('');
@@ -192,7 +192,7 @@ const CommunityManagement = ({ onNavigate }) => {
   };
 
   const handleOpenAddModal = () => {
-    setFormData({ nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif' });
+    setFormData({ nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'JP', status: 'aktif' });
     setThumbnailFile(null);
     setThumbnailPreview('');
     setShowAddModal(true);
@@ -221,7 +221,7 @@ const CommunityManagement = ({ onNavigate }) => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setShowAddModal(false);
-      setFormData({ nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'Pelaksana', status: 'aktif' });
+      setFormData({ nama_komunitas: '', deskripsi: '', rumpun_jabatan: 'JP', status: 'aktif' });
       setThumbnailFile(null);
       setThumbnailPreview('');
       fetchCommunities();
@@ -508,7 +508,7 @@ const CommunityManagement = ({ onNavigate }) => {
                       <option value="JPT">JPT</option>
                       <option value="JA">JA</option>
                       <option value="JF">JF</option>
-                      <option value="Pelaksana">Pelaksana</option>
+                      <option value="JP">JP (Pelaksana)</option>
                     </select>
                   </div>
                   <div className="pt-4 flex justify-end gap-2">
@@ -588,7 +588,7 @@ const CommunityManagement = ({ onNavigate }) => {
                       <option value="JPT">JPT</option>
                       <option value="JA">JA</option>
                       <option value="JF">JF</option>
-                      <option value="Pelaksana">Pelaksana</option>
+                      <option value="JP">JP (Pelaksana)</option>
                     </select>
                   </div>
                   <div>

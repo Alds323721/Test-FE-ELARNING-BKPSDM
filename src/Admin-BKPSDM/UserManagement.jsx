@@ -19,7 +19,7 @@ import {
   TrendingUp, TrendingDown, ArrowRight, LayoutDashboard,
   ShieldCheck, BarChart3, HelpCircle, LogOut, Bell, Settings,
   Search, ChevronRight, Clock, Book, Menu, X, Plus,
-  ClipboardList, Edit, Download, ChevronLeft, Trash2, Key
+  ClipboardList, Edit, Download, ChevronLeft, Trash2, Key, Layers
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'user-management', onNavigate, isOpen, setIsOpen }) => {
@@ -27,6 +27,7 @@ const AdminSidebar = ({ activeMenu = 'user-management', onNavigate, isOpen, setI
     { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
+    { id: 'category-management', label: 'Kategori Kursus', icon: Layers },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
     { id: 'monitoring-reports', label: 'Monitoring & Laporan', icon: BarChart3 },
   ];

@@ -255,13 +255,34 @@ const CatalogContent = ({ onNavigate }) => {
     }
   };
 
-  const categories = [
+  const [categories, setCategories] = useState([
     { value: 'Semua Kategori', label: t('catalog.allCategories') },
     { value: 'Manajemen ASN', label: t('catalog.catAsn') },
     { value: 'Teknologi Informasi', label: t('catalog.catIt') },
-    { value: 'Pelayanan Publik', label: t('catalog.catPublic') },
-    { value: 'Kepemimpinan', label: t('catalog.catLeadership') }
-  ];
+    { value: 'Pengembangan Kompetensi', label: 'Pengembangan Kompetensi' },
+    { value: 'Pelayanan Publik', label: t('catalog.catPublic') }
+  ]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get('/kategori-kursus');
+        if (res.data?.data && res.data.data.length > 0) {
+          const dynamicCats = [
+            { value: 'Semua Kategori', label: t('catalog.allCategories') },
+            ...res.data.data.map(cat => ({
+              value: cat.nama_kategori,
+              label: cat.nama_kategori
+            }))
+          ];
+          setCategories(dynamicCats);
+        }
+      } catch (err) {
+        console.error('Error fetching categories in catalog:', err);
+      }
+    };
+    fetchCategories();
+  }, [t]);
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-12 gap-8">

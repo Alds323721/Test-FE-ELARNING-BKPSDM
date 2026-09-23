@@ -216,31 +216,40 @@ const KatalogKursus = ({ onNavigate }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  const categories = [
+  const [categories, setCategories] = useState([
     'Semua Kategori',
     'Manajemen ASN',
     'Teknologi Informasi',
     'Pengembangan Kompetensi',
     'Pelayanan Publik'
-  ];
+  ]);
 
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchCatalogData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/admin-komunitas/pembelajaran');
-        setCourses(response.data?.data || response.data || []);
+        const [resCourses, resCats] = await Promise.allSettled([
+          api.get('/admin-komunitas/pembelajaran'),
+          api.get('/kategori-kursus')
+        ]);
+        if (resCourses.status === 'fulfilled') {
+          setCourses(resCourses.value.data?.data || resCourses.value.data || []);
+        }
+        if (resCats.status === 'fulfilled' && resCats.value.data?.data) {
+          const catNames = resCats.value.data.data.map(c => c.nama_kategori);
+          setCategories(['Semua Kategori', ...catNames]);
+        }
       } catch (error) {
-        console.error('Error fetching courses:', error);
+        console.error('Error fetching catalog data:', error);
         setCourses([]);
       } finally {
         setLoading(false);
       }
     };
-    fetchCourses();
+    fetchCatalogData();
   }, []);
 
   // Filtering

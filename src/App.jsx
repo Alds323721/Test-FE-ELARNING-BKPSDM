@@ -20,6 +20,7 @@ import CommunityManagement from './Admin-BKPSDM/CommunityManagement'
 import CourseValidation from './Admin-BKPSDM/CourseValidation'
 import CourseReview from './Admin-BKPSDM/CourseReview'
 import MonitoringReports from './Admin-BKPSDM/MonitoringReports'
+import CategoryManagement from './Admin-BKPSDM/CategoryManagement'
 import AdminKomunitasDashboard from './Admin-Komunitas/AdminKomunitasDashboard'
 import AdminKomunitasSkeleton from './Admin-Komunitas/AdminKomunitasSkeleton'
 import PelatihanSaya from './Admin-Komunitas/PelatihanSaya'
@@ -52,6 +53,7 @@ function App() {
       }
       if (path === '/admin/user-management') return 'user-management';
       if (path === '/admin/community-management') return 'community-management';
+      if (path === '/admin/category-management') return 'category-management';
       if (path === '/admin/course-validation/review') return 'course-review';
       if (path === '/admin/course-validation') return 'course-validation';
       if (path === '/admin/monitoring-reports') return 'monitoring-reports';
@@ -69,7 +71,7 @@ function App() {
 
     // Rute Admin Komunitas yang tersimpan di localStorage
     const adminKomunitasRoutes = ['admin-komunitas', 'pelatihan-saya', 'laporan-progress', 'katalog-kursus', 'detail-kursus', 'bank-soal', 'pusat-bantuan'];
-    const adminBkpsdmRoutes = ['admin', 'user-management', 'community-management', 'course-validation', 'course-review', 'monitoring-reports'];
+    const adminBkpsdmRoutes = ['admin', 'user-management', 'community-management', 'category-management', 'course-validation', 'course-review', 'monitoring-reports'];
 
     const savedRoute = localStorage.getItem('current_route');
 
@@ -89,7 +91,7 @@ function App() {
   const [showLoginSuccess, setShowLoginSuccess] = useState(false)
 
   const adminKomunitasRoutes = ['admin-komunitas', 'pelatihan-saya', 'laporan-progress', 'katalog-kursus', 'detail-kursus', 'bank-soal', 'pusat-bantuan'];
-  const adminBkpsdmRoutes = ['admin', 'user-management', 'community-management', 'course-validation', 'course-review', 'monitoring-reports'];
+  const adminBkpsdmRoutes = ['admin', 'user-management', 'community-management', 'category-management', 'course-validation', 'course-review', 'monitoring-reports'];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -237,6 +239,10 @@ function App() {
 
     if (currentRoute === 'community-management') {
       return <CommunityManagement onNavigate={handleNavigate} />
+    }
+
+    if (currentRoute === 'category-management') {
+      return <CategoryManagement onNavigate={handleNavigate} />
     }
 
     if (currentRoute === 'course-validation') {

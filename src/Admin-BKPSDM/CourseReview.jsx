@@ -16,7 +16,7 @@ const Toast = Swal.mixin({
 import {
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, ArrowLeft, BookOpen, FileText, HelpCircle,
-  Eye, File, Clock, PlayCircle
+  Eye, File, Clock, PlayCircle, Layers
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, setIsOpen }) => {
@@ -24,6 +24,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
     { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
+    { id: 'category-management', label: 'Kategori Kursus', icon: Layers },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
     { id: 'monitoring-reports', label: 'Monitoring & Laporan', icon: BarChart3 },
   ];
@@ -121,7 +122,6 @@ const CourseReview = ({ onNavigate }) => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showMateriModal, setShowMateriModal] = useState(false);
   const [note, setNote] = useState('');
-  const [customJp, setCustomJp] = useState('');
 
   useEffect(() => {
     const fetchCourseDetails = async (id) => {
@@ -130,10 +130,6 @@ const CourseReview = ({ onNavigate }) => {
         const response = await api.get(`/admin-bkpsdm/approval/${id}`);
         const cData = response.data?.data;
         setCourse(cData);
-        if (cData?.pembelajaran_jp && cData.pembelajaran_jp.length > 0) {
-          const jpItem = cData.pembelajaran_jp[0];
-          setCustomJp(jpItem.jp_final ?? jpItem.jp_dihitung_sistem ?? '');
-        }
       } catch (error) {
         console.error('Failed to fetch course details:', error);
       } finally {
@@ -157,9 +153,6 @@ const CourseReview = ({ onNavigate }) => {
         status_validasi: status,
         catatan: note
       };
-      if (status === 'disetujui' && customJp !== '') {
-        payload.jp_final = Number(customJp);
-      }
       await api.post(`/admin-bkpsdm/approval/${course.pembelajaran_id}`, payload);
       Toast.fire({
         icon: 'success',
@@ -242,16 +235,26 @@ const CourseReview = ({ onNavigate }) => {
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Jam Pelajaran (JP)</p>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={customJp}
-                        onChange={(e) => setCustomJp(e.target.value)}
-                        className="w-24 border border-teal-300 rounded px-2.5 py-1 text-sm font-bold text-teal-800 bg-teal-50/50 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                        placeholder="JP"
-                      />
-                      <span className="text-xs font-semibold text-gray-500">JP</span>
+                      <div className="border border-gray-200 rounded px-3 py-1 flex items-baseline gap-1 bg-gray-50">
+                        <span className="font-bold text-gray-800">
+                          {(() => {
+                            if (course.total_jp !== undefined && course.total_jp !== null) {
+                              return Number(course.total_jp);
+                            }
+                            const jpList = course.pembelajaran_jp || course.pembelajaranJp;
+                            if (Array.isArray(jpList) && jpList.length > 0) {
+                              const val = jpList[0].jp_dihitung_sistem ?? jpList[0].jp_final;
+                              if (val !== undefined && val !== null) return Number(val);
+                            }
+                            const moduls = course.moduls || course.modul;
+                            if (Array.isArray(moduls) && moduls.length > 0) {
+                              return moduls.reduce((acc, m) => acc + (parseFloat(m.jp_modul) || 0), 0);
+                            }
+                            return 0;
+                          })()}
+                        </span>
+                        <span className="text-xs font-semibold text-gray-500">JP</span>
+                      </div>
                     </div>
                   </div>
                   <div>

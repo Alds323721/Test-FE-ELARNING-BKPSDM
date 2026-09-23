@@ -4,7 +4,7 @@ import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, CheckCircle, ClipboardList, 
-  ChevronLeft, FileWarning, Clock
+  ChevronLeft, FileWarning, Clock, Layers
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, setIsOpen }) => {
@@ -12,6 +12,7 @@ const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, se
     { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
+    { id: 'category-management', label: 'Kategori Kursus', icon: Layers },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
     { id: 'monitoring-reports', label: 'Monitoring & Laporan', icon: BarChart3 },
   ];

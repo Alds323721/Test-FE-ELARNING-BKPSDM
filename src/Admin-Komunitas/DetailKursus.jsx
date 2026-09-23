@@ -157,7 +157,7 @@ const DetailKursus = ({ onNavigate }) => {
   const [showAddModuleModal, setShowAddModuleModal] = useState(false);
   const [isEditingModule, setIsEditingModule] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState(null);
-  const [moduleForm, setModuleForm] = useState({ judul_modul: '', deskripsi: '' });
+  const [moduleForm, setModuleForm] = useState({ judul_modul: '', deskripsi: '', jp_modul: '' });
   const [moduleThumbnailFile, setModuleThumbnailFile] = useState(null);
   const [moduleThumbnailPreview, setModuleThumbnailPreview] = useState('');
 
@@ -172,11 +172,14 @@ const DetailKursus = ({ onNavigate }) => {
     file_pdf: null
   });
 
-  // Modal State: Kuis Modul
+  // Modal State: Kuis & Pre-Test Modul
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [targetQuizModule, setTargetQuizModule] = useState(null);
+  const [targetQuizType, setTargetQuizType] = useState('evaluasi_modul'); // 'evaluasi_modul' | 'pre_test'
+  const [targetQuizMateri, setTargetQuizMateri] = useState(null);
   const [quizForm, setQuizForm] = useState({
     judul_kuis: '',
+    durasi_menit: 15,
     nilai_kelulusan: 70,
     maks_percobaan: 3,
     soal: []
@@ -202,6 +205,7 @@ const DetailKursus = ({ onNavigate }) => {
   // Surat Pernyataan State
   const [suratFile, setSuratFile] = useState(null);
   const [isUploadingSurat, setIsUploadingSurat] = useState(false);
+  const [categories, setCategories] = useState([]);
 
   const fetchCourseData = async () => {
     const id = localStorage.getItem('adminKomunitasCourseId');
@@ -211,11 +215,16 @@ const DetailKursus = ({ onNavigate }) => {
     }
     try {
       setLoading(true);
-      const [resCourse, resModul, resPostTest] = await Promise.allSettled([
+      const [resCourse, resModul, resPostTest, resKategori] = await Promise.allSettled([
         api.get(`/admin-komunitas/pembelajaran/${id}`),
         api.get(`/admin-komunitas/pembelajaran/${id}/modul`),
-        api.get(`/admin-komunitas/pembelajaran/${id}/post-test`)
+        api.get(`/admin-komunitas/pembelajaran/${id}/post-test`),
+        api.get('/kategori-kursus')
       ]);
+
+      if (resKategori && resKategori.status === 'fulfilled') {
+        setCategories(resKategori.value.data?.data || []);
+      }
 
       if (resCourse.status === 'fulfilled') {
         const cData = resCourse.value.data.data;
@@ -287,6 +296,9 @@ const DetailKursus = ({ onNavigate }) => {
       const data = new FormData();
       data.append('judul_pembelajaran', course.judul_pembelajaran);
       data.append('deskripsi', course.deskripsi || '-');
+      if (course.kategori_id) {
+        data.append('kategori_id', course.kategori_id);
+      }
       data.append('kategori', course.kategori || 'Pengembangan Kompetensi');
       data.append('capaian_pembelajaran', course.capaian_pembelajaran || '-');
       data.append('nilai_kelulusan', course.nilai_kelulusan ?? 70);
@@ -377,7 +389,7 @@ const DetailKursus = ({ onNavigate }) => {
   const handleOpenAddModuleModal = () => {
     setIsEditingModule(false);
     setEditingModuleId(null);
-    setModuleForm({ judul_modul: '', deskripsi: '' });
+    setModuleForm({ judul_modul: '', deskripsi: '', jp_modul: '' });
     setModuleThumbnailFile(null);
     setModuleThumbnailPreview('');
     setShowAddModuleModal(true);
@@ -388,7 +400,8 @@ const DetailKursus = ({ onNavigate }) => {
     setEditingModuleId(modul.modul_id);
     setModuleForm({
       judul_modul: modul.judul_modul || '',
-      deskripsi: modul.deskripsi || modul.gambaran_umum || ''
+      deskripsi: modul.deskripsi || modul.gambaran_umum || '',
+      jp_modul: modul.jp_modul !== null && modul.jp_modul !== undefined ? modul.jp_modul : ''
     });
     setModuleThumbnailFile(null);
     setModuleThumbnailPreview(modul.thumbnail_url || '');
@@ -424,6 +437,9 @@ const DetailKursus = ({ onNavigate }) => {
     data.append('gambaran_umum', desc);
     data.append('deskripsi', desc);
     data.append('evaluasi_deskripsi', 'Evaluasi pemahaman materi modul');
+    if (moduleForm.jp_modul !== undefined && moduleForm.jp_modul !== '') {
+      data.append('jp_modul', moduleForm.jp_modul);
+    }
     if (moduleThumbnailFile) {
       data.append('thumbnail', moduleThumbnailFile);
     }
@@ -457,7 +473,7 @@ const DetailKursus = ({ onNavigate }) => {
         });
       }
       setShowAddModuleModal(false);
-      setModuleForm({ judul_modul: '', deskripsi: '' });
+      setModuleForm({ judul_modul: '', deskripsi: '', jp_modul: '' });
       setModuleThumbnailFile(null);
       setModuleThumbnailPreview('');
       fetchCourseData();
@@ -660,10 +676,13 @@ const DetailKursus = ({ onNavigate }) => {
     });
   };
 
-  const handleOpenQuizModal = (modul) => {
+  const handleOpenQuizModal = (modul, type = 'evaluasi_modul', materi = null) => {
     setTargetQuizModule(modul);
+    setTargetQuizType(type);
+    setTargetQuizMateri(materi);
     setQuizActiveTab('pilihan_ganda');
-    const existingQuiz = getModulQuiz(modul);
+
+    const existingQuiz = type === 'pre_test' ? (materi?.pre_test || null) : getModulQuiz(modul);
 
     if (existingQuiz && existingQuiz.kuis_id) {
       const allSoal = (existingQuiz.soal_kuis || []).map(s => {
@@ -695,9 +714,10 @@ const DetailKursus = ({ onNavigate }) => {
       setTtsInputWords(initialTts);
 
       setQuizForm({
-        judul_kuis: existingQuiz.judul_kuis || `Kuis ${modul.judul_modul}`,
-        nilai_kelulusan: existingQuiz.nilai_kelulusan ?? 70,
-        maks_percobaan: existingQuiz.maks_percobaan ?? 3,
+        judul_kuis: existingQuiz.judul_kuis || (type === 'pre_test' ? `Pre-Test: ${materi?.judul_materi}` : `Kuis ${modul.judul_modul}`),
+        durasi_menit: existingQuiz.durasi_menit || 15,
+        nilai_kelulusan: type === 'pre_test' ? 0 : (existingQuiz.nilai_kelulusan ?? 70),
+        maks_percobaan: type === 'pre_test' ? 1 : (existingQuiz.maks_percobaan ?? 3),
         soal: allSoal,
         grid_config_json: existingQuiz.grid_config_json || null
       });
@@ -710,9 +730,10 @@ const DetailKursus = ({ onNavigate }) => {
       }
     } else {
       setQuizForm({
-        judul_kuis: `Kuis ${modul.judul_modul}`,
-        nilai_kelulusan: 70,
-        maks_percobaan: 3,
+        judul_kuis: type === 'pre_test' ? `Pre-Test: ${materi?.judul_materi}` : `Kuis ${modul.judul_modul}`,
+        durasi_menit: 15,
+        nilai_kelulusan: type === 'pre_test' ? 0 : 70,
+        maks_percobaan: type === 'pre_test' ? 1 : 3,
         soal: [],
         grid_config_json: null
       });
@@ -945,22 +966,26 @@ const DetailKursus = ({ onNavigate }) => {
       Swal.fire({
         icon: 'warning',
         title: 'Kuis Masih Kosong',
-        text: 'Kuis harus memiliki minimal 1 butir pertanyaan (Pilihan Ganda atau Teka-Teki Silang) sebelum disimpan.',
+        text: 'Kuis harus memiliki minimal 1 butir pertanyaan sebelum disimpan.',
         confirmButtonColor: '#0F766E'
       });
       return;
     }
 
     try {
+      const isPreTest = targetQuizType === 'pre_test';
       const payload = {
         judul_kuis: quizForm.judul_kuis,
-        nilai_kelulusan: quizForm.nilai_kelulusan,
-        maks_percobaan: quizForm.maks_percobaan,
+        durasi_menit: Number(quizForm.durasi_menit) || 15,
+        tipe_kuis: targetQuizType,
+        materi_id: isPreTest ? targetQuizMateri?.materi_id : null,
+        nilai_kelulusan: isPreTest ? 0 : Number(quizForm.nilai_kelulusan),
+        maks_percobaan: isPreTest ? 1 : Number(quizForm.maks_percobaan),
         grid_config_json: quizForm.grid_config_json,
         soal: quizForm.soal
       };
 
-      const existingQuiz = getModulQuiz(targetQuizModule);
+      const existingQuiz = isPreTest ? targetQuizMateri?.pre_test : getModulQuiz(targetQuizModule);
       if (existingQuiz && existingQuiz.kuis_id) {
         await api.put(`/admin-komunitas/kuis/${existingQuiz.kuis_id}`, payload);
       } else {
@@ -973,8 +998,8 @@ const DetailKursus = ({ onNavigate }) => {
 
       await Swal.fire({
         icon: 'success',
-        title: 'Kuis Berhasil Disimpan!',
-        text: `Kuis evaluasi modul berhasil disimpan (${countPG} PG, ${countTTS} TTS, ${countDD} Drag & Drop).`,
+        title: isPreTest ? 'Pre-Test Berhasil Disimpan!' : 'Kuis Berhasil Disimpan!',
+        text: `${isPreTest ? 'Pre-test materi' : 'Kuis evaluasi modul'} berhasil disimpan (${countPG} PG, ${countTTS} TTS, ${countDD} Drag & Drop). Durasi: ${payload.durasi_menit} menit.`,
         confirmButtonColor: '#0F766E',
         timer: 2500,
         showConfirmButton: true
@@ -989,6 +1014,41 @@ const DetailKursus = ({ onNavigate }) => {
         text: error.response?.data?.message || 'Terjadi kesalahan saat menyimpan kuis.',
         confirmButtonColor: '#0F766E'
       });
+    }
+  };
+
+  const handleDeleteQuiz = async (quizId, label = 'Kuis') => {
+    const result = await Swal.fire({
+      title: `Hapus ${label}?`,
+      text: `Apakah Anda yakin ingin menghapus ${label} ini beserta seluruh butir soalnya?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/admin-komunitas/kuis/${quizId}`);
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Dihapus',
+          text: `${label} berhasil dihapus.`,
+          confirmButtonColor: '#0F766E',
+          timer: 2000
+        });
+        if (showQuizModal) setShowQuizModal(false);
+        fetchCourseData();
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menghapus',
+          text: err.response?.data?.message || `Gagal menghapus ${label}.`,
+          confirmButtonColor: '#0F766E'
+        });
+      }
     }
   };
 
@@ -1185,6 +1245,8 @@ const DetailKursus = ({ onNavigate }) => {
   if (loading) return <AdminKomunitasSkeleton />;
   if (!course) return null;
 
+  const totalJp = modules.reduce((acc, m) => acc + (parseFloat(m.jp_modul) || 0), 0);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans pb-36 sm:pb-24">
       <AdminSidebar
@@ -1224,6 +1286,9 @@ const DetailKursus = ({ onNavigate }) => {
                       {course.status.replace('_', ' ')}
                     </span>
                   )}
+                  <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Total: {totalJp % 1 === 0 ? totalJp : totalJp.toFixed(2)} JP
+                  </span>
                 </div>
               </div>
 
@@ -1286,7 +1351,12 @@ const DetailKursus = ({ onNavigate }) => {
             {/* Section 1: Informasi Dasar Kursus */}
             <section className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                <h2 className="font-bold text-gray-900">Informasi Dasar Kursus</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="font-bold text-gray-900">Informasi Dasar Kursus</h2>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {totalJp % 1 === 0 ? totalJp : totalJp.toFixed(2)} JP Total
+                  </span>
+                </div>
                 <span className="text-xs text-gray-500 font-medium">ID Pembelajaran: #{course.pembelajaran_id}</span>
               </div>
               <div className="p-6 space-y-6">
@@ -1352,14 +1422,32 @@ const DetailKursus = ({ onNavigate }) => {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Kategori</label>
                     <div className="relative">
                       <select
-                        value={course.kategori || 'Pengembangan Kompetensi'}
-                        onChange={(e) => setCourse({ ...course, kategori: e.target.value })}
+                        value={course.kategori_id || course.kategori || 'Pengembangan Kompetensi'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const catObj = categories.find(c => String(c.kategori_id) === String(val) || c.nama_kategori === val);
+                          setCourse({
+                            ...course,
+                            kategori_id: catObj ? catObj.kategori_id : '',
+                            kategori: catObj ? catObj.nama_kategori : val
+                          });
+                        }}
                         className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 pr-10"
                       >
-                        <option value="Pengembangan Kompetensi">Pengembangan Kompetensi</option>
-                        <option value="Manajemen ASN">Manajemen ASN</option>
-                        <option value="Teknologi Informasi">Teknologi Informasi</option>
-                        <option value="Lainnya">Lainnya</option>
+                        {categories.length > 0 ? (
+                          categories.map((c) => (
+                            <option key={c.kategori_id} value={c.kategori_id}>
+                              {c.nama_kategori}
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="Pengembangan Kompetensi">Pengembangan Kompetensi</option>
+                            <option value="Manajemen ASN">Manajemen ASN</option>
+                            <option value="Teknologi Informasi">Teknologi Informasi</option>
+                            <option value="Pelayanan Publik">Pelayanan Publik</option>
+                          </>
+                        )}
                       </select>
                       <ChevronDown className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
@@ -1405,7 +1493,12 @@ const DetailKursus = ({ onNavigate }) => {
             <section className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
                 <div>
-                  <h2 className="font-bold text-gray-900">Modul & Materi Pembelajaran</h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="font-bold text-gray-900">Modul & Materi Pembelajaran</h2>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      Total: {totalJp % 1 === 0 ? totalJp : totalJp.toFixed(2)} JP
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-500">Kelola bab, dokumen bacaan PDF, dan video pendukung.</p>
                 </div>
                 <button
@@ -1458,6 +1551,9 @@ const DetailKursus = ({ onNavigate }) => {
                             <span className="truncate">{modul.judul_modul}</span>
                             <span className="text-xs font-normal text-gray-500 hidden sm:inline">
                               ({materiList.length} Materi • {modul.durasi_total_menit || 0} Menit)
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
+                              {parseFloat(modul.jp_modul || 0)} JP
                             </span>
                           </div>
 
@@ -1531,21 +1627,44 @@ const DetailKursus = ({ onNavigate }) => {
                               ) : (
                                 <div className="space-y-2">
                                   {materiList.map((mat) => (
-                                    <div key={mat.materi_id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg bg-gray-50/70 hover:bg-gray-50 transition-colors">
+                                    <div key={mat.materi_id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-gray-100 rounded-lg bg-gray-50/70 hover:bg-gray-50 transition-colors gap-2">
                                       <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${mat.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
                                           }`}>
                                           {mat.tipe_materi === 'pdf' ? <FileText className="w-4 h-4" /> : <Video className="w-4 h-4" />}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                          <p className="text-sm font-semibold text-gray-900 truncate">{mat.judul_materi}</p>
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="text-sm font-semibold text-gray-900 truncate">{mat.judul_materi}</p>
+                                            {mat.pre_test ? (
+                                              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold rounded-full">
+                                                Pre-test Aktif ({mat.pre_test.durasi_menit || 15}m)
+                                              </span>
+                                            ) : (
+                                              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full">
+                                                Tanpa Pre-test
+                                              </span>
+                                            )}
+                                          </div>
                                           <p className="text-xs text-gray-500">
                                             {mat.tipe_materi === 'pdf' ? 'Dokumen PDF' : 'Video Pembelajaran'} • {mat.durasi_menit} Menit
                                           </p>
                                         </div>
                                       </div>
 
-                                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                        <button
+                                          onClick={() => handleOpenQuizModal(modul, 'pre_test', mat)}
+                                          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                                            mat.pre_test
+                                              ? 'bg-white border border-teal-200 text-teal-700 hover:bg-teal-50'
+                                              : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                                          }`}
+                                          title={mat.pre_test ? 'Edit Pre-test Materi' : 'Buat Pre-test untuk Materi ini'}
+                                        >
+                                          {mat.pre_test ? <><Edit2 className="w-3.5 h-3.5" /> Edit Pre-test</> : <><Plus className="w-3.5 h-3.5" /> + Pre-test</>}
+                                        </button>
+
                                         <a
                                           href={mat.tautan_atau_berkas.startsWith('http') ? mat.tautan_atau_berkas : `http://localhost:8000${mat.tautan_atau_berkas}`}
                                           target="_blank"
@@ -1614,7 +1733,7 @@ const DetailKursus = ({ onNavigate }) => {
                               </div>
                               <p className="text-xs text-gray-500 mt-1">
                                 {hasQuiz
-                                  ? `${questionCount} Butir Soal • Batas Lulus ${quiz?.nilai_kelulusan ?? 70}% • Maks. ${quiz?.maks_percobaan ?? 3}x Coba`
+                                  ? `${questionCount} Butir Soal • Durasi ${quiz?.durasi_menit || 15} Menit • Batas Lulus ${quiz?.nilai_kelulusan ?? 70}% • Maks. ${quiz?.maks_percobaan ?? 3}x Coba`
                                   : 'Modul ini belum memiliki evaluasi kuis'}
                               </p>
                             </div>
@@ -1868,6 +1987,29 @@ const DetailKursus = ({ onNavigate }) => {
                 />
               </div>
               <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Alokasi Jam Pelajaran (JP) Modul
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="99.99"
+                    value={moduleForm.jp_modul ?? ''}
+                    onChange={(e) => setModuleForm({ ...moduleForm, jp_modul: e.target.value })}
+                    placeholder="Contoh: 2 atau 1.5"
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 pr-12"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none">
+                    JP
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Alokasi JP untuk modul ini. Nilai otomatis diakumulasikan ke total JP kursus.
+                </p>
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Deskripsi / Gambaran Umum Modul</label>
                 <textarea
                   rows="3"
@@ -2009,8 +2151,25 @@ const DetailKursus = ({ onNavigate }) => {
           <div className="bg-white rounded-2xl max-w-5xl w-full p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 max-h-[92vh] overflow-y-auto overflow-x-hidden">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
-                <h3 className="font-bold text-gray-900 text-base">Kelola Kuis: {targetQuizModule.judul_modul}</h3>
-                <p className="text-xs text-gray-500">Konfigurasi soal evaluasi pemahaman (Pilihan Ganda dan/atau Teka-Teki Silang).</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-gray-900 text-base">
+                    {targetQuizType === 'pre_test'
+                      ? `Kelola Pre-Test Materi: ${targetQuizMateri?.judul_materi}`
+                      : `Kelola Kuis Evaluasi: ${targetQuizModule.judul_modul}`}
+                  </h3>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                    targetQuizType === 'pre_test'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-teal-100 text-teal-800'
+                  }`}>
+                    {targetQuizType === 'pre_test' ? 'Pre-Test Materi' : 'Evaluasi Modul'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {targetQuizType === 'pre_test'
+                    ? 'Pre-test ini wajib dikerjakan peserta untuk membuka berkas materi. Tidak ada nilai kelulusan minimal.'
+                    : 'Konfigurasi soal evaluasi pemahaman modul (Pilihan Ganda, TTS, atau Drag & Drop).'}
+                </p>
               </div>
               <button onClick={() => setShowQuizModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -2018,9 +2177,9 @@ const DetailKursus = ({ onNavigate }) => {
             </div>
 
             {/* Quiz General Settings */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Judul Kuis</label>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <div className={targetQuizType === 'pre_test' ? 'sm:col-span-2' : ''}>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Judul {targetQuizType === 'pre_test' ? 'Pre-Test' : 'Kuis'}</label>
                 <input
                   type="text"
                   value={quizForm.judul_kuis || ''}
@@ -2029,25 +2188,50 @@ const DetailKursus = ({ onNavigate }) => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Passing Grade (%)</label>
-                <input
-                  type="number"
-                  min="0" max="100"
-                  value={quizForm.nilai_kelulusan ?? 70}
-                  onChange={(e) => setQuizForm({ ...quizForm, nilai_kelulusan: Number(e.target.value) })}
-                  className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded text-xs"
-                />
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Durasi (Menit)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="300"
+                    value={quizForm.durasi_menit ?? 15}
+                    onChange={(e) => setQuizForm({ ...quizForm, durasi_menit: Number(e.target.value) })}
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded text-xs"
+                    placeholder="15"
+                  />
+                  <span className="absolute right-2.5 top-1.5 text-xs text-gray-400 pointer-events-none">mnt</span>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Maks. Percobaan</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={quizForm.maks_percobaan ?? 3}
-                  onChange={(e) => setQuizForm({ ...quizForm, maks_percobaan: Number(e.target.value) })}
-                  className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded text-xs"
-                />
-              </div>
+              {targetQuizType === 'evaluasi_modul' ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Passing Grade (%)</label>
+                    <input
+                      type="number"
+                      min="0" max="100"
+                      value={quizForm.nilai_kelulusan ?? 70}
+                      onChange={(e) => setQuizForm({ ...quizForm, nilai_kelulusan: Number(e.target.value) })}
+                      className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Maks. Percobaan</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={quizForm.maks_percobaan ?? 3}
+                      onChange={(e) => setQuizForm({ ...quizForm, maks_percobaan: Number(e.target.value) })}
+                      className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center">
+                  <div className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                    Pre-test tidak memerlukan syarat kelulusan skor nilai.
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Tab Nav: Pilihan Ganda vs Teka-Teki Silang vs Drag & Drop */}
@@ -2447,7 +2631,20 @@ const DetailKursus = ({ onNavigate }) => {
                 {quizForm.soal.filter(s => s.tipe_soal === 'tts').length} TTS,{' '}
                 {quizForm.soal.filter(s => s.tipe_soal === 'drag_drop').length} Drag & Drop)
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {((targetQuizType === 'pre_test' && targetQuizMateri?.pre_test?.kuis_id) ||
+                  (targetQuizType === 'evaluasi_modul' && getModulQuiz(targetQuizModule)?.kuis_id)) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const qId = targetQuizType === 'pre_test' ? targetQuizMateri?.pre_test?.kuis_id : getModulQuiz(targetQuizModule)?.kuis_id;
+                      handleDeleteQuiz(qId, targetQuizType === 'pre_test' ? 'Pre-Test' : 'Kuis');
+                    }}
+                    className="px-3 py-2 border border-red-200 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-50 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Hapus {targetQuizType === 'pre_test' ? 'Pre-Test' : 'Kuis'}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowQuizModal(false)}
@@ -2460,7 +2657,7 @@ const DetailKursus = ({ onNavigate }) => {
                   onClick={handleSaveQuiz}
                   className="px-6 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"
                 >
-                  Simpan Seluruh Kuis
+                  Simpan Seluruh {targetQuizType === 'pre_test' ? 'Pre-Test' : 'Kuis'}
                 </button>
               </div>
             </div>

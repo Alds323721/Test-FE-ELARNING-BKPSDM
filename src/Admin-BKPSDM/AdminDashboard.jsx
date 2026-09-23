@@ -5,7 +5,7 @@ import {
   Users, BookOpen, MessageSquare, Award, CheckCircle, 
   TrendingUp, TrendingDown, ArrowRight, LayoutDashboard,
   ShieldCheck, BarChart3, HelpCircle, LogOut, Bell, Settings,
-  Search, ChevronRight, Clock, Book, Menu, X
+  Search, ChevronRight, Clock, Book, Menu, X, Layers
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'admin', onNavigate, isOpen, setIsOpen }) => {
@@ -13,6 +13,7 @@ const AdminSidebar = ({ activeMenu = 'admin', onNavigate, isOpen, setIsOpen }) =
     { id: 'admin', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'user-management', label: 'Manajemen Pengguna', icon: Users },
     { id: 'community-management', label: 'Manajemen Komunitas', icon: Users },
+    { id: 'category-management', label: 'Kategori Kursus', icon: Layers },
     { id: 'course-validation', label: 'Validasi Kursus', icon: ShieldCheck },
     { id: 'monitoring-reports', label: 'Monitoring & Laporan', icon: BarChart3 },
   ];

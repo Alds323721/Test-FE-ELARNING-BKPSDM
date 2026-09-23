@@ -22,7 +22,9 @@ import {
   Phone,
   MapPin,
   ExternalLink,
-  Video
+  Video,
+  HelpCircle,
+  ChevronRight
 } from 'lucide-react';
 
 const extractYouTubeId = (url) => {
@@ -148,10 +150,11 @@ const CourseHeader = ({ onBack, courseData }) => {
   );
 };
 
-const SyllabusItem = ({ index, title, subtitle, duration, status, onClick, isActive }) => {
+const SyllabusItem = ({ index, title, subtitle, duration, status, onClick, isActive, badge }) => {
   const getStatusIcon = () => {
     if (status === 'completed') return <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-[#10B981]" />;
     if (status === 'locked') return <Lock className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />;
+    if (status === 'pre_test_ready') return <HelpCircle className="w-4 h-4 md:w-5 md:h-5 text-amber-500" />;
     return <Circle className="w-4 h-4 md:w-5 md:h-5 text-gray-300" />;
   };
 
@@ -164,7 +167,18 @@ const SyllabusItem = ({ index, title, subtitle, duration, status, onClick, isAct
         {getStatusIcon()}
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-semibold text-[#1D315F] text-xs md:text-sm mb-0.5">{index}. {title}</h4>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <h4 className="font-semibold text-[#1D315F] text-xs md:text-sm mb-0.5">{index}. {title}</h4>
+          {badge && (
+            <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+              badge === 'Pre-Test Selesai' 
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}>
+              {badge}
+            </span>
+          )}
+        </div>
         <p className="text-xs text-gray-500 mb-1 font-semibold line-clamp-1">{subtitle}</p>
         {duration && <p className="text-xs text-gray-400 font-semibold">{duration} Menit</p>}
       </div>
@@ -181,29 +195,54 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
         <div key={modul.modul_id} className="mb-6">
           <p className="text-xs md:text-sm text-[#006A63] font-bold mb-2">Modul {modul.urutan}: {modul.judul}</p>
           <div className="space-y-1 divide-y divide-gray-100 pl-2">
-            {modul.materi?.map((mat, i) => (
-              <SyllabusItem
-                key={mat.materi_id}
-                index={i + 1}
-                title={mat.judul}
-                subtitle={`Tipe: ${isMateriVideo(mat) ? 'Video' : 'Materi Bacaan'}`}
-                duration={mat.durasi}
-                status={mat.is_read ? 'completed' : (mat.is_locked ? 'locked' : 'pending')}
-                isActive={activeMateri?.materi_id === mat.materi_id}
-                onClick={() => {
-                  if (mat.is_locked) {
-                    Swal.fire({
-                      icon: 'info',
-                      title: 'Materi Masih Terkunci',
-                      text: 'Selesaikan materi sebelumnya sesuai urutan silabus terlebih dahulu.',
-                      confirmButtonColor: '#006A63'
-                    });
-                    return;
-                  }
-                  onSelectMateri(mat);
-                }}
-              />
-            ))}
+            {modul.materi?.map((mat, i) => {
+              const hasPreTest = Boolean(mat.pre_test);
+              const isPreTestDone = Boolean(mat.pre_test?.is_completed);
+              const isPreTestReady = hasPreTest && !isPreTestDone && !mat.pre_test?.is_locked;
+
+              let status = 'pending';
+              if (mat.is_read) {
+                status = 'completed';
+              } else if (isPreTestReady) {
+                status = 'pre_test_ready';
+              } else if (mat.is_locked) {
+                status = 'locked';
+              }
+
+              let badge = null;
+              if (hasPreTest) {
+                badge = isPreTestDone ? 'Pre-Test Selesai' : 'Wajib Pre-Test';
+              }
+
+              return (
+                <SyllabusItem
+                  key={mat.materi_id}
+                  index={i + 1}
+                  title={mat.judul}
+                  subtitle={`Tipe: ${isMateriVideo(mat) ? 'Video' : 'Materi Bacaan'}`}
+                  duration={mat.durasi}
+                  status={status}
+                  badge={badge}
+                  isActive={activeMateri?.materi_id === mat.materi_id}
+                  onClick={() => {
+                    if (mat.is_locked) {
+                      if (isPreTestReady) {
+                        onSelectMateri({ ...mat, currentModulId: modul.modul_id });
+                        return;
+                      }
+                      Swal.fire({
+                        icon: 'info',
+                        title: 'Materi Masih Terkunci',
+                        text: 'Selesaikan materi sebelumnya sesuai urutan silabus terlebih dahulu.',
+                        confirmButtonColor: '#006A63'
+                      });
+                      return;
+                    }
+                    onSelectMateri({ ...mat, currentModulId: modul.modul_id });
+                  }}
+                />
+              );
+            })}
             {modul.kuis && (
               <SyllabusItem
                 key={`kuis-${modul.kuis.kuis_id}`}
@@ -258,7 +297,7 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
   );
 };
 
-const MainContent = ({ activeMateri, onMarkAsRead }) => {
+const MainContent = ({ activeMateri, onMarkAsRead, onNavigate }) => {
   if (!activeMateri) {
     return (
       <div className="bg-white border border-[#BBC9C7] rounded-lg p-10 text-center text-gray-500">
@@ -268,6 +307,49 @@ const MainContent = ({ activeMateri, onMarkAsRead }) => {
   }
 
   if (activeMateri.is_locked) {
+    const isLockedByPreTest = activeMateri.pre_test && !activeMateri.pre_test.is_completed && !activeMateri.pre_test.is_locked;
+
+    if (isLockedByPreTest) {
+      return (
+        <div className="bg-white border border-amber-200 rounded-xl p-8 md:p-12 text-center flex flex-col items-center justify-center bg-gradient-to-b from-amber-50/40 to-white shadow-xs">
+          <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4 shadow-xs">
+            <HelpCircle className="w-8 h-8" />
+          </div>
+          <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full mb-3">
+            Pre-Test Pemahaman Awal
+          </span>
+          <h3 className="text-xl font-bold text-[#1D315F] mb-2">{activeMateri.judul}</h3>
+          <p className="text-sm text-gray-600 max-w-lg mb-6 leading-relaxed">
+            Materi ini mewajibkan pengerjaan <strong>Pre-Test</strong> untuk mengukur pemahaman awal Anda sebelum berkas materi dapat dipelajari.
+            <br className="hidden sm:inline" />
+            <span className="text-xs text-gray-500 mt-1.5 block">
+              Catatan: Tidak ada batas nilai kelulusan minimal. Anda hanya perlu menyelesaikan seluruh pertanyaan.
+            </span>
+          </p>
+
+          <div className="flex items-center gap-3 text-xs font-semibold text-gray-600 bg-gray-50 px-5 py-2.5 rounded-xl border border-gray-200 mb-6">
+            <span>⏱️ Durasi: <strong>{activeMateri.pre_test.durasi || 15} Menit</strong></span>
+            <span>•</span>
+            <span>📝 Status: <strong className="text-amber-600">Belum Dikerjakan</strong></span>
+          </div>
+
+          <button
+            onClick={() => {
+              if (activeMateri.currentModulId) {
+                localStorage.setItem('userModulId', activeMateri.currentModulId);
+              }
+              localStorage.setItem('userKuisId', activeMateri.pre_test.kuis_id);
+              onNavigate('kuis');
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#006A63] text-white rounded-xl font-bold text-sm hover:bg-[#00534D] active:scale-95 transition-all shadow-md cursor-pointer"
+          >
+            <span>Mulai Kerjakan Pre-Test</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="bg-white border border-[#BBC9C7] rounded-lg p-12 text-center text-gray-500 flex flex-col items-center justify-center">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
@@ -436,7 +518,7 @@ export default function CourseDetail({ onNavigate, onBack }) {
       if (res.data?.data) {
         setCourseData(res.data.data);
         if (!activeMateri && res.data.data.modul?.[0]?.materi?.[0]) {
-          setActiveMateri(res.data.data.modul[0].materi[0]);
+          setActiveMateri({ ...res.data.data.modul[0].materi[0], currentModulId: res.data.data.modul[0].modul_id });
         }
       }
     } catch (error) {
@@ -495,6 +577,7 @@ export default function CourseDetail({ onNavigate, onBack }) {
               <MainContent 
                 activeMateri={activeMateri} 
                 onMarkAsRead={handleMarkAsRead} 
+                onNavigate={onNavigate}
               />
             </div>
             

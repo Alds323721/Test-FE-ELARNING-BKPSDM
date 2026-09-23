@@ -142,9 +142,11 @@ const PelatihanSaya = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [komunitasList, setKomunitasList] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     komunitas_id: '',
     judul_pembelajaran: '',
+    kategori_id: '',
     kategori: 'Pengembangan Kompetensi',
     capaian_pembelajaran: '',
     nilai_kelulusan: 70
@@ -202,9 +204,27 @@ const PelatihanSaya = ({ onNavigate }) => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/kategori-kursus');
+      const cats = response.data?.data || [];
+      setCategories(cats);
+      if (cats.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          kategori_id: prev.kategori_id || cats[0].kategori_id,
+          kategori: prev.kategori || cats[0].nama_kategori
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
     fetchKomunitas();
+    fetchCategories();
   }, []);
 
   const handleCreateCourse = async (e) => {
@@ -213,6 +233,9 @@ const PelatihanSaya = ({ onNavigate }) => {
       const data = new FormData();
       data.append('komunitas_id', formData.komunitas_id);
       data.append('judul_pembelajaran', formData.judul_pembelajaran);
+      if (formData.kategori_id) {
+        data.append('kategori_id', formData.kategori_id);
+      }
       data.append('kategori', formData.kategori);
       data.append('capaian_pembelajaran', formData.capaian_pembelajaran);
       data.append('nilai_kelulusan', formData.nilai_kelulusan);
@@ -560,14 +583,32 @@ const PelatihanSaya = ({ onNavigate }) => {
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Kategori</label>
                 <select 
                   required
-                  value={formData.kategori}
-                  onChange={e => setFormData({...formData, kategori: e.target.value})}
+                  value={formData.kategori_id || formData.kategori}
+                  onChange={e => {
+                    const selectedVal = e.target.value;
+                    const catObj = categories.find(c => String(c.kategori_id) === String(selectedVal) || c.nama_kategori === selectedVal);
+                    setFormData({
+                      ...formData,
+                      kategori_id: catObj ? catObj.kategori_id : '',
+                      kategori: catObj ? catObj.nama_kategori : selectedVal
+                    });
+                  }}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
                 >
-                  <option value="Pengembangan Kompetensi">Pengembangan Kompetensi</option>
-                  <option value="Manajemen ASN">Manajemen ASN</option>
-                  <option value="Teknologi Informasi">Teknologi Informasi</option>
-                  <option value="Lainnya">Lainnya</option>
+                  {categories.length > 0 ? (
+                    categories.map(c => (
+                      <option key={c.kategori_id} value={c.kategori_id}>
+                        {c.nama_kategori}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Pengembangan Kompetensi">Pengembangan Kompetensi</option>
+                      <option value="Manajemen ASN">Manajemen ASN</option>
+                      <option value="Teknologi Informasi">Teknologi Informasi</option>
+                      <option value="Pelayanan Publik">Pelayanan Publik</option>
+                    </>
+                  )}
                 </select>
               </div>
 

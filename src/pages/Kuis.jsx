@@ -112,8 +112,8 @@ const KuisHeader = ({ onBack, testData, answeredCount = 0 }) => (
   </div>
 );
 
-const TimerCard = ({ answeredCount, totalQuestions, durationMinutes, onTimeUp }) => {
-  const [time, setTime] = useState(durationMinutes ? durationMinutes * 60 : 3600);
+const TimerCard = ({ answeredCount, totalQuestions, durationMinutes, onTimeUp, maxAttempts = 3, isPreTest = false }) => {
+  const [time, setTime] = useState(durationMinutes ? durationMinutes * 60 : 15 * 60);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -155,8 +155,8 @@ const TimerCard = ({ answeredCount, totalQuestions, durationMinutes, onTimeUp })
           <span className="text-[#006A63] font-semibold">Sedang Berjalan</span>
         </div>
         <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-          <span className="text-gray-600 font-semibold">Batas Kesempatan</span>
-          <span className="text-[#1D315F] font-semibold">3 Kali</span>
+          <span className="text-gray-600 font-semibold">{isPreTest ? 'Jenis Ujian' : 'Batas Kesempatan'}</span>
+          <span className="text-[#1D315F] font-semibold">{isPreTest ? 'Pre-Test Materi' : `${maxAttempts} Kali`}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-600 font-semibold">Soal Terjawab</span>
@@ -517,35 +517,64 @@ export default function Kuis({ onNavigate, onBack }) {
       const isPassed = !!result?.apakah_lulus;
       const score = result?.nilai ?? 0;
       const passingGrade = testData?.nilai_kelulusan ?? 70;
+      const isPreTest = testData?.tipe_kuis === 'pre_test';
 
-      // Pop-up keterangan kelulusan kuis
-      await Swal.fire({
-        title: isPassed ? '🎉 Selamat, Anda Lulus Kuis!' : 'Belum Memenuhi Kelulusan',
-        html: `
-          <div class="text-center space-y-4 pt-2">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full ${isPassed ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-600'} text-3xl font-bold mx-auto">
-              ${isPassed ? '✓' : '✕'}
-            </div>
-            <div>
-              <div class="text-4xl font-extrabold ${isPassed ? 'text-[#006A63]' : 'text-red-600'}">
-                ${score}
+      if (isPreTest) {
+        await Swal.fire({
+          title: '🎉 Pre-Test Selesai!',
+          html: `
+            <div class="text-center space-y-4 pt-2">
+              <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 text-teal-700 text-3xl font-bold mx-auto">
+                ✓
               </div>
-              <div class="text-xs text-gray-500 font-semibold mt-1">
-                Batas Kelulusan (KKM): ${passingGrade}
+              <div>
+                <div class="text-4xl font-extrabold text-[#006A63]">
+                  ${score}
+                </div>
+                <div class="text-xs text-gray-500 font-semibold mt-1">
+                  Skor Penilaian Awal (Pre-Test)
+                </div>
+              </div>
+              <div class="p-3.5 rounded-lg text-xs md:text-sm text-left leading-relaxed bg-teal-50 text-teal-900 border border-teal-200">
+                <b>Terima kasih!</b> Anda telah menyelesaikan Pre-Test ini. Akses berkas materi pembelajaran sekarang telah terbuka dan dapat Anda pelajari.
               </div>
             </div>
-            <div class="p-3.5 rounded-lg text-xs md:text-sm text-left leading-relaxed ${isPassed ? 'bg-teal-50 text-teal-900 border border-teal-200' : 'bg-amber-50 text-amber-900 border border-amber-200'}">
-              ${isPassed 
-                ? '<b>Hebat!</b> Anda telah memahami materi modul ini dengan baik dan berhak melanjutkan ke modul berikutnya.' 
-                : 'Nilai Anda belum mencapai batas minimal kelulusan. Silakan pelajari kembali materi pada modul ini dan ulangi kuis evaluasi.'}
+          `,
+          icon: 'success',
+          confirmButtonColor: '#006A63',
+          confirmButtonText: 'Buka Materi Pembelajaran',
+          allowOutsideClick: false
+        });
+      } else {
+        // Pop-up keterangan kelulusan kuis evaluasi modul
+        await Swal.fire({
+          title: isPassed ? '🎉 Selamat, Anda Lulus Kuis!' : 'Belum Memenuhi Kelulusan',
+          html: `
+            <div class="text-center space-y-4 pt-2">
+              <div class="inline-flex items-center justify-center w-16 h-16 rounded-full ${isPassed ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-600'} text-3xl font-bold mx-auto">
+                ${isPassed ? '✓' : '✕'}
+              </div>
+              <div>
+                <div class="text-4xl font-extrabold ${isPassed ? 'text-[#006A63]' : 'text-red-600'}">
+                  ${score}
+                </div>
+                <div class="text-xs text-gray-500 font-semibold mt-1">
+                  Batas Kelulusan (KKM): ${passingGrade}
+                </div>
+              </div>
+              <div class="p-3.5 rounded-lg text-xs md:text-sm text-left leading-relaxed ${isPassed ? 'bg-teal-50 text-teal-900 border border-teal-200' : 'bg-amber-50 text-amber-900 border border-amber-200'}">
+                ${isPassed 
+                  ? '<b>Hebat!</b> Anda telah memahami materi modul ini dengan baik dan berhak melanjutkan ke modul berikutnya.' 
+                  : 'Nilai Anda belum mencapai batas minimal kelulusan. Silakan pelajari kembali materi pada modul ini dan ulangi kuis evaluasi.'}
+              </div>
             </div>
-          </div>
-        `,
-        icon: isPassed ? 'success' : 'warning',
-        confirmButtonColor: isPassed ? '#006A63' : '#1D315F',
-        confirmButtonText: isPassed ? 'Lanjutkan Pelatihan' : 'Kembali ke Materi',
-        allowOutsideClick: false
-      });
+          `,
+          icon: isPassed ? 'success' : 'warning',
+          confirmButtonColor: isPassed ? '#006A63' : '#1D315F',
+          confirmButtonText: isPassed ? 'Lanjutkan Pelatihan' : 'Kembali ke Materi',
+          allowOutsideClick: false
+        });
+      }
       
       onNavigate('course-detail');
     } catch (error) {
@@ -589,7 +618,9 @@ export default function Kuis({ onNavigate, onBack }) {
             <TimerCard 
               answeredCount={answeredCount} 
               totalQuestions={totalSoal} 
-              durationMinutes={testData.durasi_menit}
+              durationMinutes={testData.durasi_menit || 15}
+              maxAttempts={testData.maks_percobaan || 3}
+              isPreTest={testData.tipe_kuis === 'pre_test'}
               onTimeUp={() => handleSubmit(true)}
             />
           </div>

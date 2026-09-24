@@ -228,8 +228,13 @@ const DetailKursus = ({ onNavigate }) => {
 
       if (resCourse.status === 'fulfilled') {
         const cData = resCourse.value.data.data;
-        if (cData && !cData.kategori) {
-          cData.kategori = 'Pengembangan Kompetensi';
+        if (cData) {
+          if (!cData.kategori) {
+            cData.kategori = 'Pengembangan Kompetensi';
+          }
+          if (cData.deskripsi === '-') {
+            cData.deskripsi = '';
+          }
         }
         setCourse(cData);
         setCourseThumbnailPreview(cData?.thumbnail_url || '');
@@ -293,28 +298,43 @@ const DetailKursus = ({ onNavigate }) => {
     const wasPublished = course.status === 'dipublikasikan';
     try {
       setSavingBasicInfo(true);
-      const data = new FormData();
-      data.append('judul_pembelajaran', course.judul_pembelajaran);
-      data.append('deskripsi', course.deskripsi || '-');
-      if (course.kategori_id) {
-        data.append('kategori_id', course.kategori_id);
-      }
-      data.append('kategori', course.kategori || 'Pengembangan Kompetensi');
-      data.append('capaian_pembelajaran', course.capaian_pembelajaran || '-');
-      data.append('nilai_kelulusan', course.nilai_kelulusan ?? 70);
-      data.append('komunitas_id', course.komunitas_id);
-      if (courseThumbnailFile) {
-        data.append('thumbnail', courseThumbnailFile);
-      }
+      
+      let res;
+      const cleanDeskripsi = (course.deskripsi && course.deskripsi !== '-') ? course.deskripsi : '';
 
-      const res = await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      if (courseThumbnailFile) {
+        const data = new FormData();
+        data.append('judul_pembelajaran', course.judul_pembelajaran || '');
+        data.append('deskripsi', cleanDeskripsi);
+        if (course.kategori_id) {
+          data.append('kategori_id', course.kategori_id);
+        }
+        data.append('kategori', course.kategori || 'Pengembangan Kompetensi');
+        data.append('capaian_pembelajaran', course.capaian_pembelajaran || '');
+        data.append('nilai_kelulusan', course.nilai_kelulusan ?? 70);
+        data.append('komunitas_id', course.komunitas_id);
+        data.append('thumbnail', courseThumbnailFile);
+
+        res = await api.post(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, data);
+      } else {
+        const payload = {
+          judul_pembelajaran: course.judul_pembelajaran,
+          deskripsi: cleanDeskripsi,
+          kategori_id: course.kategori_id || null,
+          kategori: course.kategori || 'Pengembangan Kompetensi',
+          capaian_pembelajaran: course.capaian_pembelajaran || '',
+          nilai_kelulusan: course.nilai_kelulusan ?? 70,
+          komunitas_id: course.komunitas_id
+        };
+        res = await api.put(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, payload);
+      }
 
       if (res.data?.data) {
-        setCourse(res.data.data);
-        if (res.data.data.thumbnail_url) {
-          setCourseThumbnailPreview(res.data.data.thumbnail_url);
+        const updatedCourse = res.data.data;
+        if (updatedCourse.deskripsi === '-') updatedCourse.deskripsi = '';
+        setCourse(updatedCourse);
+        if (updatedCourse.thumbnail_url) {
+          setCourseThumbnailPreview(updatedCourse.thumbnail_url);
         }
         setCourseThumbnailFile(null);
       }
@@ -1469,7 +1489,7 @@ const DetailKursus = ({ onNavigate }) => {
                   <textarea
                     rows="3"
                     className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
-                    value={course.deskripsi || ''}
+                    value={course.deskripsi === '-' ? '' : (course.deskripsi || '')}
                     onChange={(e) => setCourse({ ...course, deskripsi: e.target.value })}
                     placeholder="Tuliskan deskripsi lengkap mengenai tujuan dan target pelatihan ini..."
                   ></textarea>

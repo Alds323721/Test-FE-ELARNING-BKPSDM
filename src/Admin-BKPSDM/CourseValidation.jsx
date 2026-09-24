@@ -180,7 +180,10 @@ const CourseValidation = ({ onNavigate }) => {
   const filteredCourses = courses.filter(c => 
     (c.judul_pembelajaran && c.judul_pembelajaran.toLowerCase().includes(searchTerm.toLowerCase())) || 
     (c.kategori && c.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (c.komunitas_id && c.komunitas_id.toString().includes(searchTerm))
+    (c.komunitas?.nama_komunitas && c.komunitas.nama_komunitas.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (c.perancang?.nama_lengkap && c.perancang.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (c.komunitas_id && c.komunitas_id.toString().includes(searchTerm)) ||
+    (c.dirancang_oleh_pengguna_id && c.dirancang_oleh_pengguna_id.toString().includes(searchTerm))
   );
 
   if (loading) return <AdminLoadingSkeleton />;
@@ -249,8 +252,8 @@ const CourseValidation = ({ onNavigate }) => {
                 <thead>
                   <tr className="bg-white border-b border-gray-100">
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">JUDUL KURSUS</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ID KOMUNITAS</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ID PENGAJU</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">KOMUNITAS</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">PENGAJU</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">TANGGAL DIAJUKAN</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">STATUS</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">AKSI</th>
@@ -268,10 +271,17 @@ const CourseValidation = ({ onNavigate }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-700">Komunitas #{course.komunitas_id}</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {course.komunitas?.nama_komunitas || (course.komunitas_id ? `Komunitas #${course.komunitas_id}` : '-')}
+                        </p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-700">User #{course.dirancang_oleh_pengguna_id}</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {course.perancang?.nama_lengkap || (course.dirancang_oleh_pengguna_id ? `User #${course.dirancang_oleh_pengguna_id}` : '-')}
+                        </p>
+                        {course.perancang?.nip && (
+                          <p className="text-xs text-gray-400">NIP: {course.perancang.nip}</p>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm font-medium text-gray-700">{new Date(course.dibuat_pada).toLocaleDateString('id-ID')}</p>

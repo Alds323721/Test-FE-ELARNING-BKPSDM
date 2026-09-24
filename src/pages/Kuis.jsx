@@ -237,30 +237,56 @@ const QuestionCard = ({ questionNumber, questionData, onPrevious, onNext, onFlag
         </p>
       </div>
 
-      <div className="space-y-4">
-        {options.map(([key, text]) => (
-          <label
-            key={key}
-            className={`flex items-start gap-4 p-4 md:p-5 border-2 rounded-lg cursor-pointer transition-all ${savedAnswer === key
-                ? 'border-[#006A63] bg-[#EFF5F3]'
-                : 'border-gray-200 hover:border-[#3FCDC1] hover:bg-gray-50'
+      <div className="space-y-3 sm:space-y-4">
+        {options.map(([key, text]) => {
+          const isSelected = savedAnswer !== undefined && savedAnswer !== null && String(savedAnswer).trim().toLowerCase() === String(key).trim().toLowerCase();
+          return (
+            <div
+              key={key}
+              onClick={() => handleSelectAnswer(key)}
+              className={`flex items-start sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-4 md:p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 select-none group ${
+                isSelected
+                  ? 'border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20'
+                  : 'border-gray-200 hover:border-emerald-400 hover:bg-gray-50/80'
               }`}
-          >
-            <input
-              type="radio"
-              name={`answer-${questionData.soal_kuis_id}`}
-              value={key}
-              checked={savedAnswer === key}
-              onChange={(e) => handleSelectAnswer(e.target.value)}
-              className="mt-1 w-5 h-5 text-[#006A63] focus:ring-[#006A63] focus:ring-offset-0"
-            />
-            <div className="flex-1">
-              <span className="font-semibold text-[#1D315F] text-sm md:text-base">
-                {key}. {text}
-              </span>
+            >
+              <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                {/* Badge Huruf Opsi (A, B, C, D) */}
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-700 group-hover:bg-gray-200'
+                  }`}
+                >
+                  {key}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <span
+                    className={`font-semibold text-sm md:text-base leading-relaxed ${
+                      isSelected ? 'text-emerald-950 font-bold' : 'text-[#1D315F]'
+                    }`}
+                  >
+                    {text}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tanda Centang Hijau saat dipilih */}
+              <div className="shrink-0 self-start sm:self-center">
+                {isSelected ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-full shadow-sm animate-in zoom-in-95 duration-150">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span className="hidden sm:inline">Terpilih</span>
+                  </div>
+                ) : (
+                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 group-hover:border-emerald-300 transition-colors" />
+                )}
+              </div>
             </div>
-          </label>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-200">

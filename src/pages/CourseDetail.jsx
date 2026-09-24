@@ -24,7 +24,8 @@ import {
   ExternalLink,
   Video,
   HelpCircle,
-  ChevronRight
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
 
 const extractYouTubeId = (url) => {
@@ -55,6 +56,7 @@ const getDocumentUrl = (path) => {
 
 const isMateriVideo = (materi) => {
   if (!materi) return false;
+  if (materi.tipe === 'h5p') return false;
   if (materi.tipe === 'video' || materi.tipe === 'video_embed') return true;
   if (extractYouTubeId(materi.tautan)) return true;
   if (materi.tautan && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(materi.tautan)) return true;
@@ -239,7 +241,7 @@ const Sidebar = ({ courseData, activeMateri, onSelectMateri, onNavigate }) => {
                   key={mat.materi_id}
                   index={i + 1}
                   title={mat.judul}
-                  subtitle={`Tipe: ${isMateriVideo(mat) ? 'Video' : 'Materi Bacaan'}`}
+                  subtitle={`Tipe: ${mat.tipe === 'h5p' ? 'H5P Interaktif' : isMateriVideo(mat) ? 'Video' : 'Materi Bacaan'}`}
                   duration={mat.durasi}
                   status={status}
                   badge={badge}
@@ -391,18 +393,45 @@ const MainContent = ({ activeMateri, onMarkAsRead, onNavigate }) => {
     );
   }
 
-  const isVideo = isMateriVideo(activeMateri);
-  const youtubeId = extractYouTubeId(activeMateri.tautan);
+  const isH5P = activeMateri?.tipe === 'h5p';
+  const isVideo = !isH5P && isMateriVideo(activeMateri);
+  const youtubeId = isVideo ? extractYouTubeId(activeMateri.tautan) : null;
   const docUrl = getDocumentUrl(activeMateri.tautan);
 
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden">
-        <h2 className="text-lg md:text-xl font-semibold text-[#1D315F] p-4 md:p-6 pb-3 md:pb-4">
-          {activeMateri.judul}
-        </h2>
+        <div className="flex items-center justify-between p-4 md:p-6 pb-3 md:pb-4 flex-wrap gap-2">
+          <h2 className="text-lg md:text-xl font-semibold text-[#1D315F]">
+            {activeMateri.judul}
+          </h2>
+          {isH5P && (
+            <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold rounded-full flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+              Video Interaktif (H5P)
+            </span>
+          )}
+        </div>
         
-        {isVideo ? (
+        {isH5P ? (
+          <div className="w-full bg-slate-950 aspect-video relative overflow-hidden flex items-center justify-center">
+            {activeMateri.tautan ? (
+              <iframe
+                id="h5p-interactive-player"
+                className="w-full h-full border-0"
+                src={activeMateri.tautan}
+                title={activeMateri.judul || 'Video Interaktif H5P'}
+                allow="autoplay; fullscreen; geolocation; microphone; camera; midi; encrypted-media"
+                allowFullScreen
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-gray-400 p-6 text-center">
+                <Sparkles className="w-12 h-12 mb-2 text-purple-400" />
+                <p className="text-sm font-semibold text-white">Tautan video interaktif H5P tidak tersedia</p>
+              </div>
+            )}
+          </div>
+        ) : isVideo ? (
           <div className="w-full bg-black aspect-video relative overflow-hidden flex items-center justify-center">
             {youtubeId ? (
               <iframe
@@ -458,7 +487,11 @@ const MainContent = ({ activeMateri, onMarkAsRead, onNavigate }) => {
       <div className="bg-white border border-[#BBC9C7] rounded-lg p-4 md:p-6 flex justify-between items-center flex-wrap gap-4">
          <div>
             <h3 className="text-base md:text-lg font-semibold text-[#1D315F] mb-1">Status Penyelesaian</h3>
-            <p className="text-xs text-gray-500">Tandai telah selesai jika Anda sudah memahami materi ini.</p>
+            <p className="text-xs text-gray-500">
+              {isH5P
+                ? 'Selesaikan seluruh kuis interaktif di dalam video atau klik tombol jika sudah selesai.'
+                : 'Tandai telah selesai jika Anda sudah memahami materi ini.'}
+            </p>
          </div>
          <button 
            onClick={onMarkAsRead}
@@ -466,11 +499,15 @@ const MainContent = ({ activeMateri, onMarkAsRead, onNavigate }) => {
            className={`px-6 py-2.5 rounded text-sm font-bold flex items-center gap-2 transition-colors ${
              activeMateri.is_read 
                ? 'bg-green-100 text-green-700 cursor-not-allowed border border-green-200' 
-               : 'bg-[#1D315F] text-white hover:bg-[#162847]'
+               : isH5P
+                 ? 'bg-[#006A63] text-white hover:bg-[#00534D]'
+                 : 'bg-[#1D315F] text-white hover:bg-[#162847]'
            }`}
          >
            {activeMateri.is_read ? (
-             <><CheckCircle2 className="w-5 h-5" /> Selesai Dibaca</>
+             <><CheckCircle2 className="w-5 h-5" /> Selesai Dipelajari</>
+           ) : isH5P ? (
+             <><CheckCircle2 className="w-5 h-5" /> Selesaikan Materi H5P</>
            ) : (
              'Tandai Telah Dibaca'
            )}
@@ -584,6 +621,31 @@ export default function CourseDetail({ onNavigate, onBack }) {
       });
     }
   };
+
+  // Listener event postMessage / xAPI dari player H5P
+  useEffect(() => {
+    const handleH5PMessage = (event) => {
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (!data) return;
+
+        const verb = data?.statement?.verb?.id || data?.verb || data?.context?.verb;
+        const isCompleted = 
+          (typeof verb === 'string' && (verb.includes('completed') || verb.includes('passed') || verb.includes('answered'))) ||
+          data?.event === 'h5p-completed' ||
+          data?.action === 'completed';
+
+        if (isCompleted && activeMateri?.materi_id && !activeMateri.is_read && activeMateri.tipe === 'h5p') {
+          handleMarkAsRead();
+        }
+      } catch (e) {
+        // Data non-JSON diabaikan
+      }
+    };
+
+    window.addEventListener('message', handleH5PMessage);
+    return () => window.removeEventListener('message', handleH5PMessage);
+  }, [activeMateri]);
 
   if (loading) {
     return (

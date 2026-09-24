@@ -588,8 +588,8 @@ const DetailKursus = ({ onNavigate }) => {
         if (!materialForm.tautan_atau_berkas_embed.trim()) {
           Swal.fire({
             icon: 'warning',
-            title: 'Tautan Video Diperlukan',
-            text: 'Silakan masukkan tautan video YouTube.',
+            title: materialForm.tipe_materi === 'h5p' ? 'Tautan H5P Diperlukan' : 'Tautan Video Diperlukan',
+            text: materialForm.tipe_materi === 'h5p' ? 'Silakan masukkan tautan atau embed H5P.' : 'Silakan masukkan tautan video YouTube.',
             confirmButtonColor: '#0F766E'
           });
           return;
@@ -1649,13 +1649,19 @@ const DetailKursus = ({ onNavigate }) => {
                                   {materiList.map((mat) => (
                                     <div key={mat.materi_id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-gray-100 rounded-lg bg-gray-50/70 hover:bg-gray-50 transition-colors gap-2">
                                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${mat.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                        <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${mat.tipe_materi === 'pdf' ? 'bg-red-50 text-red-600' : mat.tipe_materi === 'h5p' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
                                           }`}>
-                                          {mat.tipe_materi === 'pdf' ? <FileText className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+                                          {mat.tipe_materi === 'pdf' ? <FileText className="w-4 h-4" /> : mat.tipe_materi === 'h5p' ? <Sparkles className="w-4 h-4" /> : <Video className="w-4 h-4" />}
                                         </div>
                                         <div className="min-w-0 flex-1">
                                           <div className="flex items-center gap-2 flex-wrap">
                                             <p className="text-sm font-semibold text-gray-900 truncate">{mat.judul_materi}</p>
+                                            {mat.tipe_materi === 'h5p' && (
+                                              <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold rounded-full flex items-center gap-1">
+                                                <Sparkles className="w-3 h-3 text-purple-500" />
+                                                H5P Interaktif
+                                              </span>
+                                            )}
                                             {mat.pre_test ? (
                                               <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold rounded-full">
                                                 Pre-test Aktif ({mat.pre_test.durasi_menit || 15}m)
@@ -1667,7 +1673,7 @@ const DetailKursus = ({ onNavigate }) => {
                                             )}
                                           </div>
                                           <p className="text-xs text-gray-500">
-                                            {mat.tipe_materi === 'pdf' ? 'Dokumen PDF' : 'Video Pembelajaran'} • {mat.durasi_menit} Menit
+                                            {mat.tipe_materi === 'pdf' ? 'Dokumen PDF' : mat.tipe_materi === 'h5p' ? 'Video Interaktif (H5P)' : 'Video Pembelajaran'} • {mat.durasi_menit} Menit
                                           </p>
                                         </div>
                                       </div>
@@ -2084,11 +2090,11 @@ const DetailKursus = ({ onNavigate }) => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Tipe Materi</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setMaterialForm({ ...materialForm, tipe_materi: 'pdf' })}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${materialForm.tipe_materi === 'pdf'
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border text-center transition-all ${materialForm.tipe_materi === 'pdf'
                         ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                       }`}
@@ -2098,12 +2104,23 @@ const DetailKursus = ({ onNavigate }) => {
                   <button
                     type="button"
                     onClick={() => setMaterialForm({ ...materialForm, tipe_materi: 'video_embed' })}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${materialForm.tipe_materi === 'video_embed'
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border text-center transition-all ${materialForm.tipe_materi === 'video_embed'
                         ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                       }`}
                   >
-                    Video YouTube (Embed)
+                    Video YouTube
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMaterialForm({ ...materialForm, tipe_materi: 'h5p' })}
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border text-center transition-all flex items-center justify-center gap-1 ${materialForm.tipe_materi === 'h5p'
+                        ? 'bg-purple-50 border-purple-600 text-purple-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                    <span>H5P Interaktif</span>
                   </button>
                 </div>
               </div>
@@ -2118,6 +2135,24 @@ const DetailKursus = ({ onNavigate }) => {
                     onChange={(e) => setMaterialForm({ ...materialForm, file_pdf: e.target.files[0] || null })}
                     className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
                   />
+                </div>
+              ) : materialForm.tipe_materi === 'h5p' ? (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Tautan Embed H5P</label>
+                    <span className="text-[10px] text-purple-600 font-semibold bg-purple-50 px-2 py-0.5 rounded">Lumi / H5P / Iframe</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={materialForm.tautan_atau_berkas_embed || ''}
+                    onChange={(e) => setMaterialForm({ ...materialForm, tautan_atau_berkas_embed: e.target.value })}
+                    placeholder="https://app.lumi.education/run/... atau kode iframe"
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  />
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    💡 Masukkan URL run/embed dari Lumi Cloud, platform H5P, atau kode iframe video interaktif.
+                  </p>
                 </div>
               ) : (
                 <div>

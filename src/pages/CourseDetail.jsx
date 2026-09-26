@@ -662,6 +662,23 @@ export default function CourseDetail({ onNavigate, onBack }) {
       
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-6 md:py-8">
+          {courseData?.is_locked_review && (
+            <div className="mb-6 p-4.5 bg-amber-50/90 border border-amber-300 rounded-xl flex items-start gap-3.5 shadow-xs">
+              <div className="p-2.5 bg-amber-100 text-amber-800 rounded-lg shrink-0 mt-0.5">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-amber-900 mb-1 flex items-center gap-2">
+                  <span>Materi Pembelajaran Sedang Ditinjau Admin BKPSDM</span>
+                  <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Terkunci Sementara</span>
+                </h3>
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  Admin Komunitas baru saja memperbarui materi pembelajaran pada pelatihan ini. Seluruh materi dan kuis sementara terkunci dan akan dibuka kembali secara otomatis setelah mendapatkan persetujuan (approval) resmi dari Admin BKPSDM.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
             <div className="lg:col-span-8 order-2 lg:order-1">
               <MainContent 

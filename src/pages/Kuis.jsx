@@ -113,29 +113,70 @@ const KuisHeader = ({ onBack, testData, answeredCount = 0 }) => (
   </div>
 );
 
-const TimerCard = ({ answeredCount, totalQuestions, durationMinutes, onTimeUp, maxAttempts = 3, isPreTest = false }) => {
-  const [time, setTime] = useState(durationMinutes ? durationMinutes * 60 : 15 * 60);
+const TimerCard = ({ answeredCount, totalQuestions, durationMinutes, onTimeUp, maxAttempts = 3, isPreTest = false, storageKey }) => {
+  const [time, setTime] = useState(() => {
+    if (!storageKey || !durationMinutes) return (durationMinutes || 15) * 60;
+    try {
+      const savedEndTime = localStorage.getItem(storageKey);
+      if (savedEndTime) {
+        const parsed = parseInt(savedEndTime, 10);
+        const remaining = Math.max(0, Math.floor((parsed - Date.now()) / 1000));
+        if (remaining > 0 && (parsed - Date.now()) <= (durationMinutes * 60 + 300) * 1000) {
+          return remaining;
+        }
+      }
+    } catch (e) {}
+    return (durationMinutes || 15) * 60;
+  });
+
   const timerRef = useRef(null);
 
   useEffect(() => {
-    if (durationMinutes) {
-        setTime(durationMinutes * 60);
-    }
-  }, [durationMinutes]);
+    if (!durationMinutes) return;
 
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setTime((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
+    let targetEndTime;
+    try {
+      const savedEndTime = storageKey ? localStorage.getItem(storageKey) : null;
+      if (savedEndTime) {
+        const parsed = parseInt(savedEndTime, 10);
+        const remaining = Math.max(0, Math.floor((parsed - Date.now()) / 1000));
+        if (remaining > 0 && (parsed - Date.now()) <= (durationMinutes * 60 + 300) * 1000) {
+          targetEndTime = parsed;
+          setTime(remaining);
+        } else if (remaining === 0) {
+          setTime(0);
           if (onTimeUp) onTimeUp();
-          return 0;
+          return;
         }
-        return prev - 1;
-      });
+      }
+    } catch (e) {}
+
+    if (!targetEndTime) {
+      targetEndTime = Date.now() + (durationMinutes * 60) * 1000;
+      if (storageKey) {
+        try {
+          localStorage.setItem(storageKey, targetEndTime.toString());
+        } catch (e) {}
+      }
+      setTime(durationMinutes * 60);
+    }
+
+    timerRef.current = setInterval(() => {
+      const currentRemaining = Math.max(0, Math.floor((targetEndTime - Date.now()) / 1000));
+      setTime(currentRemaining);
+      if (currentRemaining <= 0) {
+        clearInterval(timerRef.current);
+        if (storageKey) {
+          try {
+            localStorage.removeItem(storageKey);
+          } catch (e) {}
+        }
+        if (onTimeUp) onTimeUp();
+      }
     }, 1000);
+
     return () => clearInterval(timerRef.current);
-  }, [onTimeUp]);
+  }, [durationMinutes, storageKey, onTimeUp]);
 
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
@@ -367,17 +408,78 @@ const Footer = () => (
 );
 
 export default function Kuis({ onNavigate, onBack }) {
-  const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [flaggedQuestions, setFlaggedQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [testData, setTestData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [activeSection, setActiveSection] = useState('pg'); // 'pg' | 'tts'
-
   const courseId = localStorage.getItem('userCourseId');
   const modulId = localStorage.getItem('userModulId');
   const kuisId = localStorage.getItem('userKuisId');
+
+  const quizSessionKey = (courseId && modulId && kuisId) 
+    ? `${courseId}_${modulId}_${kuisId}` 
+    : (kuisId || 'default');
+
+  const timerStorageKey = `quiz_timer_end_${quizSessionKey}`;
+  const answersStorageKey = `quiz_answers_${quizSessionKey}`;
+  const flaggedStorageKey = `quiz_flagged_${quizSessionKey}`;
+  const questionStorageKey = `quiz_current_q_${quizSessionKey}`;
+  const sectionStorageKey = `quiz_section_${quizSessionKey}`;
+
+  const [currentQuestion, setCurrentQuestion] = useState(() => {
+    try {
+      const saved = localStorage.getItem(questionStorageKey);
+      if (saved) return parseInt(saved, 10) || 1;
+    } catch (e) {}
+    return 1;
+  });
+
+  const [flaggedQuestions, setFlaggedQuestions] = useState(() => {
+    try {
+      const saved = localStorage.getItem(flaggedStorageKey);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  const [answers, setAnswers] = useState(() => {
+    try {
+      const saved = localStorage.getItem(answersStorageKey);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {};
+  });
+
+  const [testData, setTestData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeSection, setActiveSection] = useState(() => {
+    try {
+      const saved = localStorage.getItem(sectionStorageKey);
+      if (saved) return saved;
+    } catch (e) {}
+    return 'pg';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(answersStorageKey, JSON.stringify(answers));
+    } catch (e) {}
+  }, [answers, answersStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(flaggedStorageKey, JSON.stringify(flaggedQuestions));
+    } catch (e) {}
+  }, [flaggedQuestions, flaggedStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(questionStorageKey, currentQuestion.toString());
+    } catch (e) {}
+  }, [currentQuestion, questionStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(sectionStorageKey, activeSection);
+    } catch (e) {}
+  }, [activeSection, sectionStorageKey]);
 
   useEffect(() => {
     const fetchKuis = async () => {
@@ -643,6 +745,15 @@ export default function Kuis({ onNavigate, onBack }) {
         });
       }
       
+      // Hapus data timer dan draft kuis yang tersimpan
+      try {
+        localStorage.removeItem(timerStorageKey);
+        localStorage.removeItem(answersStorageKey);
+        localStorage.removeItem(flaggedStorageKey);
+        localStorage.removeItem(questionStorageKey);
+        localStorage.removeItem(sectionStorageKey);
+      } catch (e) {}
+
       onNavigate('course-detail');
     } catch (error) {
       console.error('Error submitting quiz:', error);
@@ -688,6 +799,7 @@ export default function Kuis({ onNavigate, onBack }) {
               durationMinutes={testData.durasi_menit || 15}
               maxAttempts={testData.maks_percobaan || 3}
               isPreTest={testData.tipe_kuis === 'pre_test'}
+              storageKey={timerStorageKey}
               onTimeUp={() => handleSubmit(true)}
             />
           </div>

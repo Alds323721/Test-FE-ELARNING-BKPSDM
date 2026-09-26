@@ -172,6 +172,18 @@ const DetailKursus = ({ onNavigate }) => {
     file_pdf: null
   });
 
+  // Modal State: Edit Materi
+  const [showEditMaterialModal, setShowEditMaterialModal] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState(null);
+  const [editMaterialForm, setEditMaterialForm] = useState({
+    judul_materi: '',
+    tipe_materi: 'pdf',
+    durasi_menit: 15,
+    tautan_atau_berkas_embed: '',
+    file_pdf: null,
+    apakah_wajib: true
+  });
+
   // Modal State: Kuis & Pre-Test Modul
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [targetQuizModule, setTargetQuizModule] = useState(null);
@@ -653,6 +665,111 @@ const DetailKursus = ({ onNavigate }) => {
         icon: 'error',
         title: 'Gagal Menghapus Materi',
         text: error.response?.data?.message || 'Gagal menghapus materi.',
+        confirmButtonColor: '#0F766E'
+      });
+    }
+  };
+
+  const handleOpenEditMaterialModal = (materi, modulId) => {
+    setTargetModuleId(modulId);
+    setEditingMaterial(materi);
+    setEditMaterialForm({
+      judul_materi: materi.judul_materi || '',
+      tipe_materi: materi.tipe_materi || 'pdf',
+      durasi_menit: materi.durasi_menit || 15,
+      tautan_atau_berkas_embed: materi.tipe_materi !== 'pdf' ? (materi.tautan_atau_berkas || '') : '',
+      file_pdf: null,
+      apakah_wajib: materi.apakah_wajib !== undefined ? Boolean(materi.apakah_wajib) : true
+    });
+    setShowEditMaterialModal(true);
+  };
+
+  const handleUpdateMaterial = async (e) => {
+    e.preventDefault();
+    if (!editMaterialForm.judul_materi.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Judul Diperlukan',
+        text: 'Silakan isi judul materi terlebih dahulu.',
+        confirmButtonColor: '#0F766E'
+      });
+      return;
+    }
+
+    if (course?.status === 'dipublikasikan') {
+      const confirmResult = await Swal.fire({
+        title: 'Pembaruan Materi Katalog',
+        html: `
+          <div class="text-left text-sm text-gray-600 space-y-2">
+            <p>Perubahan pada materi pembelajaran ini akan mengubah status kursus menjadi <b>Menunggu Approval Admin BKPSDM</b>.</p>
+            <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-semibold">
+              🔒 Pada katalog peserta, kursus otomatis terkunci dan berubah menjadi abu-abu sampai diverifikasi serta disetujui kembali oleh Admin BKPSDM.
+            </div>
+            <p class="text-xs text-gray-500">Apakah Anda yakin ingin menyimpan perubahan materi ini?</p>
+          </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#0F766E',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Ya, Simpan & Ajukan Approval',
+        cancelButtonText: 'Batal'
+      });
+
+      if (!confirmResult.isConfirmed) return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('judul_materi', editMaterialForm.judul_materi);
+      formData.append('tipe_materi', editMaterialForm.tipe_materi);
+      formData.append('durasi_menit', editMaterialForm.durasi_menit);
+      formData.append('apakah_wajib', editMaterialForm.apakah_wajib ? '1' : '0');
+
+      if (editMaterialForm.tipe_materi === 'pdf') {
+        if (editMaterialForm.file_pdf) {
+          formData.append('file_pdf', editMaterialForm.file_pdf);
+        }
+      } else {
+        if (!editMaterialForm.tautan_atau_berkas_embed.trim()) {
+          Swal.fire({
+            icon: 'warning',
+            title: editMaterialForm.tipe_materi === 'h5p' ? 'Tautan H5P Diperlukan' : 'Tautan Video Diperlukan',
+            text: editMaterialForm.tipe_materi === 'h5p' ? 'Silakan masukkan tautan atau embed H5P.' : 'Silakan masukkan tautan video YouTube.',
+            confirmButtonColor: '#0F766E'
+          });
+          return;
+        }
+        formData.append('tautan_atau_berkas_embed', editMaterialForm.tautan_atau_berkas_embed);
+      }
+
+      await api.post(`/admin-komunitas/materi/${editingMaterial.materi_id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Materi Berhasil Diperbarui!',
+        html: `
+          <div class="text-sm text-gray-600 space-y-2">
+            <p>Materi berhasil disimpan.</p>
+            ${course?.status === 'dipublikasikan' ? '<p class="text-xs text-amber-700 font-medium">Status kursus kini <b>Menunggu Approval Admin BKPSDM</b> dan otomatis terkunci (abu-abu) di katalog peserta sampai disetujui kembali.</p>' : ''}
+          </div>
+        `,
+        confirmButtonColor: '#0F766E',
+        timer: 2500,
+        showConfirmButton: true
+      });
+
+      setShowEditMaterialModal(false);
+      setEditingMaterial(null);
+      fetchCourseData();
+    } catch (error) {
+      console.error('Error updating material:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Memperbarui Materi',
+        text: error.response?.data?.message || 'Terjadi kesalahan saat memperbarui materi.',
         confirmButtonColor: '#0F766E'
       });
     }
@@ -1151,6 +1268,51 @@ const DetailKursus = ({ onNavigate }) => {
     }
   };
 
+  const handleRemoveSuratPernyataan = async () => {
+    const confirm = await Swal.fire({
+      title: 'Hapus Surat Keabsahan?',
+      text: 'Berkas surat pernyataan keabsahan akan dihapus dari kursus ini. Kursus tetap dapat diajukan untuk approval publikasi.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal'
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await api.delete(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}/surat-pernyataan`);
+      setCourse(prev => ({ ...prev, surat_pernyataan_url: null }));
+      Swal.fire({
+        icon: 'success',
+        title: 'Surat Dihapus',
+        text: 'Berkas surat keabsahan berhasil dihapus. Anda tetap dapat mengajukan approval ke BKPSDM.',
+        confirmButtonColor: '#0F766E'
+      });
+      fetchCourseData();
+    } catch (error) {
+      // Fallback update
+      try {
+        await api.put(`/admin-komunitas/pembelajaran/${course.pembelajaran_id}`, {
+          judul_pembelajaran: course.judul_pembelajaran,
+          deskripsi: course.deskripsi,
+          kategori: course.kategori,
+          surat_pernyataan_url: null
+        });
+        setCourse(prev => ({ ...prev, surat_pernyataan_url: null }));
+        fetchCourseData();
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menghapus',
+          text: 'Gagal menghapus berkas surat pernyataan.',
+          confirmButtonColor: '#0F766E'
+        });
+      }
+    }
+  };
+
   // --- Ajukan Approval ---
   const handleAjukanApproval = async () => {
     if (!course) return;
@@ -1186,9 +1348,10 @@ const DetailKursus = ({ onNavigate }) => {
             <div>• Jumlah Modul: <b>${modules.length}</b> modul</div>
             <div>• Total Materi: <b>${totalMateri}</b> materi</div>
             <div>• Bank Soal Post Test: <b>${postTest?.soal_post_test?.length || 0}</b> butir soal</div>
+            <div>• Surat Keabsahan: <b>${(course.surat_pernyataan_url || suratFile) ? 'Sudah Dilampirkan' : 'Tidak Dilampirkan (Opsional - Tetap Dapat Diajukan)'}</b></div>
           </div>
-          <p class="text-xs text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
-            ⚠️ Pastikan seluruh konten pelatihan sudah final dan sesuai standar kompetensi.
+          <p class="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded border border-emerald-200">
+            ℹ️ Surat Keabsahan bersifat <b>opsional</b>. Kursus ini dapat langsung diajukan dan diverifikasi oleh Admin BKPSDM.
           </p>
         </div>
       `,
@@ -1691,6 +1854,14 @@ const DetailKursus = ({ onNavigate }) => {
                                           {mat.pre_test ? <><Edit2 className="w-3.5 h-3.5" /> Edit Pre-test</> : <><Plus className="w-3.5 h-3.5" /> + Pre-test</>}
                                         </button>
 
+                                        <button
+                                          onClick={() => handleOpenEditMaterialModal(mat, modul.modul_id)}
+                                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors"
+                                          title="Edit Materi Pembelajaran"
+                                        >
+                                          <Edit className="w-3.5 h-3.5" /> Edit Materi
+                                        </button>
+
                                         <a
                                           href={mat.tautan_atau_berkas.startsWith('http') ? mat.tautan_atau_berkas : `http://localhost:8000${mat.tautan_atau_berkas}`}
                                           target="_blank"
@@ -1855,21 +2026,27 @@ const DetailKursus = ({ onNavigate }) => {
 
             {/* Section 4: Surat Pernyataan Keabsahan */}
             <section className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-teal-600"></div>
-                <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                  Surat Pernyataan Keabsahan Konten
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] uppercase font-bold rounded">Opsional</span>
-                </h2>
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-teal-600"></div>
+                  <h2 className="font-bold text-gray-900 flex items-center gap-2">
+                    Surat Pernyataan Keabsahan Konten
+                  </h2>
+                </div>
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-full">
+                  Opsional (Tidak Wajib)
+                </span>
               </div>
               <div className="p-6 space-y-6">
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3">
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-blue-600 shrink-0">
-                    <AlertCircle className="w-5 h-5" />
+                <div className="bg-emerald-50/70 border border-emerald-200 rounded-lg p-4 flex gap-3">
+                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-emerald-600 shrink-0 shadow-xs">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-blue-900 mb-1">Perhatian Regulasi Penerbitan Kursus ASN</h4>
-                    <p className="text-xs text-blue-800 leading-relaxed">Admin Komunitas dapat melampirkan Surat Pernyataan Keabsahan Konten yang telah ditandatangani oleh Kepala Dinas/OPD terkait sebelum diajukan ke BKPSDM Kabupaten Buleleng.</p>
+                    <h4 className="text-sm font-bold text-emerald-900 mb-1">Status Pengunggahan: Bersifat Opsional</h4>
+                    <p className="text-xs text-emerald-800 leading-relaxed">
+                      Pengunggahan berkas Surat Pernyataan Keabsahan Konten bersifat <b>opsional</b>. Admin Komunitas <b>tetap bisa mengajukan approval publikasi ke Admin BKPSDM</b> meskipun berkas ini tidak diisi atau tidak diunggah.
+                    </p>
                   </div>
                 </div>
 
@@ -1894,15 +2071,25 @@ const DetailKursus = ({ onNavigate }) => {
                       >
                         <Eye className="w-3.5 h-3.5" /> Buka Dokumen
                       </a>
+                      <button
+                        type="button"
+                        onClick={handleRemoveSuratPernyataan}
+                        className="flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-800 px-3 py-1.5 rounded-md bg-white border border-red-200 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Hapus Berkas
+                      </button>
                     </div>
                   </div>
                 ) : null}
 
                 {/* File Upload Box */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {course.surat_pernyataan_url ? 'Ganti Surat Pernyataan (PDF)' : 'Unggah Berkas Surat Pernyataan (PDF)'}
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    {course.surat_pernyataan_url ? 'Ganti Surat Pernyataan (PDF - Opsional)' : 'Unggah Berkas Surat Pernyataan (PDF - Opsional)'}
                   </label>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Kosongkan bagian ini jika instansi Anda tidak memerlukan surat pengantar khusus keabsahan.
+                  </p>
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50/60 flex flex-col items-center justify-center text-center">
                     <Upload className="w-8 h-8 text-teal-600 mb-2" />
                     <input
@@ -1911,7 +2098,7 @@ const DetailKursus = ({ onNavigate }) => {
                       onChange={(e) => setSuratFile(e.target.files[0] || null)}
                       className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
                     />
-                    <p className="text-xs text-gray-400 mt-2">Maksimal ukuran file 5MB (Format .pdf)</p>
+                    <p className="text-xs text-gray-400 mt-2">Maksimal ukuran file 5MB (Format .pdf) • Opsional</p>
                     {suratFile && (
                       <div className="mt-3">
                         <button
@@ -2193,6 +2380,188 @@ const DetailKursus = ({ onNavigate }) => {
                   className="px-5 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800"
                 >
                   Unggah Materi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edit Materi Pembelajaran */}
+      {showEditMaterialModal && editingMaterial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-gray-100 space-y-4">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Edit Materi Pembelajaran</h3>
+                <p className="text-xs text-gray-500">Ubah detail atau berkas materi pada modul</p>
+              </div>
+              <button 
+                onClick={() => { setShowEditMaterialModal(false); setEditingMaterial(null); }} 
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {course?.status === 'dipublikasikan' && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
+                <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <b>Peringatan Approval:</b> Pelatihan ini aktif di katalog. Menyimpan perubahan materi akan <b>mengunci pelatihan (berwarna abu-abu)</b> pada katalog peserta hingga disetujui kembali oleh <b>Admin BKPSDM</b>.
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateMaterial} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Judul Materi</label>
+                <input
+                  type="text"
+                  required
+                  value={editMaterialForm.judul_materi || ''}
+                  onChange={(e) => setEditMaterialForm({ ...editMaterialForm, judul_materi: e.target.value })}
+                  placeholder="Contoh: Modul Bacaan Bab 1 (PDF)"
+                  className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Tipe Materi</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditMaterialForm({ ...editMaterialForm, tipe_materi: 'pdf' })}
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border text-center transition-all ${
+                      editMaterialForm.tipe_materi === 'pdf'
+                        ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    Dokumen PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditMaterialForm({ ...editMaterialForm, tipe_materi: 'video_embed' })}
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border text-center transition-all ${
+                      editMaterialForm.tipe_materi === 'video_embed'
+                        ? 'bg-teal-50 border-[#0F766E] text-[#0F766E]'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    Video YouTube
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditMaterialForm({ ...editMaterialForm, tipe_materi: 'h5p' })}
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border text-center transition-all flex items-center justify-center gap-1 ${
+                      editMaterialForm.tipe_materi === 'h5p'
+                        ? 'bg-purple-50 border-purple-600 text-purple-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                    <span>H5P Interaktif</span>
+                  </button>
+                </div>
+              </div>
+
+              {editMaterialForm.tipe_materi === 'pdf' ? (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    Ganti Berkas PDF (Opsional, Maks. 10MB)
+                  </label>
+                  {editingMaterial?.tautan_atau_berkas && (
+                    <div className="mb-2 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600 flex items-center justify-between">
+                      <span className="truncate max-w-xs">Berkas saat ini: {editingMaterial.tautan_atau_berkas.split('/').pop()}</span>
+                      <a 
+                        href={editingMaterial.tautan_atau_berkas.startsWith('http') ? editingMaterial.tautan_atau_berkas : `http://localhost:8000${editingMaterial.tautan_atau_berkas}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-teal-700 font-semibold hover:underline"
+                      >
+                        Pratinjau
+                      </a>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) => setEditMaterialForm({ ...editMaterialForm, file_pdf: e.target.files[0] || null })}
+                    className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">Biarkan kosong jika tidak ingin mengubah berkas PDF.</p>
+                </div>
+              ) : editMaterialForm.tipe_materi === 'h5p' ? (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Tautan Embed H5P</label>
+                    <span className="text-[10px] text-purple-600 font-semibold bg-purple-50 px-2 py-0.5 rounded">Lumi / H5P / Iframe</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={editMaterialForm.tautan_atau_berkas_embed || ''}
+                    onChange={(e) => setEditMaterialForm({ ...editMaterialForm, tautan_atau_berkas_embed: e.target.value })}
+                    placeholder="https://app.lumi.education/run/... atau kode iframe"
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  />
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    💡 Masukkan URL run/embed dari platform H5P atau iframe interaktif.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">URL Video YouTube</label>
+                  <input
+                    type="url"
+                    required
+                    value={editMaterialForm.tautan_atau_berkas_embed || ''}
+                    onChange={(e) => setEditMaterialForm({ ...editMaterialForm, tautan_atau_berkas_embed: e.target.value })}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Durasi (Menit)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editMaterialForm.durasi_menit ?? 15}
+                    onChange={(e) => setEditMaterialForm({ ...editMaterialForm, durasi_menit: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Sifat Materi</label>
+                  <select
+                    value={editMaterialForm.apakah_wajib ? '1' : '0'}
+                    onChange={(e) => setEditMaterialForm({ ...editMaterialForm, apakah_wajib: e.target.value === '1' })}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  >
+                    <option value="1">Wajib Dipelajari</option>
+                    <option value="0">Materi Pengayaan (Opsional)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => { setShowEditMaterialModal(false); setEditingMaterial(null); }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0F766E] text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"
+                >
+                  Simpan Perubahan Materi
                 </button>
               </div>
             </form>

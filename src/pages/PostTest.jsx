@@ -110,29 +110,70 @@ const PostTestHeader = ({ onBack, testData, currentQuestion }) => (
   </div>
 );
 
-const TimerCard = ({ answeredCount, totalQuestions, durationMinutes, onTimeUp }) => {
-  const [time, setTime] = useState(durationMinutes ? durationMinutes * 60 : 3600);
+const TimerCard = ({ answeredCount, totalQuestions, durationMinutes, onTimeUp, storageKey }) => {
+  const [time, setTime] = useState(() => {
+    if (!storageKey || !durationMinutes) return (durationMinutes || 60) * 60;
+    try {
+      const savedEndTime = localStorage.getItem(storageKey);
+      if (savedEndTime) {
+        const parsed = parseInt(savedEndTime, 10);
+        const remaining = Math.max(0, Math.floor((parsed - Date.now()) / 1000));
+        if (remaining > 0 && (parsed - Date.now()) <= (durationMinutes * 60 + 300) * 1000) {
+          return remaining;
+        }
+      }
+    } catch (e) {}
+    return (durationMinutes || 60) * 60;
+  });
+
   const timerRef = useRef(null);
 
   useEffect(() => {
-    if (durationMinutes) {
-        setTime(durationMinutes * 60);
-    }
-  }, [durationMinutes]);
+    if (!durationMinutes) return;
 
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setTime((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
+    let targetEndTime;
+    try {
+      const savedEndTime = storageKey ? localStorage.getItem(storageKey) : null;
+      if (savedEndTime) {
+        const parsed = parseInt(savedEndTime, 10);
+        const remaining = Math.max(0, Math.floor((parsed - Date.now()) / 1000));
+        if (remaining > 0 && (parsed - Date.now()) <= (durationMinutes * 60 + 300) * 1000) {
+          targetEndTime = parsed;
+          setTime(remaining);
+        } else if (remaining === 0) {
+          setTime(0);
           if (onTimeUp) onTimeUp();
-          return 0;
+          return;
         }
-        return prev - 1;
-      });
+      }
+    } catch (e) {}
+
+    if (!targetEndTime) {
+      targetEndTime = Date.now() + (durationMinutes * 60) * 1000;
+      if (storageKey) {
+        try {
+          localStorage.setItem(storageKey, targetEndTime.toString());
+        } catch (e) {}
+      }
+      setTime(durationMinutes * 60);
+    }
+
+    timerRef.current = setInterval(() => {
+      const currentRemaining = Math.max(0, Math.floor((targetEndTime - Date.now()) / 1000));
+      setTime(currentRemaining);
+      if (currentRemaining <= 0) {
+        clearInterval(timerRef.current);
+        if (storageKey) {
+          try {
+            localStorage.removeItem(storageKey);
+          } catch (e) {}
+        }
+        if (onTimeUp) onTimeUp();
+      }
     }, 1000);
+
     return () => clearInterval(timerRef.current);
-  }, [onTimeUp]);
+  }, [durationMinutes, storageKey, onTimeUp]);
 
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
@@ -367,14 +408,72 @@ const Footer = ({ onNavigate }) => {
 };
 
 export default function PostTest({ onNavigate, onBack }) {
-  const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [flaggedQuestions, setFlaggedQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
+  const courseId = localStorage.getItem('userCourseId');
+  const timerStorageKey = courseId ? `post_test_timer_end_${courseId}` : null;
+  const answersStorageKey = courseId ? `post_test_answers_${courseId}` : null;
+  const flaggedStorageKey = courseId ? `post_test_flagged_${courseId}` : null;
+  const questionStorageKey = courseId ? `post_test_current_q_${courseId}` : null;
+
+  const [currentQuestion, setCurrentQuestion] = useState(() => {
+    try {
+      const cId = localStorage.getItem('userCourseId');
+      if (cId) {
+        const saved = localStorage.getItem(`post_test_current_q_${cId}`);
+        if (saved) return parseInt(saved, 10) || 1;
+      }
+    } catch (e) {}
+    return 1;
+  });
+
+  const [flaggedQuestions, setFlaggedQuestions] = useState(() => {
+    try {
+      const cId = localStorage.getItem('userCourseId');
+      if (cId) {
+        const saved = localStorage.getItem(`post_test_flagged_${cId}`);
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {}
+    return [];
+  });
+
+  const [answers, setAnswers] = useState(() => {
+    try {
+      const cId = localStorage.getItem('userCourseId');
+      if (cId) {
+        const saved = localStorage.getItem(`post_test_answers_${cId}`);
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {}
+    return {};
+  });
+
+  useEffect(() => {
+    if (answersStorageKey) {
+      try {
+        localStorage.setItem(answersStorageKey, JSON.stringify(answers));
+      } catch (e) {}
+    }
+  }, [answers, answersStorageKey]);
+
+  useEffect(() => {
+    if (flaggedStorageKey) {
+      try {
+        localStorage.setItem(flaggedStorageKey, JSON.stringify(flaggedQuestions));
+      } catch (e) {}
+    }
+  }, [flaggedQuestions, flaggedStorageKey]);
+
+  useEffect(() => {
+    if (questionStorageKey) {
+      try {
+        localStorage.setItem(questionStorageKey, currentQuestion.toString());
+      } catch (e) {}
+    }
+  }, [currentQuestion, questionStorageKey]);
+
   const [testData, setTestData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
-  const courseId = localStorage.getItem('userCourseId');
 
   useEffect(() => {
     const fetchPostTest = async () => {
@@ -491,6 +590,14 @@ export default function PostTest({ onNavigate, onBack }) {
       
       localStorage.setItem('postTestResult', JSON.stringify(res.data.data));
 
+      // Hapus data timer dan draft jawaban yang tersimpan
+      try {
+        if (timerStorageKey) localStorage.removeItem(timerStorageKey);
+        if (answersStorageKey) localStorage.removeItem(answersStorageKey);
+        if (flaggedStorageKey) localStorage.removeItem(flaggedStorageKey);
+        if (questionStorageKey) localStorage.removeItem(questionStorageKey);
+      } catch (e) {}
+
       // Alert Post Test Berhasil di Submit
       await Swal.fire({
         icon: 'success',
@@ -546,7 +653,8 @@ export default function PostTest({ onNavigate, onBack }) {
               answeredCount={Object.keys(answers).length} 
               totalQuestions={testData.soal.length} 
               durationMinutes={testData.durasi_menit}
-              onTimeUp={handleSubmit}
+              storageKey={timerStorageKey}
+              onTimeUp={() => handleSubmit(true)}
             />
           </div>
 

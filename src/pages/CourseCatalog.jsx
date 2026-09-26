@@ -20,7 +20,8 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Users
+  Users,
+  Lock
 } from 'lucide-react';
 
 /* ── Navbar ─────────────────────────────────────────── */
@@ -95,16 +96,61 @@ const CatalogHeader = () => {
 };
 
 /* ── Catalog Course Card ────────────────────────── */
-const CatalogCard = ({ id, image, category, title, description, jpl, modules, isEnrolled, onEnroll, onNavigate, nama_komunitas }) => {
+const CatalogCard = ({ id, image, category, title, description, jpl, modules, isEnrolled, onEnroll, onNavigate, nama_komunitas, is_locked_review }) => {
   const { t } = useLanguage();
+
+  const handleShowLockedAlert = () => {
+    Swal.fire({
+      icon: 'info',
+      title: 'Pembelajaran Terkunci',
+      html: `
+        <div class="text-left text-sm text-gray-600 space-y-3">
+          <p>Materi pada pembelajaran <b>"${title}"</b> sedang dalam proses pembaruan oleh <b>Admin Komunitas</b>.</p>
+          <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-medium">
+            🔒 Status: <b>Menunggu Persetujuan (Approval) Admin BKPSDM</b>
+          </div>
+          <p class="text-xs text-gray-500">
+            Katalog pembelajaran otomatis dikunci dan akan dibuka kembali untuk pendaftaran serta akses belajar setelah Admin Komunitas berhasil memperoleh approval resmi dari Admin BKPSDM.
+          </p>
+        </div>
+      `,
+      confirmButtonColor: '#006A63',
+      confirmButtonText: 'Saya Mengerti'
+    });
+  };
+
   return (
-    <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all">
-      <div className="h-44 relative">
-        <img src={image} alt={title} className="w-full h-full object-cover" />
+    <div className={`bg-white border rounded-lg overflow-hidden flex flex-col transition-all relative ${
+      is_locked_review 
+        ? 'filter grayscale border-gray-300 bg-gray-50 shadow-xs' 
+        : 'border-[#BBC9C7] hover:shadow-lg hover:-translate-y-1'
+    }`}>
+      <div className="h-44 relative overflow-hidden">
+        <img 
+          src={image} 
+          alt={title} 
+          className={`w-full h-full object-cover transition-transform ${is_locked_review ? 'opacity-60 contrast-75' : ''}`} 
+        />
+        
         <div className="absolute bottom-3 left-3 bg-white px-3 py-1 text-[11px] font-bold text-[#1D315F] shadow-sm rounded-sm">
           {category}
         </div>
+
+        {/* Lock Overlay & Badge jika sedang menunggu approval */}
+        {is_locked_review && (
+          <>
+            <div className="absolute inset-0 bg-slate-900/35 backdrop-blur-[0.5px] flex items-center justify-center">
+              <div className="w-11 h-11 rounded-full bg-white/95 text-gray-700 flex items-center justify-center shadow-md">
+                <Lock className="w-5 h-5 text-gray-600" />
+              </div>
+            </div>
+            <div className="absolute top-3 right-3 bg-amber-500/95 text-white px-2.5 py-1 text-[11px] font-bold rounded shadow-sm flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" /> Sedang Ditinjau BKPSDM
+            </div>
+          </>
+        )}
       </div>
+
       <div className="p-6 flex-1 flex flex-col">
         {nama_komunitas && (
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#006A63] uppercase tracking-wider mb-2">
@@ -112,7 +158,19 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
             <span className="truncate">{nama_komunitas}</span>
           </div>
         )}
-        <h3 className="font-bold text-[#1D315F] text-[17px] leading-snug mb-3">{title}</h3>
+
+        <h3 className="font-bold text-[#1D315F] text-[17px] leading-snug mb-2 flex items-center gap-1.5">
+          {is_locked_review && <Lock className="w-4 h-4 text-gray-400 shrink-0 inline" />}
+          <span className="line-clamp-2">{title}</span>
+        </h3>
+
+        {is_locked_review && (
+          <div className="mb-3 px-2 py-1 bg-amber-50/80 border border-amber-200/70 rounded text-[11px] font-semibold text-amber-800 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>Pembaruan materi menunggu approval BKPSDM</span>
+          </div>
+        )}
+
         <p className="text-[12px] text-gray-500 line-clamp-3 mb-5 flex-1">{description}</p>
         
         <div className="flex items-center gap-5 text-[12px] text-[#1D315F] mb-6">
@@ -120,7 +178,17 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
           <span className="flex items-center gap-1 font-semibold"><BookOpen className="w-4 h-4 text-gray-500" /> {modules} {t('common.modules')}</span>
         </div>
         
-        {isEnrolled ? (
+        {is_locked_review ? (
+          <button
+            type="button"
+            onClick={handleShowLockedAlert}
+            className="w-full py-2.5 bg-gray-200 hover:bg-gray-250 text-gray-600 rounded-md text-[13px] font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 border border-gray-300 shadow-2xs"
+            title="Klik untuk info detail status verifikasi"
+          >
+            <Lock className="w-4 h-4 text-gray-500" />
+            <span>Terkunci (Ditinjau BKPSDM)</span>
+          </button>
+        ) : isEnrolled ? (
           <button
             onClick={() => {
               if (id) localStorage.setItem('userCourseId', id);

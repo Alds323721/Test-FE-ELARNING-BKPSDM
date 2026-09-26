@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
   FileText, RotateCcw, ChevronDown, CheckCircle2,
-  PlayCircle, Edit, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Clock,
-  BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Check, Plus
+  PlayCircle, Edit, Edit2, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Clock,
+  BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Check, Plus,
+  Sparkles, Eye, Lock
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'katalog-kursus', onNavigate, isOpen, setIsOpen }) => {
@@ -193,15 +195,17 @@ const CourseCard = ({ course, onNavigate }) => {
           </div>
         </div>
 
-        {/* Action Button */}
+        {/* Action Button: Edit Kursus */}
         <button 
           onClick={() => {
             localStorage.setItem('adminKomunitasCourseId', courseId);
             onNavigate('detail-kursus');
           }}
-          className="w-full py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors"
+          className="w-full py-2.5 bg-[#0F766E] hover:bg-teal-800 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer mt-auto"
+          title="Buka detail kursus dan edit isi kursus"
         >
-          Lihat Detail
+          <Edit className="w-4 h-4" />
+          <span>Edit Kursus</span>
         </button>
       </div>
     </div>
@@ -383,7 +387,11 @@ const KatalogKursus = ({ onNavigate }) => {
                     </div>
                   ) : (
                     displayedCourses.map((course) => (
-                      <CourseCard key={course.pembelajaran_id || course.id} course={course} onNavigate={onNavigate} />
+                      <CourseCard 
+                        key={course.pembelajaran_id || course.id} 
+                        course={course} 
+                        onNavigate={onNavigate}
+                      />
                     ))
                   )}
                 </div>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import AdminLoadingSkeleton from '../components/AdminLoadingSkeleton';
 import { 
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, Download, TrendingUp, Award, CheckCircle,
-  Calendar, ChevronLeft, Layers
+  Calendar, ChevronLeft, Layers, Star, MessageSquare, ThumbsUp, BookOpen, Filter
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'monitoring-reports', onNavigate, isOpen, setIsOpen }) => {
@@ -120,11 +121,23 @@ const StatCard = ({ title, value, icon: Icon, colorClass, iconColorClass }) => (
 
 const MonitoringReports = ({ onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeTabReport, setActiveTabReport] = useState('peserta'); // 'peserta' | 'ulasan'
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [komunitasList, setKomunitasList] = useState([]);
   const [selectedKomunitas, setSelectedKomunitas] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Ulasan State
+  const [ulasanList, setUlasanList] = useState([]);
+  const [ulasanStats, setUlasanStats] = useState({
+    total_ulasan: 0,
+    rata_rata_rating: 0,
+    persen_puas: 0,
+    distribusi: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+  });
+  const [selectedRatingFilter, setSelectedRatingFilter] = useState('');
+  const [loadingUlasan, setLoadingUlasan] = useState(false);
 
   const fetchKomunitas = async () => {
     try {
@@ -149,18 +162,45 @@ const MonitoringReports = ({ onNavigate }) => {
         id: user.pendaftaran_id || user.pengguna_id || idx,
         name: user.nama_lengkap,
         nip: user.nip || '-',
+        unitKerja: user.unit_kerja || user.instansi || '-',
         course: user.judul_pembelajaran || 'Belum terdaftar',
         community: user.nama_komunitas || 'BKPSDM',
         progress: user.progres ?? 0,
         status: user.status_pendaftaran === 'lulus' ? 'Lulus' : (user.progres > 0 ? 'Sedang Berjalan' : 'Belum Mulai'),
         hasCertificate: !!user.has_sertifikat,
         certificateId: user.sertifikat?.sertifikat_id,
-        certificateUrl: user.sertifikat?.download_url
+        certificateUrl: user.sertifikat?.download_url,
+        ulasan: user.ulasan || null
       })));
     } catch (error) {
       console.error('Failed to fetch reports:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUlasanReports = async () => {
+    try {
+      setLoadingUlasan(true);
+      const params = {};
+      if (selectedKomunitas) params.komunitas_id = selectedKomunitas;
+      if (selectedRatingFilter) params.skor_rating = selectedRatingFilter;
+      if (searchTerm) params.search = searchTerm;
+
+      const res = await api.get('/admin-bkpsdm/laporan/ulasan', { params });
+      if (res.data?.data) {
+        setUlasanList(res.data.data.ulasan || []);
+        setUlasanStats(res.data.data.stats || {
+          total_ulasan: 0,
+          rata_rata_rating: 0,
+          persen_puas: 0,
+          distribusi: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch ulasan reports:', err);
+    } finally {
+      setLoadingUlasan(false);
     }
   };
 
@@ -170,11 +210,22 @@ const MonitoringReports = ({ onNavigate }) => {
 
   useEffect(() => {
     fetchReports();
+    fetchUlasanReports();
   }, [selectedKomunitas]);
+
+  useEffect(() => {
+    if (activeTabReport === 'ulasan') {
+      fetchUlasanReports();
+    }
+  }, [selectedRatingFilter]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchReports();
+    if (activeTabReport === 'peserta') {
+      fetchReports();
+    } else {
+      fetchUlasanReports();
+    }
   };
 
   const handleExport = async () => {
@@ -211,6 +262,32 @@ const MonitoringReports = ({ onNavigate }) => {
       console.error('Failed to download certificate:', err);
       alert('Gagal mengunduh sertifikat.');
     }
+  };
+
+  const handleShowReviewModal = (personName, nip, course, ulasan) => {
+    if (!ulasan) return;
+    Swal.fire({
+      title: 'Ulasan & Evaluasi Peserta',
+      html: `
+        <div class="text-left space-y-3.5">
+          <div class="p-3.5 bg-gray-50 rounded-xl text-xs space-y-1.5 border border-gray-100">
+            <p><strong>Nama Peserta:</strong> ${personName}</p>
+            <p><strong>NIP:</strong> ${nip}</p>
+            <p><strong>Pelatihan:</strong> ${course}</p>
+            <div class="flex items-center gap-1.5 pt-1">
+              <strong>Penilaian:</strong>
+              <span class="px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-bold">⭐ ${ulasan.skor_rating || 5} / 5</span>
+            </div>
+          </div>
+          <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-gray-800 italic leading-relaxed">
+            "${ulasan.teks_ulasan || 'Peserta memberikan penilaian rating tanpa catatan ulasan teks.'}"
+          </div>
+        </div>
+      `,
+      icon: 'info',
+      confirmButtonColor: '#0F766E',
+      confirmButtonText: 'Tutup'
+    });
   };
 
   const getStatusBadge = (status) => {
@@ -255,40 +332,110 @@ const MonitoringReports = ({ onNavigate }) => {
           
           <div className="mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-[#1D315F] mb-2">Monitoring & Laporan</h1>
-            <p className="text-sm text-gray-500">Pantau aktivitas belajar, progres peserta, dan statistik kelulusan secara real-time.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            <StatCard 
-              title="TOTAL PESERTA AKTIF" 
-              value={totalPesertaAktif} 
-              icon={Users}
-              colorClass="bg-blue-50"
-              iconColorClass="text-blue-500"
-            />
-            <StatCard 
-              title="PROGRES RATA-RATA" 
-              value={avgProgres} 
-              icon={TrendingUp}
-              colorClass="bg-orange-50"
-              iconColorClass="text-orange-500"
-            />
-            <StatCard 
-              title="SERTIFIKAT TERBIT" 
-              value={sertifikatTerbitCount} 
-              icon={Award}
-              colorClass="bg-green-50"
-              iconColorClass="text-green-500"
-            />
-            <StatCard 
-              title="TINGKAT KELULUSAN (%)" 
-              value={tingkatKelulusan} 
-              icon={CheckCircle}
-              colorClass="bg-teal-50"
-              iconColorClass="text-teal-600"
-            />
+            <p className="text-sm text-gray-500">Pantau aktivitas belajar, progres peserta, evaluasi mutu, dan ulasan kepuasan pelatihan ASN.</p>
           </div>
 
+          {/* Switcher Tab: Peserta vs Ulasan Pelatihan */}
+          <div className="flex border-b border-gray-200 mb-6 gap-6">
+            <button
+              onClick={() => setActiveTabReport('peserta')}
+              className={`pb-3 text-sm font-bold transition-all relative flex items-center gap-2 ${
+                activeTabReport === 'peserta'
+                  ? 'text-teal-700 border-b-2 border-teal-700'
+                  : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Laporan Progres Peserta</span>
+              <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700 font-semibold">
+                {totalPesertaAktif}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTabReport('ulasan')}
+              className={`pb-3 text-sm font-bold transition-all relative flex items-center gap-2 ${
+                activeTabReport === 'ulasan'
+                  ? 'text-teal-700 border-b-2 border-teal-700'
+                  : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+              <span>Ulasan & Evaluasi Mutu Pelatihan</span>
+              <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 font-bold">
+                {ulasanStats.total_ulasan || 0}
+              </span>
+            </button>
+          </div>
+          
+          {/* Stat Cards - Peserta Tab */}
+          {activeTabReport === 'peserta' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <StatCard 
+                title="TOTAL PESERTA AKTIF" 
+                value={totalPesertaAktif} 
+                icon={Users}
+                colorClass="bg-blue-50"
+                iconColorClass="text-blue-500"
+              />
+              <StatCard 
+                title="PROGRES RATA-RATA" 
+                value={avgProgres} 
+                icon={TrendingUp}
+                colorClass="bg-orange-50"
+                iconColorClass="text-orange-500"
+              />
+              <StatCard 
+                title="SERTIFIKAT TERBIT" 
+                value={sertifikatTerbitCount} 
+                icon={Award}
+                colorClass="bg-green-50"
+                iconColorClass="text-green-500"
+              />
+              <StatCard 
+                title="TINGKAT KELULUSAN (%)" 
+                value={tingkatKelulusan} 
+                icon={CheckCircle}
+                colorClass="bg-teal-50"
+                iconColorClass="text-teal-600"
+              />
+            </div>
+          )}
+
+          {/* Stat Cards - Ulasan Tab */}
+          {activeTabReport === 'ulasan' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <StatCard 
+                title="TOTAL ULASAN MASUK" 
+                value={ulasanStats.total_ulasan} 
+                icon={MessageSquare}
+                colorClass="bg-amber-50"
+                iconColorClass="text-amber-500"
+              />
+              <StatCard 
+                title="RATA-RATA KEPUASAN" 
+                value={ulasanStats.rata_rata_rating ? `⭐ ${ulasanStats.rata_rata_rating}` : '0.0'} 
+                icon={Star}
+                colorClass="bg-yellow-50"
+                iconColorClass="text-yellow-600"
+              />
+              <StatCard 
+                title="INDEKS PUAS (>= 4★)" 
+                value={`${ulasanStats.persen_puas || 0}%`} 
+                icon={ThumbsUp}
+                colorClass="bg-green-50"
+                iconColorClass="text-green-600"
+              />
+              <StatCard 
+                title="PELATIHAN TERULAS" 
+                value={new Set(ulasanList.map(u => u.pembelajaran?.pembelajaran_id)).size} 
+                icon={BookOpen}
+                colorClass="bg-teal-50"
+                iconColorClass="text-teal-600"
+              />
+            </div>
+          )}
+
+          {/* Main Card Container */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
             <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
@@ -302,12 +449,28 @@ const MonitoringReports = ({ onNavigate }) => {
                     <option key={k.komunitas_id} value={k.komunitas_id}>{k.nama_komunitas}</option>
                   ))}
                 </select>
+
+                {activeTabReport === 'ulasan' && (
+                  <select 
+                    value={selectedRatingFilter}
+                    onChange={(e) => setSelectedRatingFilter(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white w-full sm:w-auto"
+                  >
+                    <option value="">Semua Rating</option>
+                    <option value="5">⭐⭐⭐⭐⭐ (5 Bintang)</option>
+                    <option value="4">⭐⭐⭐⭐ (4 Bintang)</option>
+                    <option value="3">⭐⭐⭐ (3 Bintang)</option>
+                    <option value="2">⭐⭐ (2 Bintang)</option>
+                    <option value="1">⭐ (1 Bintang)</option>
+                  </select>
+                )}
+
                 <div className="relative w-full sm:w-64">
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Cari Nama / NIP..."
+                    placeholder={activeTabReport === 'peserta' ? "Cari Nama / NIP..." : "Cari Peserta / Pelatihan / Kata Kunci..."}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
@@ -318,73 +481,188 @@ const MonitoringReports = ({ onNavigate }) => {
                   Cari
                 </button>
               </form>
-              <button onClick={handleExport} className="bg-white border-2 border-teal-600 text-teal-700 hover:bg-teal-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shrink-0 w-full lg:w-auto justify-center">
-                <Download className="w-4 h-4" />
-                Ekspor Laporan
-              </button>
+
+              {activeTabReport === 'peserta' && (
+                <button onClick={handleExport} className="bg-white border-2 border-teal-600 text-teal-700 hover:bg-teal-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shrink-0 w-full lg:w-auto justify-center">
+                  <Download className="w-4 h-4" />
+                  Ekspor Laporan
+                </button>
+              )}
             </div>
             
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[1000px]">
-                <thead>
-                  <tr className="bg-white border-b border-gray-100">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">NAMA PESERTA / NIP</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">PEMBELAJARAN</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">KOMUNITAS</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">PROGRES (%)</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">STATUS POST TEST</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">SERTIFIKAT</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {reports.map((report) => (
-                    <tr key={report.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-800 mb-0.5">{report.name}</p>
-                        <p className="text-sm text-gray-500">{report.nip}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-800 text-sm">{report.course}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-700 text-sm">{report.community}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div className={`${getProgressBarColor(report.progress)} h-2 rounded-full`} style={{ width: `${report.progress}%` }}></div>
+            {/* Table: Laporan Peserta */}
+            {activeTabReport === 'peserta' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[1100px]">
+                  <thead>
+                    <tr className="bg-white border-b border-gray-100">
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">NAMA PESERTA / NIP</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">PEMBELAJARAN</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">KOMUNITAS</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">PROGRES (%)</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">STATUS POST TEST</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">SERTIFIKAT</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">RATING & ULASAN</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {reports.map((report) => (
+                      <tr key={report.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-800 mb-0.5">{report.name}</p>
+                          <p className="text-sm text-gray-500">{report.nip} • {report.unitKerja}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-800 text-sm">{report.course}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-700 text-sm">{report.community}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                              <div className={`${getProgressBarColor(report.progress)} h-2 rounded-full`} style={{ width: `${report.progress}%` }}></div>
+                            </div>
+                            <span className="font-bold text-gray-800 text-sm">{report.progress}%</span>
                           </div>
-                          <span className="font-bold text-gray-800 text-sm">{report.progress}%</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {getStatusBadge(report.status)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {report.hasCertificate ? (
-                          <button 
-                            onClick={() => handleViewCertificate(report)}
-                            className="text-teal-700 hover:text-teal-800 font-bold text-sm flex items-center gap-1.5 transition-colors"
-                          >
-                            <Award className="w-4 h-4" />
-                            Lihat Sertifikat
-                          </button>
-                        ) : (
-                          <span className="text-gray-400 font-bold">-</span>
-                        )}
-                      </td>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(report.status)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {report.hasCertificate ? (
+                            <button 
+                              onClick={() => handleViewCertificate(report)}
+                              className="text-teal-700 hover:text-teal-800 font-bold text-sm flex items-center gap-1.5 transition-colors"
+                            >
+                              <Award className="w-4 h-4" />
+                              Lihat Sertifikat
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 font-bold">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {report.ulasan ? (
+                            <button
+                              type="button"
+                              onClick={() => handleShowReviewModal(report.name, report.nip, report.course, report.ulasan)}
+                              className="inline-flex flex-col items-center gap-1 group"
+                              title="Klik untuk melihat detail ulasan"
+                            >
+                              <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-bold text-amber-900 group-hover:bg-amber-100 transition-colors">
+                                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                <span>{report.ulasan.skor_rating}.0</span>
+                                <MessageSquare className="w-3 h-3 text-amber-700 ml-0.5" />
+                              </div>
+                              <span className="text-[10px] text-gray-400 group-hover:text-teal-700 transition-colors">Lihat Ulasan</span>
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-400 font-medium">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {reports.length === 0 && (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                          Tidak ada laporan peserta.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Table: Ulasan & Feedback Mutu Pelatihan */}
+            {activeTabReport === 'ulasan' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[1100px]">
+                  <thead>
+                    <tr className="bg-white border-b border-gray-100">
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">PESERTA</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">PELATIHAN & KOMUNITAS</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">PENILAIAN RATING</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">ULASAN / FEEDBACK PESERTA</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">TANGGAL</th>
                     </tr>
-                  ))}
-                  {reports.length === 0 && (
-                    <tr>
-                      <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                        Tidak ada laporan peserta.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {loadingUlasan ? (
+                      <tr>
+                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                          Memuat data ulasan mutu pelatihan...
+                        </td>
+                      </tr>
+                    ) : ulasanList.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                          <div className="max-w-md mx-auto text-center space-y-2">
+                            <Star className="w-8 h-8 text-amber-400 mx-auto fill-amber-50" />
+                            <p className="font-bold text-gray-800 text-sm">Belum Ada Ulasan Peserta</p>
+                            <p className="text-xs text-gray-500">Data ulasan akan tampil di sini saat peserta telah menyelesaikan pelatihan dan mengisi ulasan kepuasan.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      ulasanList.map((rev) => (
+                        <tr key={rev.ulasan_id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs shrink-0">
+                                {(rev.peserta?.nama_lengkap || 'P').charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-800 mb-0.5">{rev.peserta?.nama_lengkap || 'Peserta'}</p>
+                                <p className="text-xs text-gray-500">{rev.peserta?.nip || '-'} • {rev.peserta?.unit_kerja || 'Pemerintah Kabupaten Buleleng'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="font-bold text-gray-800 text-sm">{rev.pembelajaran?.judul_pembelajaran || '-'}</p>
+                            <span className="inline-block mt-1 text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded font-medium">
+                              {rev.pembelajaran?.nama_komunitas || 'Komunitas BKPSDM'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`w-3.5 h-3.5 ${
+                                    s <= rev.skor_rating
+                                      ? 'fill-amber-400 text-amber-400'
+                                      : 'text-gray-300'
+                                  }`}
+                                />
+                              ))}
+                              <span className="text-xs font-bold text-amber-900 ml-1">
+                                {rev.skor_rating}.0
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 max-w-md">
+                            <div className="p-3 bg-gray-50/80 rounded-lg border border-gray-100 text-xs text-gray-800 italic">
+                              "{rev.teks_ulasan || 'Peserta memberikan penilaian rating tanpa komentar teks.'}"
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
+                            {rev.dikirim_pada
+                              ? new Date(rev.dikirim_pada).toLocaleDateString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })
+                              : '-'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
           </div>
 

@@ -16,7 +16,7 @@ const Toast = Swal.mixin({
 import {
   Users, LayoutDashboard, ShieldCheck, BarChart3, LogOut, Bell, Settings,
   Search, ChevronRight, Menu, X, ArrowLeft, BookOpen, FileText, HelpCircle,
-  Eye, File, Clock, PlayCircle, Layers, Sparkles
+  Eye, File, Clock, PlayCircle, Layers, Sparkles, Star, MessageSquare
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'course-validation', onNavigate, isOpen, setIsOpen }) => {
@@ -296,6 +296,63 @@ const CourseReview = ({ onNavigate }) => {
                     Lihat Detail Materi
                   </button>
                 </div>
+              </div>
+
+              {/* Ulasan & Rating Peserta Card */}
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-800 text-base">Ulasan & Rating Peserta</h3>
+                      <p className="text-xs text-gray-500">Penilaian kepuasan mutu dari peserta yang telah mengikuti pelatihan ini.</p>
+                    </div>
+                  </div>
+                  {course.statistik_ulasan?.total > 0 && (
+                    <span className="px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-full text-xs font-bold flex items-center gap-1">
+                      ⭐ {course.statistik_ulasan.rata_rata} ({course.statistik_ulasan.total} Ulasan)
+                    </span>
+                  )}
+                </div>
+
+                {course.statistik_ulasan && course.statistik_ulasan.total > 0 ? (
+                  <div className="space-y-3 mt-4">
+                    {course.statistik_ulasan.daftar.slice(0, 5).map((rev) => (
+                      <div key={rev.ulasan_id} className="p-3.5 bg-gray-50/70 border border-gray-100 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-bold text-gray-800 text-xs">{rev.nama_peserta}</span>
+                            <span className="text-[11px] text-gray-400 ml-2">NIP. {rev.nip}</span>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                className={`w-3 h-3 ${s <= rev.skor_rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700 italic bg-white p-2.5 rounded-lg border border-gray-100">
+                          "{rev.teks_ulasan || 'Tanpa komentar teks'}"
+                        </p>
+                      </div>
+                    ))}
+                    {course.statistik_ulasan.total > 5 && (
+                      <p className="text-xs text-center text-teal-700 font-semibold pt-1">
+                        + {course.statistik_ulasan.total - 5} ulasan lainnya dapat dilihat di menu Monitoring & Laporan
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gray-50/70 rounded-xl border border-dashed border-gray-200 text-center">
+                    <p className="text-xs text-gray-500">
+                      Pelatihan ini belum memiliki ulasan dari peserta (kursus baru atau belum ada peserta yang menyelesaikan).
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 import logoImg from '../assets/logo-removebg-preview 1.png';
 import { 
   Users, BookOpen, Award, TrendingUp, TrendingDown,
   LayoutDashboard, LogOut, Bell, Settings, Search, Menu, X,
   FileText, RotateCcw, ChevronDown, CheckCircle2,
   PlayCircle, Edit, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Clock,
-  BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Download, Eye
+  BarChart2, Book, HelpCircle, GraduationCap, HeadphonesIcon, Download, Eye,
+  Star, MessageSquare
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeMenu = 'laporan-progress', onNavigate, isOpen, setIsOpen }) => {
@@ -232,7 +234,7 @@ const LaporanProgress = ({ onNavigate }) => {
       return;
     }
 
-    const headers = ['No', 'Nama Peserta', 'NIP', 'Rumpun Jabatan', 'Unit Kerja', 'Judul Pelatihan', 'Progres (%)', 'Nilai Post Test', 'Status'];
+    const headers = ['No', 'Nama Peserta', 'NIP', 'Rumpun Jabatan', 'Unit Kerja', 'Judul Pelatihan', 'Progres (%)', 'Nilai Post Test', 'Status', 'Rating', 'Ulasan'];
     const rows = pesertaList.map((p, idx) => [
       idx + 1,
       `"${p.nama || ''}"`,
@@ -242,7 +244,9 @@ const LaporanProgress = ({ onNavigate }) => {
       `"${p.judul_pembelajaran || ''}"`,
       p.progres || 0,
       p.nilai_post_test !== null ? p.nilai_post_test : '-',
-      p.status || '-'
+      p.status || '-',
+      p.ulasan?.skor_rating ? `${p.ulasan.skor_rating}/5` : '-',
+      `"${(p.ulasan?.teks_ulasan || '').replace(/"/g, '""')}"`
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -398,16 +402,17 @@ const LaporanProgress = ({ onNavigate }) => {
                       <th className="px-6 py-4">PROGRES BELAJAR</th>
                       <th className="px-6 py-4 text-center">NILAI POST TEST</th>
                       <th className="px-6 py-4 text-center">STATUS</th>
+                      <th className="px-6 py-4 text-center">ULASAN & RATING</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {loading ? (
                       <tr>
-                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">Memuat data progress...</td>
+                        <td colSpan="7" className="px-6 py-12 text-center text-gray-500">Memuat data progress...</td>
                       </tr>
                     ) : displayedPeserta.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                        <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                           Tidak ada data peserta yang cocok dengan filter.
                         </td>
                       </tr>
@@ -455,6 +460,44 @@ const LaporanProgress = ({ onNavigate }) => {
                             <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full capitalize ${getStatusBadge(row.status)}`}>
                               {(row.status || 'terdaftar').replace('_', ' ')}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {row.ulasan ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  Swal.fire({
+                                    title: 'Ulasan Peserta',
+                                    html: `
+                                      <div class="text-left space-y-3">
+                                        <div class="p-3 bg-gray-50 rounded-lg text-xs space-y-1">
+                                          <p><strong>Peserta:</strong> ${row.nama}</p>
+                                          <p><strong>NIP:</strong> ${row.nip}</p>
+                                          <p><strong>Pelatihan:</strong> ${row.judul_pembelajaran}</p>
+                                          <p><strong>Rating:</strong> ⭐ ${row.ulasan.skor_rating} / 5</p>
+                                        </div>
+                                        <div class="p-3.5 bg-amber-50/70 border border-amber-200 rounded-lg text-xs text-gray-800 italic">
+                                          "${row.ulasan.teks_ulasan || 'Peserta memberikan penilaian rating tanpa komentar teks.'}"
+                                        </div>
+                                      </div>
+                                    `,
+                                    icon: 'info',
+                                    confirmButtonColor: '#0F766E',
+                                    confirmButtonText: 'Tutup'
+                                  });
+                                }}
+                                className="inline-flex flex-col items-center gap-1 group"
+                              >
+                                <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-bold text-amber-900 group-hover:bg-amber-100 transition-colors">
+                                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                  <span>{row.ulasan.skor_rating}.0</span>
+                                  <MessageSquare className="w-3 h-3 text-amber-700 ml-0.5" />
+                                </div>
+                                <span className="text-[10px] text-gray-400 group-hover:text-teal-700 transition-colors">Lihat Ulasan</span>
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400 font-medium">-</span>
+                            )}
                           </td>
                         </tr>
                       ))

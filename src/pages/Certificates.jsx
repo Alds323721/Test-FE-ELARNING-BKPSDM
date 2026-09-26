@@ -96,7 +96,15 @@ const CertificateCard = ({ id, image, title, institution, date, certificateId, i
   return (
     <div className="bg-white border border-[#BBC9C7] rounded-lg overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all">
       <div className="relative">
-        <img src={image} alt={title} className="w-full h-48 object-cover" />
+        <img 
+          src={image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop'} 
+          alt={title} 
+          className="w-full h-48 object-cover" 
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop';
+          }}
+        />
         {isNew && (
           <span className="absolute top-3 left-3 bg-[#F59E0B] text-white px-2.5 py-1 text-[10px] font-bold rounded-full shadow-sm">
             {t('certificates.new')}
@@ -197,7 +205,7 @@ const CertificatesContent = () => {
             <CertificateCard 
                key={cert.sertifikat_id} 
                id={cert.sertifikat_id}
-               image={cert.image}
+               image={cert.thumbnail_url || cert.image}
                title={cert.judul_pelatihan}
                institution="BKPSDM Provinsi Buleleng"
                date={new Date(cert.tanggal_terbit).toLocaleDateString(language === 'EN' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}

@@ -354,8 +354,8 @@ const DetailKursus = ({ onNavigate }) => {
       if (wasPublished) {
         Swal.fire({
           icon: 'info',
-          title: 'Status Berubah ke Draft',
-          text: 'Perubahan informasi dasar & thumbnail berhasil disimpan! Karena pelatihan sebelumnya aktif dipublikasikan, statusnya otomatis dikembalikan ke Draft. Silakan ajukan approval kembali jika sudah siap.',
+          title: 'Status: Menunggu Approval',
+          html: 'Perubahan informasi dasar kursus berhasil disimpan!<br/><span class="text-xs text-gray-600">Kursus otomatis berstatus <b>Menunggu Approval Admin BKPSDM</b> dan tetap tampil terkunci di katalog peserta sampai disetujui kembali.</span>',
           confirmButtonColor: '#0F766E'
         });
       } else {
@@ -1494,10 +1494,10 @@ const DetailKursus = ({ onNavigate }) => {
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-bold text-amber-900 mb-1">Pelatihan Sedang Aktif Dipublikasikan</h3>
                   <p className="text-xs text-amber-800 leading-relaxed mb-2">
-                    Pelatihan ini saat ini berstatus aktif di katalog umum. Jika Anda melakukan perubahan (edit informasi dasar, modul, materi, kuis, atau post-test), status pelatihan akan <b>otomatis kembali menjadi Draft</b> dan ditarik dari katalog publik sampai diajukan dan disetujui kembali oleh Admin BKPSDM.
+                    Pelatihan ini saat ini berstatus aktif di katalog umum. Jika Anda melakukan perubahan (edit informasi dasar, modul, materi, kuis, atau post-test), status pelatihan akan <b>otomatis menjadi Menunggu Approval</b> dan <b>tetap tampil di katalog peserta dalam kondisi terkunci</b> sampai disetujui kembali oleh Admin BKPSDM.
                   </p>
                   <p className="text-[11px] text-amber-700 font-medium">
-                    💡 Anda juga dapat menghapus pelatihan ini secara permanen jika sudah tidak dibutuhkan lagi.
+                    💡 Pelatihan tidak akan hilang dari katalog peserta, melainkan terkunci secara otomatis.
                   </p>
                 </div>
               </div>

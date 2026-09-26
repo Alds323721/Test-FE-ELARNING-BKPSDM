@@ -122,32 +122,26 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
   return (
     <div className={`bg-white border rounded-lg overflow-hidden flex flex-col transition-all relative ${
       is_locked_review 
-        ? 'filter grayscale border-gray-300 bg-gray-50 shadow-xs' 
+        ? 'border-gray-200 bg-white shadow-xs' 
         : 'border-[#BBC9C7] hover:shadow-lg hover:-translate-y-1'
     }`}>
       <div className="h-44 relative overflow-hidden">
         <img 
-          src={image} 
+          src={image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60'} 
           alt={title} 
-          className={`w-full h-full object-cover transition-transform ${is_locked_review ? 'opacity-60 contrast-75' : ''}`} 
+          className={`w-full h-full object-cover transition-transform duration-300 ${is_locked_review ? 'opacity-80 grayscale-[25%]' : 'hover:scale-105'}`} 
         />
         
-        <div className="absolute bottom-3 left-3 bg-white px-3 py-1 text-[11px] font-bold text-[#1D315F] shadow-sm rounded-sm">
+        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#1D315F] text-[11px] font-bold px-3 py-1 rounded shadow-sm">
           {category}
         </div>
 
-        {/* Lock Overlay & Badge jika sedang menunggu approval */}
+        {/* Lock Badge seperti pada Komunitas beda jabatan */}
         {is_locked_review && (
-          <>
-            <div className="absolute inset-0 bg-slate-900/35 backdrop-blur-[0.5px] flex items-center justify-center">
-              <div className="w-11 h-11 rounded-full bg-white/95 text-gray-700 flex items-center justify-center shadow-md">
-                <Lock className="w-5 h-5 text-gray-600" />
-              </div>
-            </div>
-            <div className="absolute top-3 right-3 bg-amber-500/95 text-white px-2.5 py-1 text-[11px] font-bold rounded shadow-sm flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" /> Sedang Ditinjau BKPSDM
-            </div>
-          </>
+          <div className="absolute top-3 right-3 bg-gray-900/80 backdrop-blur-sm text-gray-200 text-[10px] font-semibold px-2.5 py-1 rounded shadow-sm flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Sedang Ditinjau BKPSDM</span>
+          </div>
         )}
       </div>
 
@@ -159,17 +153,10 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
           </div>
         )}
 
-        <h3 className="font-bold text-[#1D315F] text-[17px] leading-snug mb-2 flex items-center gap-1.5">
+        <h3 className={`font-bold text-[17px] leading-snug mb-2 flex items-center gap-1.5 ${is_locked_review ? 'text-gray-700' : 'text-[#1D315F]'}`}>
           {is_locked_review && <Lock className="w-4 h-4 text-gray-400 shrink-0 inline" />}
           <span className="line-clamp-2">{title}</span>
         </h3>
-
-        {is_locked_review && (
-          <div className="mb-3 px-2 py-1 bg-amber-50/80 border border-amber-200/70 rounded text-[11px] font-semibold text-amber-800 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span>Pembaruan materi menunggu approval BKPSDM</span>
-          </div>
-        )}
 
         <p className="text-[12px] text-gray-500 line-clamp-3 mb-5 flex-1">{description}</p>
         
@@ -179,15 +166,20 @@ const CatalogCard = ({ id, image, category, title, description, jpl, modules, is
         </div>
         
         {is_locked_review ? (
-          <button
-            type="button"
-            onClick={handleShowLockedAlert}
-            className="w-full py-2.5 bg-gray-200 hover:bg-gray-250 text-gray-600 rounded-md text-[13px] font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 border border-gray-300 shadow-2xs"
-            title="Klik untuk info detail status verifikasi"
-          >
-            <Lock className="w-4 h-4 text-gray-500" />
-            <span>Terkunci (Ditinjau BKPSDM)</span>
-          </button>
+          <div>
+            <button
+              type="button"
+              onClick={handleShowLockedAlert}
+              className="w-full py-2.5 bg-gray-200 text-gray-500 border border-gray-300 rounded-md text-[13px] font-bold cursor-not-allowed flex items-center justify-center gap-2 select-none shadow-none hover:bg-gray-250 transition-colors"
+              title="Klik untuk melihat status peninjauan materi oleh Admin BKPSDM"
+            >
+              <Lock className="w-4 h-4 text-gray-400" />
+              <span>Terkunci (Ditinjau BKPSDM)</span>
+            </button>
+            <p className="text-[11px] text-gray-400 text-center mt-1.5 font-medium">
+              Tidak dapat diakses sementara (menunggu approval)
+            </p>
+          </div>
         ) : isEnrolled ? (
           <button
             onClick={() => {
